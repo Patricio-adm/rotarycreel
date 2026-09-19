@@ -2,10 +2,22 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_sqlalchemy import SQLAlchemy
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 # Inicializar la aplicación Flask
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_rotary_creel_2026'
+
+# Configuración de la carpeta de subidas de fotos
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Asegurarse de que la carpeta de subidas exista localmente
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Configuración de la base de datos (con tu conexión a Supabase)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
@@ -102,24 +114,31 @@ def editar_socio(id):
     socio.correo = request.form.get('correo')
     socio.tipo_socio = request.form.get('tipo_socio')
     socio.ciudad = request.form.get('ciudad')
-    socio.foto_url = request.form.get('foto_url')  # Guardar la URL de la foto
+    
+    # Manejar la subida del archivo de foto local
+    file = request.files.get('foto_archivo')
+    if file and file.filename != '':
+        if allowed_file(file.filename):
+            filename = secure_filename(f"socio_{socio.id}_{file.filename}")
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            # Guardamos la ruta relativa en la base de datos
+            socio.foto_url = f"/{filepath}"
     
     # Manejar puesto actual o nuevo cargo si se envía
     nuevo_cargo = request.form.get('cargo_actual')
     periodo_actual = request.form.get('periodo_actual', '2026-2027')
     
     if nuevo_cargo:
-        # Desmarcar cargos actuales anteriores
         for c in socio.cargos:
             if c.es_actual:
                 c.es_actual = False
         
-        # Agregar el nuevo cargo actual
         cargo_db = HistorialCargo(socio_id=socio.id, cargo=nuevo_cargo, periodo=periodo_actual, es_actual=True)
         db.session.add(cargo_db)
         
     db.session.commit()
-    flash('Socio actualizado correctamente', 'success')
+    flash('Socio y fotografía actualizados correctamente', 'success')
     return redirect(url_for('gestion_socios'))
 
 @app.route('/tesoreria')
