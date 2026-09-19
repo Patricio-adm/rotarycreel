@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_rotary_creel_2026'
 
-# Configuración de la base de datos (con tu conexión a Supabase)
+# Configuración de la base de datos
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -16,7 +16,7 @@ db = SQLAlchemy(app, engine_options={
     "pool_recycle": 300,
 })
 
-# Modelos de la Base de Datos (Mapeados exactamente a tus tablas de Supabase)
+# Modelos de la Base de Datos
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -34,6 +34,18 @@ class Socio(db.Model):
     ciudad = db.Column(db.String(100))
     estado = db.Column(db.String(100))
     es_activo = db.Column(db.Boolean)
+    foto_url = db.Column(db.String(255))
+    
+    # Relación con el historial de cargos
+    cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
+
+class HistorialCargo(db.Model):
+    __tablename__ = 'historial_cargos'
+    id = db.Column(db.Integer, primary_key=True)
+    socio_id = db.Column(db.Integer, db.ForeignKey('socios.id'), nullable=False)
+    cargo = db.Column(db.String(100), nullable=False)
+    periodo = db.Column(db.String(50), nullable=False)
+    es_actual = db.Column(db.Boolean, default=False)
 
 # Crear tablas y usuario administrador por defecto al iniciar
 with app.app_context():
