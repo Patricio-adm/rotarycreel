@@ -48,11 +48,11 @@
                             {% if socios %}
                                 {% for socio in socios %}
                                 <tr>
-                                    <td class="ps-3 fw-bold">{{ socio.id }}</td>
-                                    <td><span class="badge bg-secondary">{{ socio.tipo or 'Socio' }}</span></td>
-                                    <td class="fw-semibold text-dark">{{ socio.nombre }}</td>
+                                    <td class="ps-3 fw-bold">{{ socio.numero_socio or socio.id }}</td>
+                                    <td><span class="badge bg-secondary">{{ socio.tipo_socio or 'Socio' }}</span></td>
+                                    <td class="fw-semibold text-dark">{{ socio.nombre_completo }}</td>
                                     <td>{{ socio.telefono or 'N/D' }}</td>
-                                    <td>{{ socio.ciudad or 'Creel, Chih.' }}</td>
+                                    <td>{{ socio.ciudad or 'Creel' }}, {{ socio.estado or 'Chih.' }}</td>
                                     <td class="text-end pe-3">
                                         <button class="btn btn-sm btn-outline-primary">Editar</button>
                                     </td>

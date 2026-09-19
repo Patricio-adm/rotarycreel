@@ -16,7 +16,7 @@ db = SQLAlchemy(app, engine_options={
     "pool_recycle": 300,
 })
 
-# Modelos de la Base de Datos
+# Modelos de la Base de Datos (Mapeados exactamente a tus tablas de Supabase)
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -26,10 +26,14 @@ class Usuario(db.Model):
 class Socio(db.Model):
     __tablename__ = 'socios'
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(150), nullable=False)
-    tipo = db.Column(db.String(50))
+    numero_socio = db.Column(db.String(50))
+    nombre_completo = db.Column(db.String(150), nullable=False)
     telefono = db.Column(db.String(50))
+    correo = db.Column(db.String(100))
+    tipo_socio = db.Column(db.String(50))
     ciudad = db.Column(db.String(100))
+    estado = db.Column(db.String(100))
+    es_activo = db.Column(db.Boolean)
 
 # Crear tablas y usuario administrador por defecto al iniciar
 with app.app_context():
@@ -72,8 +76,12 @@ def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    # Consultar los socios de Supabase para que aparezcan en la tabla
-    lista_socios = Socio.query.all()
+    try:
+        lista_socios = Socio.query.all()
+    except Exception as e:
+        print(f"Error al consultar socios: {e}")
+        lista_socios = []
+        
     return render_template('socios.html', socios=lista_socios)
 
 @app.route('/tesoreria')
