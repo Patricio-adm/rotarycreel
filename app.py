@@ -122,7 +122,6 @@ def editar_socio(id):
             filename = secure_filename(f"socio_{socio.id}_{file.filename}")
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            # Guardamos la ruta relativa en la base de datos
             socio.foto_url = f"/{filepath}"
     
     # Manejar puesto actual o nuevo cargo si se envía
