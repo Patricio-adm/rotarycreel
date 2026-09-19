@@ -36,6 +36,7 @@ class Socio(db.Model):
     es_activo = db.Column(db.Boolean)
     foto_url = db.Column(db.String(255))
     
+    # Relación con el historial de cargos
     cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
 
 class HistorialCargo(db.Model):
@@ -46,7 +47,7 @@ class HistorialCargo(db.Model):
     periodo = db.Column(db.String(50), nullable=False)
     es_actual = db.Column(db.Boolean, default=False)
 
-# Crear tablas y usuario administrador por defecto al iniciar
+# Crear tablas automáticamente y asegurar usuario administrador al iniciar
 with app.app_context():
     db.create_all()
     if not Usuario.query.filter_by(username='admin').first():
