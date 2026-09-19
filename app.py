@@ -88,11 +88,9 @@ def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    try:
-        lista_socios = Socio.query.all()
-    except Exception as e:
-        print(f"Error al consultar socios: {e}")
-        lista_socios = []
+    # Consulta directa para verificar el padrón
+    lista_socios = Socio.query.all()
+    print(f"Socios encontrados en base de datos: {len(lista_socios)}")
         
     return render_template('socios.html', socios=lista_socios)
 
