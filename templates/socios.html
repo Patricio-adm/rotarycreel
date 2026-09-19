@@ -40,7 +40,7 @@
                                 <th class="ps-3">Foto</th>
                                 <th># Socio</th>
                                 <th>Nombre Completo</th>
-                                <th>Puesto Actual (Periodo)</th>
+                                <th>Puesto Actual / Cargos</th>
                                 <th>Teléfono</th>
                                 <th>Ubicación</th>
                                 <th class="text-end pe-3">Acciones</th>
@@ -62,16 +62,16 @@
                                     <td class="fw-bold text-secondary">{{ socio.numero_socio or socio.id }}</td>
                                     <td class="fw-semibold text-dark">{{ socio.nombre_completo }}</td>
                                     <td>
-                                        <!-- Identificar cargo actual -->
-                                        {% set cargo_actual = socios_cargos_actuales | default(none) %}
-                                        {% set found = false %}
-                                        {% for c in socio.cargos %}
-                                            {% if c.es_actual %}
-                                                <span class="badge bg-success">{{ c.cargo }} ({{ c.periodo }})</span>
-                                                {% set found = true %}
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if not found %}
+                                        {% set has_cargo = false %}
+                                        {% if socio.cargos %}
+                                            {% for c in socio.cargos %}
+                                                {% if c.es_actual %}
+                                                    <span class="badge bg-success mb-1">{{ c.cargo }} ({{ c.periodo }})</span><br>
+                                                    {% set has_cargo = true %}
+                                                {% endif %}
+                                            endfor %}
+                                        {% endif %}
+                                        {% if not has_cargo %}
                                             <span class="text-muted small">Socio Activo</span>
                                         {% endif %}
                                     </td>

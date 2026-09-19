@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_rotary_creel_2026'
 
-# Configuración de la base de datos
+# Configuración de la base de datos (con tu conexión a Supabase)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
