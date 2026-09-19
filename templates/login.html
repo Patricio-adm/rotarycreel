@@ -6,17 +6,45 @@
     <title>Login - Rotary Club Creel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f4f6f9; height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .login-card { width: 100%; max-width: 400px; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); background: white; }
-        .rotary-blue { color: #005A9C; }
-        .btn-rotary { background-color: #005A9C; color: white; }
-        .btn-rotary:hover { background-color: #00407a; color: white; }
+        body { 
+            background: linear-gradient(135deg, #17458F 0%, #0c2340 100%); 
+            height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .login-card { 
+            width: 100%; 
+            max-width: 420px; 
+            padding: 35px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            background: white; 
+            border-top: 6px solid #F7A81B;
+        }
+        .rotary-blue { color: #17458F; }
+        .btn-rotary { 
+            background-color: #17458F; 
+            color: white; 
+            font-weight: 600;
+        }
+        .btn-rotary:hover { 
+            background-color: #0f326b; 
+            color: white; 
+        }
+        .rotary-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
     <div class="login-card text-center">
-        <!-- Espacio para el logo del club -->
-        <h3 class="fw-bold rotary-blue mb-1">ROTARY CLUB CREEL</h3>
+        <!-- Rueda / Logo oficial de Rotary International -->
+        <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/Rotary_International_Logo.svg" alt="Rotary International" class="rotary-logo">
+        
+        <h4 class="fw-bold rotary-blue mb-1">ROTARY CLUB CREEL</h4>
         <p class="text-muted small mb-4">Sistema de Gestión de Socios y Tesorería</p>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -32,14 +60,14 @@
 
         <form method="POST">
             <div class="mb-3 text-start">
-                <label for="username" class="form-label">Usuario</label>
+                <label for="username" class="form-label text-secondary fw-semibold small">USUARIO</label>
                 <input type="text" class="form-control" id="username" name="username" required autofocus>
             </div>
             <div class="mb-3 text-start">
-                <label for="password" class="form-label">Contraseña</label>
+                <label for="password" class="form-label text-secondary fw-semibold small">CONTRASEÑA</label>
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn btn-rotary w-100 py-2 fw-bold">Ingresar al Sistema</button>
+            <button type="submit" class="btn btn-rotary w-100 py-2 mt-2 shadow-sm">Ingresar al Sistema</button>
         </form>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
