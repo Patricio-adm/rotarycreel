@@ -36,7 +36,6 @@ class Socio(db.Model):
     es_activo = db.Column(db.Boolean)
     foto_url = db.Column(db.String(255))
     
-    # Relación con el historial de cargos
     cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
 
 class HistorialCargo(db.Model):
