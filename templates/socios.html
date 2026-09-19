@@ -10,7 +10,7 @@
         .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
         .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
         .btn-rotary:hover { background-color: #0f326b; color: white; }
-        .avatar-initials { width: 32px; height: 32px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; font-size: 0.8rem; }
+        .avatar-img { width: 36px; height: 36px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; }
     </style>
 </head>
 <body>
@@ -46,11 +46,10 @@
         <div class="card shadow-sm border-0 rounded-3">
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <!-- Tabla más chica con table-sm -->
                     <table class="table table-sm table-hover align-middle mb-0 small">
                         <thead class="table-light text-secondary">
                             <tr>
-                                <th class="ps-3 py-2">Inciales</th>
+                                <th class="ps-3 py-2">Foto</th>
                                 <th class="py-2"># Socio</th>
                                 <th class="py-2">Nombre Completo</th>
                                 <th class="py-2">Puesto Actual / Cargos</th>
@@ -63,10 +62,14 @@
                             {% if socios %}
                                 {% for socio in socios %}
                                 <tr>
-                                    <td class="ps-3">
-                                        <div class="avatar-initials bg-secondary text-white d-flex align-items-center justify-content-center fw-bold">
-                                            {{ socio.nombre_completo[:2].upper() }}
-                                        </div>
+                                    <td class="ps-3 py-1">
+                                        {% if socio.foto_url %}
+                                            <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-img">
+                                        {% else %}
+                                            <div class="avatar-img bg-secondary text-white d-flex align-items-center justify-content-center fw-bold small">
+                                                {{ socio.nombre_completo[:2].upper() }}
+                                            </div>
+                                        {% endif %}
                                     </td>
                                     <td class="fw-bold text-secondary">{{ socio.numero_socio or socio.id }}</td>
                                     <td class="fw-semibold text-dark">{{ socio.nombre_completo }}</td>
@@ -122,9 +125,15 @@
                                                         <label class="form-label fw-semibold">Correo Electrónico</label>
                                                         <input type="email" class="form-control form-control-sm" name="correo" value="{{ socio.correo or '' }}">
                                                     </div>
-                                                    <div class="mb-2">
-                                                        <label class="form-label fw-semibold">Ciudad</label>
-                                                        <input type="text" class="form-control form-control-sm" name="ciudad" value="{{ socio.ciudad or 'Creel' }}">
+                                                    <div class="row mb-2">
+                                                        <div class="col">
+                                                            <label class="form-label fw-semibold">Ciudad</label>
+                                                            <input type="text" class="form-control form-control-sm" name="ciudad" value="{{ socio.ciudad or 'Creel' }}">
+                                                        </div>
+                                                        <div class="col">
+                                                            <label class="form-label fw-semibold">URL de la Foto (Imagen)</label>
+                                                            <input type="url" class="form-control form-control-sm" name="foto_url" value="{{ socio.foto_url or '' }}" placeholder="https://ejemplo.com/foto.jpg">
+                                                        </div>
                                                     </div>
                                                     <hr class="my-2">
                                                     <h6 class="fw-bold text-dark small">Asignar Cargo / Puesto Actual</h6>

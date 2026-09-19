@@ -34,6 +34,7 @@ class Socio(db.Model):
     ciudad = db.Column(db.String(100))
     estado = db.Column(db.String(100))
     es_activo = db.Column(db.Boolean)
+    foto_url = db.Column(db.String(255))
     
     # Relación con el historial de cargos
     cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
@@ -101,6 +102,7 @@ def editar_socio(id):
     socio.correo = request.form.get('correo')
     socio.tipo_socio = request.form.get('tipo_socio')
     socio.ciudad = request.form.get('ciudad')
+    socio.foto_url = request.form.get('foto_url')  # Guardar la URL de la foto
     
     # Manejar puesto actual o nuevo cargo si se envía
     nuevo_cargo = request.form.get('cargo_actual')
