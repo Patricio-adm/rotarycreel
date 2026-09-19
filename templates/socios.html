@@ -1,61 +1,75 @@
-cat << 'EOF' > templates/socios.html
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Tesorería - Club Rotario Creel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Socios - Rotary Club Creel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; }
+        .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
+        .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
+        .btn-rotary:hover { background-color: #0f326b; color: white; }
+    </style>
 </head>
-<body class="bg-light">
-    <div class="container mt-5 mb-5">
+<body>
+
+    <!-- Barra Superior -->
+    <nav class="navbar navbar-dark navbar-rotary px-4 mb-4 shadow-sm">
+        <a class="navbar-brand fw-bold" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Padrón de Socios</a>
+        <div>
+            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2">Menú Principal</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-warning btn-sm fw-bold">Cerrar Sesión</a>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="text-primary">Gestión de Socios - Tesorería</h2>
-            <a href="/socio/nuevo" class="btn btn-success">Registrar Nuevo Socio</a>
+            <h3 class="fw-bold text-dark mb-0">Gestión de Socios</h3>
+            <a href="#" class="btn btn-rotary shadow-sm">Registrar Nuevo Socio</a>
         </div>
 
-        <!-- Listado de socios -->
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">Socios Registrados</h5>
-                <table class="table table-striped mt-3 align-middle">
-                    <thead>
-                        <tr>
-                            <th># Socio</th>
-                            <th>Tipo</th>
-                            <th>Nombre Completo</th>
-                            <th>Teléfono</th>
-                            <th>Ciudad / Estado</th>
-                            <th class="text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for socio in socios %}
-                        <tr>
-                            <td>{{ socio.numero_socio or 'N/A' }}</td>
-                            <td>
-                                {% if socio.tipo_socio == 'HONORARIO' %}
-                                    <span class="badge bg-secondary">Honorario</span>
-                                {% else %}
-                                    <span class="badge bg-primary">Activo</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ socio.nombre_completo }}</td>
-                            <td>{{ socio.telefono or '-' }}</td>
-                            <td>{{ socio.ciudad or '-' }}{% if socio.estado %}, {{ socio.estado }}{% endif %}</td>
-                            <td class="text-center">
-                                <a href="/socio/editar/{{ socio.id }}" class="btn btn-primary btn-sm">Editar / Detalles</a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center text-muted">No hay socios registrados todavía.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-secondary">
+                            <tr>
+                                <th class="ps-3"># Socio</th>
+                                <th>Tipo</th>
+                                <th>Nombre Completo</th>
+                                <th>Teléfono</th>
+                                <th>Ciudad / Estado</th>
+                                <th class="text-end pe-3">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if socios %}
+                                {% for socio in socios %}
+                                <tr>
+                                    <td class="ps-3 fw-bold">{{ socio.id }}</td>
+                                    <td><span class="badge bg-secondary">{{ socio.tipo or 'Socio' }}</span></td>
+                                    <td class="fw-semibold text-dark">{{ socio.nombre }}</td>
+                                    <td>{{ socio.telefono or 'N/D' }}</td>
+                                    <td>{{ socio.ciudad or 'Creel, Chih.' }}</td>
+                                    <td class="text-end pe-3">
+                                        <button class="btn btn-sm btn-outline-primary">Editar</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">No hay socios registrados todavía.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-EOF
