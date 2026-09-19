@@ -13,7 +13,7 @@ UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Asegurarse de que la carpeta de subidas exista localmente
+# Asegurarse de que la carpeta de subidas exista
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
@@ -115,14 +115,15 @@ def editar_socio(id):
     socio.tipo_socio = request.form.get('tipo_socio')
     socio.ciudad = request.form.get('ciudad')
     
-    # Manejar la subida del archivo de foto local
+    # Manejar la subida del archivo de foto local asegurando formato de ruta limpio
     file = request.files.get('foto_archivo')
     if file and file.filename != '':
         if allowed_file(file.filename):
             filename = secure_filename(f"socio_{socio.id}_{file.filename}")
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            socio.foto_url = f"/{filepath}"
+            # Guardamos la ruta relativa limpia empezando con /static/...
+            socio.foto_url = f"/{filepath}" if not filepath.startswith('/') else filepath
     
     # Manejar puesto actual o nuevo cargo si se envía
     nuevo_cargo = request.form.get('cargo_actual')

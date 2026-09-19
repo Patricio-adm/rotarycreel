@@ -10,7 +10,6 @@
         .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
         .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
         .btn-rotary:hover { background-color: #0f326b; color: white; }
-        /* Foto 100% más grande (aprox 72px) */
         .avatar-img { width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; }
         .avatar-lg { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid #17458F; }
         .clickable-name { color: #17458F; text-decoration: none; font-weight: 600; cursor: pointer; }
@@ -68,7 +67,7 @@
                                 <tr>
                                     <td class="ps-3 py-2">
                                         {% if socio.foto_url %}
-                                            <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-img">
+                                            <img src="{{ socio.foto_url.lstrip('/') }}" alt="Foto" class="avatar-img">
                                         {% else %}
                                             <div class="avatar-img bg-secondary text-white d-flex align-items-center justify-content-center fw-bold fs-5">
                                                 {{ socio.nombre_completo[:2].upper() }}
@@ -77,7 +76,6 @@
                                     </td>
                                     <td class="fw-bold text-secondary">{{ socio.numero_socio or socio.id }}</td>
                                     <td>
-                                        <!-- Al hacer clic en el nombre se despliega el perfil completo -->
                                         <a href="#" class="clickable-name" data-bs-toggle="modal" data-bs-target="#profileModal{{ socio.id }}">
                                             {{ socio.nombre_completo }}
                                         </a>
@@ -99,14 +97,13 @@
                                     <td>{{ socio.telefono or 'N/D' }}</td>
                                     <td>{{ socio.ciudad or 'Creel' }}</td>
                                     <td class="text-end pe-3">
-                                        <!-- Botón Editar / Cargos -->
                                         <button class="btn btn-sm btn-outline-primary py-0 px-2" data-bs-toggle="modal" data-bs-target="#editModal{{ socio.id }}">
                                             Editar / Cargos
                                         </button>
                                     </td>
                                 </tr>
 
-                                <!-- Modal de Perfil Completo (Al hacer clic en el nombre) -->
+                                <!-- Modal de Perfil Completo (Filtrando historial desde periodo 2023-2024) -->
                                 <div class="modal fade text-start" id="profileModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
@@ -116,7 +113,7 @@
                                             </div>
                                             <div class="modal-body text-center py-4">
                                                 {% if socio.foto_url %}
-                                                    <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-lg mb-3 shadow-sm">
+                                                    <img src="{{ socio.foto_url.lstrip('/') }}" alt="Foto" class="avatar-lg mb-3 shadow-sm">
                                                 {% else %}
                                                     <div class="avatar-lg bg-secondary text-white d-flex align-items-center justify-content-center fw-bold fs-2 mx-auto mb-3 shadow-sm">
                                                         {{ socio.nombre_completo[:2].upper() }}
@@ -132,23 +129,31 @@
                                                 </div>
 
                                                 <div class="text-start">
-                                                    <h6 class="fw-bold text-secondary small text-uppercase">Historial de Cargos Directivos</h6>
+                                                    <h6 class="fw-bold text-secondary small text-uppercase">Historial de Cargos (Desde 2023-2024)</h6>
+                                                    {% set ns_cargos = namespace(count=0) %}
                                                     {% if socio.cargos %}
                                                         <ul class="list-group list-group-flush small">
                                                             {% for c in socio.cargos %}
-                                                                <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
-                                                                    <span>
-                                                                        <strong>{{ c.cargo }}</strong>
-                                                                        {% if c.es_actual %}
-                                                                            <span class="badge bg-success ms-1">Actual</span>
-                                                                        {% endif %}
-                                                                    </span>
-                                                                    <span class="text-muted">Periodo: {{ c.periodo }}</span>
-                                                                </li>
-                                                            {% endfor %}
+                                                                {# Filtramos para mostrar únicamente periodos 2023-2024 en adelante #}
+                                                                {% if c.periodo >= '2023-2024' %}
+                                                                    {% set ns_cargos.count = ns_cargos.count + 1 %}
+                                                                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
+                                                                        <span>
+                                                                            <strong>{{ c.cargo }}</strong>
+                                                                            {% if c.es_actual %}
+                                                                                <span class="badge bg-success ms-1">Actual</span>
+                                                                            {% endif %}
+                                                                        </span>
+                                                                        <span class="text-muted">Periodo: {{ c.periodo }}</span>
+                                                                    </li>
+                                                                {% endif %}
+                                                            endfor %}
                                                         </ul>
+                                                        {% if ns_cargos.count == 0 %}
+                                                            <p class="text-muted small italic">No hay registros de cargos a partir del periodo 2023-2024.</p>
+                                                        {% endif %}
                                                     {% else %}
-                                                        <p class="text-muted small italic">No hay historial de cargos registrado para este socio.</p>
+                                                        <p class="text-muted small italic">No hay historial de cargos registrado.</p>
                                                     {% endif %}
                                                 </div>
                                             </div>
@@ -161,7 +166,7 @@
                                 </div>
                                 <!-- Fin Modal de Perfil -->
 
-                                <!-- Modal de Edición por cada Socio -->
+                                <!-- Modal de Edición (Con los nuevos cargos y comités agregados) -->
                                 <div class="modal fade text-start" id="editModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
@@ -200,19 +205,25 @@
                                                         </div>
                                                     </div>
                                                     <hr class="my-2">
-                                                    <h6 class="fw-bold text-dark small">Asignar Cargo / Puesto Actual</h6>
+                                                    <h6 class="fw-bold text-dark small">Asignar Cargo / Comité Actual</h6>
                                                     <div class="row mb-2">
                                                         <div class="col-8">
-                                                            <label class="form-label text-muted">Cargo Directivo (Menú)</label>
+                                                            <label class="form-label text-muted">Cargo / Comité</label>
                                                             <select class="form-select form-select-sm" name="cargo_actual">
                                                                 <option value="">-- Sin Cargo Directivo --</option>
                                                                 <option value="Presidente">Presidente</option>
+                                                                <option value="Past President">Past President</option>
+                                                                <option value="Presidente Electo">Presidente Electo</option>
                                                                 <option value="Secretario">Secretario</option>
                                                                 <option value="Tesorero">Tesorero</option>
                                                                 <option value="Macero (Sergeant-at-Arms)">Macero (Sergeant-at-Arms)</option>
+                                                                <option value="Servicio a la Comunidad">Servicio a la Comunidad</option>
+                                                                <option value="Programas para Líderes Jóvenes">Programas para Líderes Jóvenes</option>
+                                                                <option value="Comité de Imagen Pública del club">Comité de Imagen Pública del club</option>
+                                                                <option value="Facilitador de aprendizaje">Facilitador de aprendizaje</option>
+                                                                <option value="Comité de la Fundación Rotaria">Comité de la Fundación Rotaria</option>
+                                                                <option value="Comité de Membresía del club">Comité de Membresía del club</option>
                                                                 <option value="Revisor / Comité de Finanzas">Revisor / Comité de Finanzas</option>
-                                                                <option value="Presidente Electo">Presidente Electo</option>
-                                                                <option value="Vocero / Imagen Pública">Vocero / Imagen Pública</option>
                                                             </select>
                                                         </div>
                                                         <div class="col-4">
