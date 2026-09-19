@@ -10,14 +10,14 @@
         .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
         .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
         .btn-rotary:hover { background-color: #0f326b; color: white; }
-        .avatar-img { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; }
+        .avatar-initials { width: 32px; height: 32px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
     <!-- Barra Superior -->
-    <nav class="navbar navbar-dark navbar-rotary px-4 mb-4 shadow-sm">
-        <a class="navbar-brand fw-bold" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Padrón de Socios</a>
+    <nav class="navbar navbar-dark navbar-rotary px-4 mb-3 shadow-sm py-2">
+        <a class="navbar-brand fw-bold fs-6" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Padrón de Socios</a>
         <div>
             <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2">Menú Principal</a>
             <a href="{{ url_for('logout') }}" class="btn btn-warning btn-sm fw-bold">Cerrar Sesión</a>
@@ -25,25 +25,38 @@
     </nav>
 
     <!-- Contenido Principal -->
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold text-dark mb-0">Gestión de Socios y Cargos</h3>
-            <a href="#" class="btn btn-rotary shadow-sm">Registrar Nuevo Socio</a>
+    <div class="container pb-4">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show py-2 small" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0">Gestión de Socios y Cargos</h5>
+            <a href="#" class="btn btn-rotary btn-sm shadow-sm">Registrar Nuevo Socio</a>
         </div>
 
         <div class="card shadow-sm border-0 rounded-3">
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <!-- Tabla más chica con table-sm -->
+                    <table class="table table-sm table-hover align-middle mb-0 small">
                         <thead class="table-light text-secondary">
                             <tr>
-                                <th class="ps-3">Foto</th>
-                                <th># Socio</th>
-                                <th>Nombre Completo</th>
-                                <th>Puesto Actual / Cargos</th>
-                                <th>Teléfono</th>
-                                <th>Ubicación</th>
-                                <th class="text-end pe-3">Acciones</th>
+                                <th class="ps-3 py-2">Inciales</th>
+                                <th class="py-2"># Socio</th>
+                                <th class="py-2">Nombre Completo</th>
+                                <th class="py-2">Puesto Actual / Cargos</th>
+                                <th class="py-2">Teléfono</th>
+                                <th class="py-2">Ubicación</th>
+                                <th class="text-end pe-3 py-2">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -51,13 +64,9 @@
                                 {% for socio in socios %}
                                 <tr>
                                     <td class="ps-3">
-                                        {% if socio.foto_url %}
-                                            <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-img">
-                                        {% else %}
-                                            <div class="avatar-img bg-secondary text-white d-flex align-items-center justify-content-center fw-bold small">
-                                                {{ socio.nombre_completo[:2].upper() }}
-                                            </div>
-                                        {% endif %}
+                                        <div class="avatar-initials bg-secondary text-white d-flex align-items-center justify-content-center fw-bold">
+                                            {{ socio.nombre_completo[:2].upper() }}
+                                        </div>
                                     </td>
                                     <td class="fw-bold text-secondary">{{ socio.numero_socio or socio.id }}</td>
                                     <td class="fw-semibold text-dark">{{ socio.nombre_completo }}</td>
@@ -72,15 +81,83 @@
                                             {% endfor %}
                                         {% endif %}
                                         {% if not ns.has_cargo %}
-                                            <span class="text-muted small">Socio Activo</span>
+                                            <span class="text-muted">Socio Activo</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ socio.telefono or 'N/D' }}</td>
-                                    <td>{{ socio.ciudad or 'Creel' }}, {{ socio.estado or 'Chih.' }}</td>
+                                    <td>{{ socio.ciudad or 'Creel' }}</td>
                                     <td class="text-end pe-3">
-                                        <button class="btn btn-sm btn-outline-primary">Editar / Cargos</button>
+                                        <!-- Botón que activa el Modal de Edición -->
+                                        <button class="btn btn-sm btn-outline-primary py-0 px-2" data-bs-toggle="modal" data-bs-target="#editModal{{ socio.id }}">
+                                            Editar / Cargos
+                                        </button>
                                     </td>
                                 </tr>
+
+                                <!-- Modal de Edición por cada Socio -->
+                                <div class="modal fade text-start" id="editModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form action="{{ url_for('editar_socio', id=socio.id) }}" method="POST">
+                                                <div class="modal-header bg-light py-2">
+                                                    <h6 class="modal-title fw-bold text-primary">Editar Socio: {{ socio.nombre_completo }}</h6>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body small">
+                                                    <div class="mb-2">
+                                                        <label class="form-label fw-semibold">Nombre Completo</label>
+                                                        <input type="text" class="form-control form-control-sm" name="nombre_completo" value="{{ socio.nombre_completo }}" required>
+                                                    </div>
+                                                    <div class="row mb-2">
+                                                        <div class="col">
+                                                            <label class="form-label fw-semibold">Teléfono</label>
+                                                            <input type="text" class="form-control form-control-sm" name="telefono" value="{{ socio.telefono or '' }}">
+                                                        </div>
+                                                        <div class="col">
+                                                            <label class="form-label fw-semibold">Tipo de Socio</label>
+                                                            <input type="text" class="form-control form-control-sm" name="tipo_socio" value="{{ socio.tipo_socio or 'Socio' }}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <label class="form-label fw-semibold">Correo Electrónico</label>
+                                                        <input type="email" class="form-control form-control-sm" name="correo" value="{{ socio.correo or '' }}">
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <label class="form-label fw-semibold">Ciudad</label>
+                                                        <input type="text" class="form-control form-control-sm" name="ciudad" value="{{ socio.ciudad or 'Creel' }}">
+                                                    </div>
+                                                    <hr class="my-2">
+                                                    <h6 class="fw-bold text-dark small">Asignar Cargo / Puesto Actual</h6>
+                                                    <div class="row mb-2">
+                                                        <div class="col-8">
+                                                            <label class="form-label text-muted">Cargo Directivo (Menú)</label>
+                                                            <select class="form-select form-select-sm" name="cargo_actual">
+                                                                <option value="">-- Sin Cargo Directivo --</option>
+                                                                <option value="Presidente">Presidente</option>
+                                                                <option value="Secretario">Secretario</option>
+                                                                <option value="Tesorero">Tesorero</option>
+                                                                <option value="Macero (Sergeant-at-Arms)">Macero (Sergeant-at-Arms)</option>
+                                                                <option value="Revisor / Comité de Finanzas">Revisor / Comité de Finanzas</option>
+                                                                <option value="Presidente Electo">Presidente Electo</option>
+                                                                <option value="Vocero / Imagen Pública">Vocero / Imagen Pública</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-4">
+                                                            <label class="form-label text-muted">Periodo</label>
+                                                            <input type="text" class="form-control form-control-sm" name="periodo_actual" value="2026-2027">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer py-1">
+                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="submit" class="btn btn-primary btn-sm">Guardar Cambios</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Fin Modal -->
+
                                 {% endfor %}
                             {% else %}
                                 <tr>

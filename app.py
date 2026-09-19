@@ -34,7 +34,6 @@ class Socio(db.Model):
     ciudad = db.Column(db.String(100))
     estado = db.Column(db.String(100))
     es_activo = db.Column(db.Boolean)
-    foto_url = db.Column(db.String(255))
     
     # Relación con el historial de cargos
     cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
@@ -88,11 +87,38 @@ def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    # Consulta directa para verificar el padrón
     lista_socios = Socio.query.all()
-    print(f"Socios encontrados en base de datos: {len(lista_socios)}")
-        
     return render_template('socios.html', socios=lista_socios)
+
+@app.route('/socios/editar/<int:id>', methods=['POST'])
+def editar_socio(id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    socio = Socio.query.get_or_404(id)
+    socio.nombre_completo = request.form.get('nombre_completo')
+    socio.telefono = request.form.get('telefono')
+    socio.correo = request.form.get('correo')
+    socio.tipo_socio = request.form.get('tipo_socio')
+    socio.ciudad = request.form.get('ciudad')
+    
+    # Manejar puesto actual o nuevo cargo si se envía
+    nuevo_cargo = request.form.get('cargo_actual')
+    periodo_actual = request.form.get('periodo_actual', '2026-2027')
+    
+    if nuevo_cargo:
+        # Desmarcar cargos actuales anteriores
+        for c in socio.cargos:
+            if c.es_actual:
+                c.es_actual = False
+        
+        # Agregar el nuevo cargo actual
+        cargo_db = HistorialCargo(socio_id=socio.id, cargo=nuevo_cargo, periodo=periodo_actual, es_actual=True)
+        db.session.add(cargo_db)
+        
+    db.session.commit()
+    flash('Socio actualizado correctamente', 'success')
+    return redirect(url_for('gestion_socios'))
 
 @app.route('/tesoreria')
 def modulo_tesoreria():
