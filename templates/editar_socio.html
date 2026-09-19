@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Socio - Club Rotario Creel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5 mb-5" style="max-width: 800px;">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title mb-4 text-primary">Editar Socio</h3>
+                <form method="POST">
+                    
+                    <!-- Información General -->
+                    <h5 class="text-secondary border-bottom pb-2 mb-3">1. Datos Generales</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo de Socio</label>
+                            <select class="form-select" name="tipo_socio">
+                                <option value="ACTIVO" {% if socio.tipo_socio == 'ACTIVO' %}selected{% endif %}>Activo</option>
+                                <option value="HONORARIO" {% if socio.tipo_socio == 'HONORARIO' %}selected{% endif %}>Honorario (Sin cuotas)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Número de Socio</label>
+                            <input type="text" class="form-control" name="numero_socio" value="{{ socio.numero_socio or '' }}" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha de Nacimiento</label>
+                            <input type="date" class="form-control" name="fecha_nacimiento" value="{{ socio.fecha_nacimiento.strftime('%Y-%m-%d') if socio.fecha_nacimiento else '' }}">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Nombre Completo</label>
+                            <input type="text" class="form-control" name="nombre_completo" value="{{ socio.nombre_completo }}" required style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Teléfono Personal</label>
+                            <input type="text" class="form-control" name="telefono" value="{{ socio.telefono or '' }}" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control" name="correo" value="{{ socio.correo or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Teléfono de Emergencia</label>
+                            <input type="text" class="form-control" name="telefono_emergencia" value="{{ socio.telefono_emergencia or '' }}" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+
+                    <!-- Domicilio -->
+                    <h5 class="text-secondary border-bottom pb-2 mb-3">2. Domicilio</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Código Postal</label>
+                            <input type="text" class="form-control" id="codigo_postal" name="codigo_postal" value="{{ socio.codigo_postal or '' }}" maxlength="5" onblur="buscarCP()">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Calle y Número</label>
+                            <input type="text" class="form-control" name="calle_numero" value="{{ socio.calle_numero or '' }}" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Colonia</label>
+                            <input type="text" class="form-control" id="colonia" name="colonia" value="{{ socio.colonia or '' }}" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ciudad / Municipio</label>
+                            <input type="text" class="form-control" id="ciudad" name="ciudad" value="{{ socio.ciudad or '' }}" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Estado</label>
+                            <input type="text" class="form-control" id="estado" name="estado" value="{{ socio.estado or '' }}" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+
+                    <!-- Datos Familiares -->
+                    <h5 class="text-secondary border-bottom pb-2 mb-3">3. Datos Familiares</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Estado Civil</label>
+                            <select class="form-select" id="estado_civil" name="estado_civil" onchange="toggleCasado()">
+                                <option value="SOLTERO" {% if socio.estado_civil != 'CASADO' %}selected{% endif %}>Soltero(a)</option>
+                                <option value="CASADO" {% if socio.estado_civil == 'CASADO' %}selected{% endif %}>Casado(a)</option>
+                                <option value="OTRO" {% if socio.estado_civil == 'OTRO' %}selected{% endif %}>Otro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Bloque Casado -->
+                    <div id="seccion_casado" class="row g-3 mb-4 p-3 bg-white border rounded shadow-sm" style="display: {% if socio.estado_civil == 'CASADO' %}flex{% else %}none{% endif %};">
+                        <h6 class="text-primary mb-3">Datos del Cónyuge</h6>
+                        <div class="col-md-6">
+                            <label class="form-label">Nombre de la Esposa</label>
+                            <input type="text" class="form-control" name="nombre_esposa" value="{{ socio.nombre_esposa or '' }}" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Teléfono de la Esposa</label>
+                            <input type="text" class="form-control" name="telefono_esposa" value="{{ socio.telefono_esposa or '' }}" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Nacimiento (Esposa)</label>
+                            <input type="date" class="form-control" name="fecha_nacimiento_esposa" value="{{ socio.fecha_nacimiento_esposa.strftime('%Y-%m-%d') if socio.fecha_nacimiento_esposa else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Aniversario de Matrimonio</label>
+                            <input type="date" class="form-control" name="aniversario_matrimonio" value="{{ socio.aniversario_matrimonio.strftime('%Y-%m-%d') if socio.aniversario_matrimonio else '' }}">
+                        </div>
+                    </div>
+
+                    <!-- Sección Hijos -->
+                    <h5 class="text-secondary border-bottom pb-2 mb-3">4. Hijos</h5>
+                    <div class="mb-3">
+                        <label class="form-label">¿Tiene hijos?</label>
+                        <select class="form-select mb-3" id="tiene_hijos" style="max-width: 200px;" onchange="toggleHijos()">
+                            <option value="NO" {% if not socio.hijos %}selected{% endif %}>No</option>
+                            <option value="SI" {% if socio.hijos %}selected{% endif %}>Sí</option>
+                        </select>
+                    </div>
+
+                    <div id="seccion_hijos" class="mb-4 p-3 bg-white border rounded shadow-sm" style="display: {% if socio.hijos %}block{% else %}none{% endif %};">
+                        <h6 class="text-primary mb-3">Listado de Hijos</h6>
+                        <div id="contenedor_hijos">
+                            {% for hijo in socio.hijos %}
+                            <div class="row g-2 mb-2 align-items-center fila-hijo">
+                                <div class="col-md-7">
+                                    <input type="text" class="form-control" name="hijo_nombre[]" value="{{ hijo.nombre }}" placeholder="Nombre completo del hijo" style="text-transform: uppercase;" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="date" class="form-control" name="hijo_fnac[]" value="{{ hijo.fecha_nacimiento.strftime('%Y-%m-%d') if hijo.fecha_nacimiento else '' }}">
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="button" class="btn btn-danger btn-sm w-100" onclick="this.closest('.fila-hijo').remove()">X</button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="agregarFilaHijo()">+ Agregar otro hijo</button>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="/" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-success">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function buscarCP() {
+            let cp = document.getElementById('codigo_postal').value.trim();
+            if (cp.length === 5) {
+                fetch('https://api.copomex.com/query/info_cp/' + cp + '?token=libre')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.error && data.response) {
+                            document.getElementById('colonia').value = data.response.asentamiento[0] || '';
+                            document.getElementById('ciudad').value = data.response.municipio || '';
+                            document.getElementById('estado').value = data.response.estado || '';
+                        }
+                    })
+                    .catch(err => console.log('CP manual'));
+            }
+        }
+
+        function toggleCasado() {
+            let ec = document.getElementById('estado_civil').value;
+            let sec = document.getElementById('seccion_casado');
+            if (ec === 'CASADO') {
+                sec.style.display = 'flex';
+            } else {
+                sec.style.display = 'none';
+            }
+        }
+
+        function toggleHijos() {
+            let th = document.getElementById('tiene_hijos').value;
+            let sec = document.getElementById('seccion_hijos');
+            let cont = document.getElementById('contenedor_hijos');
+            
+            if (th === 'SI') {
+                sec.style.display = 'block';
+                if (cont.children.length === 0) {
+                    agregarFilaHijo();
+                }
+            } else {
+                sec.style.display = 'none';
+                cont.innerHTML = '';
+            }
+        }
+
+        function agregarFilaHijo() {
+            let cont = document.getElementById('contenedor_hijos');
+            let div = document.createElement('div');
+            div.className = 'row g-2 mb-2 align-items-center fila-hijo';
+            div.innerHTML = '<div class="col-md-7"><input type="text" class="form-control" name="hijo_nombre[]" placeholder="Nombre completo del hijo" style="text-transform: uppercase;" required></div>' +
+                            '<div class="col-md-4"><input type="date" class="form-control" name="hijo_fnac[]"></div>' +
+                            '<div class="col-md-1"><button type="button" class="btn btn-danger btn-sm w-100" onclick="this.closest(\'.fila-hijo\').remove()">X</button></div>';
+            cont.appendChild(div);
+        }
+    </script>
+</body>
+</html>
