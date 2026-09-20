@@ -15,6 +15,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def to_upper(val):
+    return val.strip().upper() if val else None
+
 # Configuración de la base de datos (con tu conexión a Supabase)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -139,15 +142,15 @@ def editar_socio(id):
         return redirect(url_for('login'))
     
     socio = Socio.query.get_or_404(id)
-    socio.nombre_completo = request.form.get('nombre_completo')
-    socio.telefono = request.form.get('telefono')
-    socio.correo = request.form.get('correo')
-    socio.tipo_socio = request.form.get('tipo_socio')
-    socio.ciudad = request.form.get('ciudad')
+    socio.nombre_completo = to_upper(request.form.get('nombre_completo'))
+    socio.telefono = to_upper(request.form.get('telefono'))
+    socio.correo = request.form.get('correo') # El correo se respeta en minúsculas/normal
+    socio.tipo_socio = to_upper(request.form.get('tipo_socio'))
+    socio.ciudad = to_upper(request.form.get('ciudad'))
     
-    socio.nombre_esposa = request.form.get('nombre_esposa')
-    socio.telefono_esposa = request.form.get('telefono_esposa')
-    socio.telefono_emergencia = request.form.get('telefono_emergencia')
+    socio.nombre_esposa = to_upper(request.form.get('nombre_esposa'))
+    socio.telefono_esposa = to_upper(request.form.get('telefono_esposa'))
+    socio.telefono_emergencia = to_upper(request.form.get('telefono_emergencia'))
     
     def parse_date(date_str):
         if date_str:
@@ -184,14 +187,14 @@ def editar_socio(id):
                 
         cargo_db = HistorialCargo(
             socio_id=socio.id, 
-            cargo=nuevo_cargo, 
-            periodo=periodo_nuevo, 
+            cargo=to_upper(nuevo_cargo), 
+            periodo=to_upper(periodo_nuevo), 
             es_actual=es_actual
         )
         db.session.add(cargo_db)
         
     db.session.commit()
-    flash('Información del socio y familia actualizados correctamente', 'success')
+    flash('Información del socio, familia y cargos actualizados correctamente', 'success')
     return redirect(url_for('gestion_socios'))
 
 @app.route('/cumpleanos-mes')
@@ -208,27 +211,27 @@ def cumpleanos_mes():
             festividades.append({
                 'dia': socio.fecha_nacimiento.day,
                 'fecha_str': socio.fecha_nacimiento.strftime('%d/%m/%Y'),
-                'tipo': 'Cumpleaños Socio',
+                'tipo': 'CUMPLEANOS SOCIO',
                 'persona': socio.nombre_completo,
-                'detalle': f"Socio ID: {socio.numero_socio or socio.id}"
+                'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}"
             })
         
         if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual:
             festividades.append({
                 'dia': socio.fecha_nacimiento_esposa.day,
                 'fecha_str': socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y'),
-                'tipo': 'Cumpleaños Esposa(o)',
-                'persona': socio.nombre_esposa or 'Esposa(o)',
-                'detalle': f"Esposa de: {socio.nombre_completo}"
+                'tipo': 'CUMPLEANOS ESPOSA(O)',
+                'persona': socio.nombre_esposa or 'ESPOSA(O)',
+                'detalle': f"ESPOSA DE: {socio.nombre_completo}"
             })
                 
         if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual:
             festividades.append({
                 'dia': socio.aniversario_matrimonio.day,
                 'fecha_str': socio.aniversario_matrimonio.strftime('%d/%m/%Y'),
-                'tipo': 'Aniversario de Bodas',
-                'persona': f"{socio.nombre_completo} y {socio.nombre_esposa or 'Cónyuge'}",
-                'detalle': "Aniversario matrimonial"
+                'tipo': 'ANIVERSARIO DE BODAS',
+                'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CÓNYUGE'}",
+                'detalle': "ANIVERSARIO MATRIMONIAL"
             })
                 
         if socio.hijos:
@@ -237,16 +240,15 @@ def cumpleanos_mes():
                     festividades.append({
                         'dia': hijo.fecha_nacimiento.day,
                         'fecha_str': hijo.fecha_nacimiento.strftime('%d/%m/%Y'),
-                        'tipo': 'Cumpleaños Hijo(a)',
+                        'tipo': 'CUMPLEANOS HIJO(A)',
                         'persona': hijo.nombre,
-                        'detalle': f"Hijo(a) de: {socio.nombre_completo}"
+                        'detalle': f"HIJO(A) DE: {socio.nombre_completo}"
                     })
 
     festividades = sorted(festividades, key=lambda x: x['dia'])
-    nombre_mes_actual = datetime.now().strftime('%B').capitalize()
+    nombre_mes_actual = datetime.now().strftime('%B').upper()
     return render_template('cumpleanos.html', festividades=festividades, mes_actual=nombre_mes_actual)
 
-# Rutas para Autoridades Rotarias
 @app.route('/autoridades')
 def gestion_autoridades():
     if 'user_id' not in session:
@@ -260,13 +262,13 @@ def guardar_autoridad():
         return redirect(url_for('login'))
     
     auth_id = request.form.get('auth_id')
-    nombre = request.form.get('nombre')
-    cargo = request.form.get('cargo')
-    nivel = request.form.get('nivel')
+    nombre = to_upper(request.form.get('nombre'))
+    cargo = to_upper(request.form.get('cargo'))
+    nivel = to_upper(request.form.get('nivel'))
     correo = request.form.get('correo')
-    telefono = request.form.get('telefono')
+    telefono = to_upper(request.form.get('telefono'))
     
-    if auth_id: # Editar existente
+    if auth_id:
         autoridad = AutoridadRotaria.query.get_or_404(auth_id)
         autoridad.nombre = nombre
         autoridad.cargo = cargo
@@ -274,7 +276,7 @@ def guardar_autoridad():
         autoridad.correo = correo
         autoridad.telefono = telefono
         flash('Autoridad rotaria actualizada correctamente', 'success')
-    else: # Crear nueva
+    else:
         nueva = AutoridadRotaria(nombre=nombre, cargo=cargo, nivel=nivel, correo=correo, telefono=telefono)
         db.session.add(nueva)
         flash('Autoridad rotaria agregada correctamente', 'success')

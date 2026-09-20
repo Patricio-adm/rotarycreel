@@ -10,6 +10,7 @@
         .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
         .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
         .btn-rotary:hover { background-color: #0f326b; color: white; }
+        input[type="text"] { text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -65,17 +66,17 @@
                             {% if autoridades %}
                                 {% for a in autoridades %}
                                 <tr>
-                                    <td class="ps-3 py-2 fw-bold text-dark">{{ a.nombre }}</td>
-                                    <td>{{ a.cargo }}</td>
+                                    <td class="ps-3 py-2 fw-bold text-dark" style="text-transform: uppercase;">{{ a.nombre }}</td>
+                                    <td style="text-transform: uppercase;">{{ a.cargo }}</td>
                                     <td>
-                                        {% if a.nivel == 'Internacional' %}
+                                        {% if a.nivel == 'INTERNACIONAL' %}
                                             <span class="badge bg-primary">Internacional</span>
                                         {% else %}
                                             <span class="badge bg-success">Distrital</span>
                                         {% endif %}
                                     </td>
                                     <td><a href="mailto:{{ a.correo }}" class="text-decoration-none">{{ a.correo or 'N/D' }}</a></td>
-                                    <td>{{ a.telefono or 'N/D' }}</td>
+                                    <td style="text-transform: uppercase;">{{ a.telefono or 'N/D' }}</td>
                                     <td class="text-end pe-3">
                                         <button class="btn btn-sm btn-outline-primary py-0 px-2" 
                                                 data-bs-toggle="modal" 
@@ -119,13 +120,13 @@
                         </div>
                         <div class="mb-2">
                             <label class="form-label fw-semibold">Cargo</label>
-                            <input type="text" class="form-control form-control-sm" name="cargo" id="cargo" placeholder="Ej. Gobernador de Distrito / Presidente RI" required>
+                            <input type="text" class="form-control form-control-sm" name="cargo" id="cargo" placeholder="EJ. GOBERNADOR DE DISTRITO" required>
                         </div>
                         <div class="mb-2">
                             <label class="form-label fw-semibold">Nivel</label>
                             <select class="form-select form-select-sm" name="nivel" id="nivel" required>
-                                <option value="Distrital">Distrital</option>
-                                <option value="Internacional">Internacional</option>
+                                <option value="DISTRITAL">DISTRITAL</option>
+                                <option value="INTERNACIONAL">INTERNACIONAL</option>
                             </select>
                         </div>
                         <div class="mb-2">
@@ -153,7 +154,7 @@
             document.getElementById('auth_id').value = '';
             document.getElementById('nombre').value = '';
             document.getElementById('cargo').value = '';
-            document.getElementById('nivel').value = 'Distrital';
+            document.getElementById('nivel').value = 'DISTRITAL';
             document.getElementById('correo').value = '';
             document.getElementById('telefono').value = '';
             document.getElementById('btnGuardar').innerText = 'Guardar Autoridad';

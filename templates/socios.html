@@ -12,12 +12,14 @@
         .btn-rotary:hover { background-color: #0f326b; color: white; }
         .avatar-img { width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; }
         .avatar-lg { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid #17458F; }
-        .clickable-name { color: #17458F; text-decoration: none; font-weight: 600; cursor: pointer; }
+        .clickable-name { color: #17458F; text-decoration: none; font-weight: 600; cursor: pointer; text-transform: uppercase; }
         .clickable-name:hover { color: #F7A81B; text-decoration: underline; }
+        input[type="text"] { text-transform: uppercase; }
     </style>
 </head>
 <body>
 
+    <!-- Barra Superior -->
     <nav class="navbar navbar-dark navbar-rotary px-4 mb-3 shadow-sm py-2">
         <a class="navbar-brand fw-bold fs-6" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Padrón de Socios</a>
         <div>
@@ -26,6 +28,7 @@
         </div>
     </nav>
 
+    <!-- Contenido Principal -->
     <div class="container pb-4">
         
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -42,7 +45,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="fw-bold text-dark mb-0">Gestión de Socios y Cargos</h5>
             <div>
-                <a href="{{ url_for('cumpleanos_mes') }}" class="btn btn-warning btn-sm shadow-sm fw-semibold me-2">
+                <a href="{{ url_for('cumpleanos-mes' if false else url_for('cumpleanos_mes')) }}" class="btn btn-warning btn-sm shadow-sm fw-semibold me-2">
                     🎂 Cumpleaños / Aniversarios del Mes
                 </a>
                 <a href="#" class="btn btn-rotary btn-sm shadow-sm">Registrar Nuevo Socio</a>
@@ -88,17 +91,17 @@
                                         {% if socio.cargos %}
                                             {% for c in socio.cargos %}
                                                 {% if c.es_actual %}
-                                                    <span class="badge bg-success mb-1">{{ c.cargo }} ({{ c.periodo }})</span><br>
+                                                    <span class="badge bg-success mb-1">{{ c.cargo | upper }} ({{ c.periodo }})</span><br>
                                                     {% set ns.has_cargo = true %}
                                                 {% endif %}
                                             {% endfor %}
                                         {% endif %}
                                         {% if not ns.has_cargo %}
-                                            <span class="text-muted">Socio Activo</span>
+                                            <span class="text-muted">SOCIO ACTIVO</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ socio.telefono or 'N/D' }}</td>
-                                    <td>{{ socio.ciudad or 'Creel' }}</td>
+                                    <td>{{ socio.ciudad or 'CREEL' }}</td>
                                     <td class="text-end pe-3">
                                         <button class="btn btn-sm btn-outline-primary py-0 px-2" data-bs-toggle="modal" data-bs-target="#editModal{{ socio.id }}">
                                             Editar / Cargos
@@ -106,6 +109,7 @@
                                     </td>
                                 </tr>
 
+                                <!-- Modal de Perfil Completo -->
                                 <div class="modal fade text-start" id="profileModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
@@ -121,21 +125,23 @@
                                                         {{ socio.nombre_completo[:2].upper() }}
                                                     </div>
                                                 {% endif %}
-                                                <h4 class="fw-bold text-dark mb-1">{{ socio.nombre_completo }}</h4>
-                                                <p class="text-muted mb-3">Socio ID: {{ socio.numero_socio or socio.id }} | <span class="badge bg-secondary">{{ socio.tipo_socio or 'Socio' }}</span></p>
+                                                <h4 class="fw-bold text-dark mb-1" style="text-transform: uppercase;">{{ socio.nombre_completo }}</h4>
+                                                <p class="text-muted mb-3">Socio ID: {{ socio.numero_socio or socio.id }} | <span class="badge bg-secondary">{{ (socio.tipo_socio or 'SOCIO') | upper }}</span></p>
 
                                                 <div class="text-start bg-light p-3 rounded-3 mb-3 small">
                                                     <p class="mb-1"><strong>Teléfono:</strong> {{ socio.telefono or 'No registrado' }}</p>
                                                     <p class="mb-1"><strong>Correo:</strong> {{ socio.correo or 'No registrado' }}</p>
-                                                    <p class="mb-0"><strong>Ubicación:</strong> {{ socio.ciudad or 'Creel' }}, {{ socio.estado or 'Chih.' }}</p>
+                                                    <p class="mb-0" style="text-transform: uppercase;"><strong>Ubicación:</strong> {{ socio.ciudad or 'Creel' }}, {{ socio.estado or 'Chih.' }}</p>
                                                 </div>
 
+                                                <!-- Botón para ver Datos Familiares -->
                                                 <div class="mb-3">
                                                     <button type="button" class="btn btn-outline-info btn-sm fw-semibold w-100" data-bs-toggle="modal" data-bs-target="#familyModal{{ socio.id }}" data-bs-dismiss="modal">
                                                         Ver Datos Familiares
                                                     </button>
                                                 </div>
 
+                                                <!-- Contar cargos válidos (>= 2023-2024) -->
                                                 {% set ns_cargos = namespace(count=0) %}
                                                 {% if socio.cargos %}
                                                     {% for c in socio.cargos %}
@@ -145,6 +151,7 @@
                                                     {% endfor %}
                                                 {% endif %}
 
+                                                <!-- Mostrar historial SOLO SI HAY CARGOS VÁLIDOS -->
                                                 {% if ns_cargos.count > 0 %}
                                                 <div class="text-start">
                                                     <h6 class="fw-bold text-secondary small text-uppercase">Historial de Cargos (Desde 2023-2024)</h6>
@@ -153,7 +160,7 @@
                                                             {% if c.periodo >= '2023-2024' %}
                                                                 <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
                                                                     <span>
-                                                                        <strong>{{ c.cargo }}</strong>
+                                                                        <strong style="text-transform: uppercase;">{{ c.cargo }}</strong>
                                                                         {% if c.es_actual %}
                                                                             <span class="badge bg-success ms-1">Actual</span>
                                                                         {% endif %}
@@ -174,17 +181,20 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- Fin Modal de Perfil -->
+
+                                <!-- Modal: Datos Familiares Detallados -->
                                 <div class="modal fade text-start" id="familyModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header bg-light py-2">
-                                                <h6 class="modal-title fw-bold text-primary">Datos Familiares - {{ socio.nombre_completo }}</h6>
+                                                <h6 class="modal-title fw-bold text-primary" style="text-transform: uppercase;">Datos Familiares - {{ socio.nombre_completo }}</h6>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body py-4 small">
                                                 <div class="bg-light p-3 rounded-3 mb-3">
                                                     <h6 class="fw-bold text-secondary mb-2">Cónyuge</h6>
-                                                    <p class="mb-1"><strong>Nombre:</strong> {{ socio.nombre_esposa or 'No registrado' }}</p>
+                                                    <p class="mb-1" style="text-transform: uppercase;"><strong>Nombre:</strong> {{ socio.nombre_esposa or 'No registrado' }}</p>
                                                     <p class="mb-1"><strong>Teléfono:</strong> {{ socio.telefono_esposa or 'No registrado' }}</p>
                                                     <p class="mb-2"><strong>Cumpleaños:</strong> {{ socio.fecha_nacimiento_esposa or 'No registrada' }}</p>
                                                     <p class="mb-3"><strong>Aniversario de Bodas:</strong> {{ socio.aniversario_matrimonio or 'No registrado' }}</p>
@@ -193,7 +203,7 @@
                                                     {% if socio.hijos %}
                                                         <ul class="list-unstyled mb-2">
                                                             {% for hijo in socio.hijos %}
-                                                                <li>- {{ hijo.nombre }} {% if hijo.fecha_nacimiento %}(Nac: {{ hijo.fecha_nacimiento }}){% endif %}</li>
+                                                                <li style="text-transform: uppercase;">- {{ hijo.nombre }} {% if hijo.fecha_nacimiento %}(Nac: {{ hijo.fecha_nacimiento }}){% endif %}</li>
                                                             {% endfor %}
                                                         </ul>
                                                     {% else %}
@@ -201,7 +211,7 @@
                                                     {% endif %}
 
                                                     <h6 class="fw-bold text-secondary mb-1">Emergencia</h6>
-                                                    <p class="mb-0"><strong>Teléfono de Emergencia:</strong> {{ socio.telefono_emergencia or 'No registrado' }}</p>
+                                                    <p class="mb-0" style="text-transform: uppercase;"><strong>Teléfono de Emergencia:</strong> {{ socio.telefono_emergencia or 'No registrado' }}</p>
                                                 </div>
                                             </div>
                                             <div class="modal-footer py-1">
@@ -211,12 +221,15 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- Fin Modal Datos Familiares -->
+
+                                <!-- Modal de Edición -->
                                 <div class="modal fade text-start" id="editModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <form action="{{ url_for('editar_socio', id=socio.id) }}" method="POST" enctype="multipart/form-data">
                                                 <div class="modal-header bg-light py-2">
-                                                    <h6 class="modal-title fw-bold text-primary">Editar Socio: {{ socio.nombre_completo }}</h6>
+                                                    <h6 class="modal-title fw-bold text-primary" style="text-transform: uppercase;">Editar Socio: {{ socio.nombre_completo }}</h6>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                 </div>
                                                 <div class="modal-body small">
@@ -241,7 +254,7 @@
                                                     <div class="row mb-2">
                                                         <div class="col">
                                                             <label class="form-label fw-semibold">Ciudad</label>
-                                                            <input type="text" class="form-control form-control-sm" name="ciudad" value="{{ socio.ciudad or 'Creel' }}">
+                                                            <input type="text" class="form-control form-control-sm" name="ciudad" value="{{ socio.ciudad or 'CREEL' }}">
                                                         </div>
                                                         <div class="col">
                                                             <label class="form-label fw-semibold">Cambiar Foto</label>
@@ -282,25 +295,25 @@
                                                         <div class="col-7">
                                                             <label class="form-label text-muted">Cargo / Comité</label>
                                                             <select class="form-select form-select-sm" name="cargo_nuevo">
-                                                                <option value="">-- Seleccionar Cargo --</option>
-                                                                <option value="Presidente">Presidente</option>
-                                                                <option value="Past President">Past President</option>
-                                                                <option value="Presidente Electo">Presidente Electo</option>
-                                                                <option value="Secretario">Secretario</option>
-                                                                <option value="Tesorero">Tesorero</option>
-                                                                <option value="Macero (Sergeant-at-Arms)">Macero (Sergeant-at-Arms)</option>
-                                                                <option value="Servicio a la Comunidad">Servicio a la Comunidad</option>
-                                                                <option value="Programas para Líderes Jóvenes">Programas para Líderes Jóvenes</option>
-                                                                <option value="Comité de Imagen Pública del club">Comité de Imagen Pública del club</option>
-                                                                <option value="Facilitador de aprendizaje">Facilitador de aprendizaje</option>
-                                                                <option value="Comité de la Fundación Rotaria">Comité de la Fundación Rotaria</option>
-                                                                <option value="Comité de Membresía del club">Comité de Membresía del club</option>
-                                                                <option value="Revisor / Comité de Finanzas">Revisor / Comité de Finanzas</option>
+                                                                <option value="">-- SELECCIONAR CARGO --</option>
+                                                                <option value="PRESIDENTE">PRESIDENTE</option>
+                                                                <option value="PAST PRESIDENT">PAST PRESIDENT</option>
+                                                                <option value="PRESIDENTE ELECTO">PRESIDENTE ELECTO</option>
+                                                                <option value="SECRETARIO">SECRETARIO</option>
+                                                                <option value="TESORERO">TESORERO</option>
+                                                                <option value="MACERO (SERGEANT-AT-ARMS)">MACERO (SERGEANT-AT-ARMS)</option>
+                                                                <option value="SERVICIO A LA COMUNIDAD">SERVICIO A LA COMUNIDAD</option>
+                                                                <option value="PROGRAMAS PARA LÍDERES JÓVENES">PROGRAMAS PARA LÍDERES JÓVENES</option>
+                                                                <option value="COMITÉ DE IMAGEN PÚBLICA DEL CLUB">COMITÉ DE IMAGEN PÚBLICA DEL CLUB</option>
+                                                                <option value="FACILITADOR DE APRENDIZAJE">FACILITADOR DE APRENDIZAJE</option>
+                                                                <option value="COMITÉ DE LA FUNDACIÓN ROTARIA">COMITÉ DE LA FUNDACIÓN ROTARIA</option>
+                                                                <option value="COMITÉ DE MEMBRESÍA DEL CLUB">COMITÉ DE MEMBRESÍA DEL CLUB</option>
+                                                                <option value="REVISOR / COMITÉ DE FINANZAS">REVISOR / COMITÉ DE FINANZAS</option>
                                                             </select>
                                                         </div>
                                                         <div class="col-5">
                                                             <label class="form-label text-muted">Periodo</label>
-                                                            <input type="text" class="form-control form-control-sm" name="periodo_nuevo" placeholder="Ej. 2023-2024">
+                                                            <input type="text" class="form-control form-control-sm" name="periodo_nuevo" placeholder="EJ. 2023-2024">
                                                         </div>
                                                     </div>
                                                     <div class="form-check mb-2">
@@ -318,6 +331,8 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- Fin Modal Edición -->
+
                                 {% endfor %}
                             {% else %}
                                 <tr>
