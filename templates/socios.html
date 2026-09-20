@@ -1,257 +1,336 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from flask_sqlalchemy import SQLAlchemy
-import os
-import base64
-from datetime import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Socios - Rotary Club Creel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; }
+        .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
+        .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
+        .btn-rotary:hover { background-color: #0f326b; color: white; }
+        .avatar-img { width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; }
+        .avatar-lg { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid #17458F; }
+        .clickable-name { color: #17458F; text-decoration: none; font-weight: 600; cursor: pointer; }
+        .clickable-name:hover { color: #F7A81B; text-decoration: underline; }
+    </style>
+</head>
+<body>
 
-# Inicializar la aplicación Flask
-app = Flask(__name__)
-app.secret_key = 'clave_secreta_rotary_creel_2026'
+    <nav class="navbar navbar-dark navbar-rotary px-4 mb-3 shadow-sm py-2">
+        <a class="navbar-brand fw-bold fs-6" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Padrón de Socios</a>
+        <div>
+            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2">Menú Principal</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-warning btn-sm fw-bold">Cerrar Sesión</a>
+        </div>
+    </nav>
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# Configuración de la base de datos (con tu conexión a Supabase)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app, engine_options={
-    "pool_pre_ping": True,
-    "pool_recycle": 300,
-})
-
-# Modelos de la Base de Datos
-class Usuario(db.Model):
-    __tablename__ = 'usuarios'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-
-class Hijo(db.Model):
-    __tablename__ = 'hijos'
-    id = db.Column(db.Integer, primary_key=True)
-    socio_id = db.Column(db.Integer, db.ForeignKey('socios.id'), nullable=False)
-    nombre = db.Column(db.String(150), nullable=False)
-    fecha_nacimiento = db.Column(db.Date)
-
-class HistorialCargo(db.Model):
-    __tablename__ = 'historial_cargos'
-    id = db.Column(db.Integer, primary_key=True)
-    socio_id = db.Column(db.Integer, db.ForeignKey('socios.id'), nullable=False)
-    cargo = db.Column(db.String(100), nullable=False)
-    periodo = db.Column(db.String(50), nullable=False)
-    es_actual = db.Column(db.Boolean, default=False)
-
-class Socio(db.Model):
-    __tablename__ = 'socios'
-    id = db.Column(db.Integer, primary_key=True)
-    numero_socio = db.Column(db.String(50))
-    nombre_completo = db.Column(db.String(150), nullable=False)
-    telefono = db.Column(db.String(50))
-    correo = db.Column(db.String(100))
-    fecha_nacimiento = db.Column(db.Date)
-    es_activo = db.Column(db.Boolean)
-    tipo_socio = db.Column(db.String(50))
-    calle_numero = db.Column(db.String(150))
-    colonia = db.Column(db.String(100))
-    codigo_postal = db.Column(db.String(20))
-    ciudad = db.Column(db.String(100))
-    estado = db.Column(db.String(100))
-    estado_civil = db.Column(db.String(50))
-    
-    # Datos familiares
-    nombre_esposa = db.Column(db.String(150))
-    fecha_nacimiento_esposa = db.Column(db.Date)
-    aniversario_matrimonio = db.Column(db.Date)
-    telefono_esposa = db.Column(db.String(50))
-    telefono_emergencia = db.Column(db.String(50))
-    foto_url = db.Column(db.Text)  # Almacena Base64
-    
-    # Relaciones
-    cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
-    hijos = db.relationship('Hijo', backref='socio', lazy=True, cascade="all, delete-orphan")
-
-# Crear tablas automáticamente y asegurar usuario administrador al iniciar
-with app.app_context():
-    db.create_all()
-    if not Usuario.query.filter_by(username='admin').first():
-        admin_user = Usuario(
-            username='admin',
-            password_hash=generate_password_hash('rotary2026')
-        )
-        db.session.add(admin_user)
-        db.session.commit()
-
-# Rutas de la Aplicación
-
-# 1. Página de Inicio Pública
-@app.route('/')
-def index_publico():
-    lista_socios = Socio.query.all()
-    return render_template('publico.html', socios=lista_socios)
-
-# 2. Inicio de Sesión para Administración
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+    <div class="container pb-4">
         
-        user = Usuario.query.filter_by(username=username).first()
-        
-        if user and check_password_hash(user.password_hash, password):
-            session['user_id'] = user.id
-            session['username'] = user.username
-            return redirect(url_for('menu_principal'))
-        else:
-            flash('Usuario o contraseña incorrectos', 'danger')
-            
-    return render_template('login.html')
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show py-2 small" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
 
-@app.route('/menu')
-def menu_principal():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    return render_template('menu.html')
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0">Gestión de Socios y Cargos</h5>
+            <div>
+                <a href="{{ url_for('cumpleanos_mes') }}" class="btn btn-warning btn-sm shadow-sm fw-semibold me-2">
+                    🎂 Cumpleaños / Aniversarios del Mes
+                </a>
+                <a href="#" class="btn btn-rotary btn-sm shadow-sm">Registrar Nuevo Socio</a>
+            </div>
+        </div>
 
-@app.route('/socios')
-def gestion_socios():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    lista_socios = Socio.query.all()
-    return render_template('socios.html', socios=lista_socios)
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0 small">
+                        <thead class="table-light text-secondary">
+                            <tr>
+                                <th class="ps-3 py-2">Foto</th>
+                                <th class="py-2"># Socio</th>
+                                <th class="py-2">Nombre Completo</th>
+                                <th class="py-2">Puesto Actual / Cargos</th>
+                                <th class="py-2">Teléfono</th>
+                                <th class="py-2">Ubicación</th>
+                                <th class="text-end pe-3 py-2">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if socios %}
+                                {% for socio in socios %}
+                                <tr>
+                                    <td class="ps-3 py-2">
+                                        {% if socio.foto_url %}
+                                            <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-img">
+                                        {% else %}
+                                            <div class="avatar-img bg-secondary text-white d-flex align-items-center justify-content-center fw-bold fs-5">
+                                                {{ socio.nombre_completo[:2].upper() }}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="fw-bold text-secondary">{{ socio.numero_socio or socio.id }}</td>
+                                    <td>
+                                        <a href="#" class="clickable-name" data-bs-toggle="modal" data-bs-target="#profileModal{{ socio.id }}">
+                                            {{ socio.nombre_completo }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% set ns = namespace(has_cargo=false) %}
+                                        {% if socio.cargos %}
+                                            {% for c in socio.cargos %}
+                                                {% if c.es_actual %}
+                                                    <span class="badge bg-success mb-1">{{ c.cargo }} ({{ c.periodo }})</span><br>
+                                                    {% set ns.has_cargo = true %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                        {% if not ns.has_cargo %}
+                                            <span class="text-muted">Socio Activo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ socio.telefono or 'N/D' }}</td>
+                                    <td>{{ socio.ciudad or 'Creel' }}</td>
+                                    <td class="text-end pe-3">
+                                        <button class="btn btn-sm btn-outline-primary py-0 px-2" data-bs-toggle="modal" data-bs-target="#editModal{{ socio.id }}">
+                                            Editar / Cargos
+                                        </button>
+                                    </td>
+                                </tr>
 
-@app.route('/socios/editar/<int:id>', methods=['POST'])
-def editar_socio(id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    socio = Socio.query.get_or_404(id)
-    socio.nombre_completo = request.form.get('nombre_completo')
-    socio.telefono = request.form.get('telefono')
-    socio.correo = request.form.get('correo')
-    socio.tipo_socio = request.form.get('tipo_socio')
-    socio.ciudad = request.form.get('ciudad')
-    
-    # Datos familiares
-    socio.nombre_esposa = request.form.get('nombre_esposa')
-    socio.telefono_esposa = request.form.get('telefono_esposa')
-    socio.telefono_emergencia = request.form.get('telefono_emergencia')
-    
-    def parse_date(date_str):
-        if date_str:
-            try:
-                return datetime.strptime(date_str, '%Y-%m-%d').date()
-            except ValueError:
-                return None
-        return None
+                                <div class="modal fade text-start" id="profileModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-light py-2">
+                                                <h6 class="modal-title fw-bold text-primary">Expediente del Socio</h6>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body text-center py-4">
+                                                {% if socio.foto_url %}
+                                                    <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-lg mb-3 shadow-sm">
+                                                {% else %}
+                                                    <div class="avatar-lg bg-secondary text-white d-flex align-items-center justify-content-center fw-bold fs-2 mx-auto mb-3 shadow-sm">
+                                                        {{ socio.nombre_completo[:2].upper() }}
+                                                    </div>
+                                                {% endif %}
+                                                <h4 class="fw-bold text-dark mb-1">{{ socio.nombre_completo }}</h4>
+                                                <p class="text-muted mb-3">Socio ID: {{ socio.numero_socio or socio.id }} | <span class="badge bg-secondary">{{ socio.tipo_socio or 'Socio' }}</span></p>
 
-    socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa'))
-    socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio'))
-    
-    # Manejar subida segura de foto en Base64
-    try:
-        file = request.files.get('foto_archivo')
-        if file and file.filename != '':
-            if allowed_file(file.filename):
-                file_bytes = file.read()
-                if file_bytes:
-                    encoded_img = base64.b64encode(file_bytes).decode('utf-8')
-                    ext = file.filename.rsplit('.', 1)[1].lower()
-                    mime_type = "image/jpeg" if ext in ['jpg', 'jpeg'] else f"image/{ext}"
-                    socio.foto_url = f"data:{mime_type};base64,{encoded_img}"
-    except Exception as e:
-        print(f"Error procesando imagen: {e}")
+                                                <div class="text-start bg-light p-3 rounded-3 mb-3 small">
+                                                    <p class="mb-1"><strong>Teléfono:</strong> {{ socio.telefono or 'No registrado' }}</p>
+                                                    <p class="mb-1"><strong>Correo:</strong> {{ socio.correo or 'No registrado' }}</p>
+                                                    <p class="mb-0"><strong>Ubicación:</strong> {{ socio.ciudad or 'Creel' }}, {{ socio.estado or 'Chih.' }}</p>
+                                                </div>
 
-    # Agregar nuevo cargo (histórico o actual)
-    nuevo_cargo = request.form.get('cargo_nuevo')
-    periodo_nuevo = request.form.get('periodo_nuevo')
-    es_actual = request.form.get('es_actual') == 'on'
-    
-    if nuevo_cargo and periodo_nuevo:
-        if es_actual:
-            for c in socio.cargos:
-                c.es_actual = False
-                
-        cargo_db = HistorialCargo(
-            socio_id=socio.id, 
-            cargo=nuevo_cargo, 
-            periodo=periodo_nuevo, 
-            es_actual=es_actual
-        )
-        db.session.add(cargo_db)
-        
-    db.session.commit()
-    flash('Información del socio, familia y cargos actualizados correctamente', 'success')
-    return redirect(url_for('gestion_socios'))
+                                                <div class="mb-3">
+                                                    <button type="button" class="btn btn-outline-info btn-sm fw-semibold w-100" data-bs-toggle="modal" data-bs-target="#familyModal{{ socio.id }}" data-bs-dismiss="modal">
+                                                        Ver Datos Familiares
+                                                    </button>
+                                                </div>
 
-@app.route('/cumpleanos-mes')
-def cumpleanos_mes():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    mes_actual = datetime.now().month
-    todos_socios = Socio.query.all()
-    festividades = []
-    
-    for socio in todos_socios:
-        if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual:
-            festividades.append({
-                'dia': socio.fecha_nacimiento.day,
-                'fecha_str': socio.fecha_nacimiento.strftime('%d/%m/%Y'),
-                'tipo': 'Cumpleaños Socio',
-                'persona': socio.nombre_completo,
-                'detalle': f"Socio ID: {socio.numero_socio or socio.id}"
-            })
-        
-        if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual:
-            festividades.append({
-                'dia': socio.fecha_nacimiento_esposa.day,
-                'fecha_str': socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y'),
-                'tipo': 'Cumpleaños Esposa(o)',
-                'persona': socio.nombre_esposa or 'Esposa(o)',
-                'detalle': f"Esposa de: {socio.nombre_completo}"
-            })
-                
-        if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual:
-            festividades.append({
-                'dia': socio.aniversario_matrimonio.day,
-                'fecha_str': socio.aniversario_matrimonio.strftime('%d/%m/%Y'),
-                'tipo': 'Aniversario de Bodas',
-                'persona': f"{socio.nombre_completo} y {socio.nombre_esposa or 'Cónyuge'}",
-                'detalle': "Aniversario matrimonial"
-            })
-                
-        if socio.hijos:
-            for hijo in socio.hijos:
-                if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual:
-                    festividades.append({
-                        'dia': hijo.fecha_nacimiento.day,
-                        'fecha_str': hijo.fecha_nacimiento.strftime('%d/%m/%Y'),
-                        'tipo': 'Cumpleaños Hijo(a)',
-                        'persona': hijo.nombre,
-                        'detalle': f"Hijo(a) de: {socio.nombre_completo}"
-                    })
+                                                {% set ns_cargos = namespace(count=0) %}
+                                                {% if socio.cargos %}
+                                                    {% for c in socio.cargos %}
+                                                        {% if c.periodo >= '2023-2024' %}
+                                                            {% set ns_cargos.count = ns_cargos.count + 1 %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endif %}
 
-    festividades = sorted(festividades, key=lambda x: x['dia'])
-    nombre_mes_actual = datetime.now().strftime('%B').capitalize()
-    return render_template('cumpleanos.html', festividades=festividades, mes_actual=nombre_mes_actual)
+                                                {% if ns_cargos.count > 0 %}
+                                                <div class="text-start">
+                                                    <h6 class="fw-bold text-secondary small text-uppercase">Historial de Cargos (Desde 2023-2024)</h6>
+                                                    <ul class="list-group list-group-flush small">
+                                                        {% for c in socio.cargos %}
+                                                            {% if c.periodo >= '2023-2024' %}
+                                                                <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
+                                                                    <span>
+                                                                        <strong>{{ c.cargo }}</strong>
+                                                                        {% if c.es_actual %}
+                                                                            <span class="badge bg-success ms-1">Actual</span>
+                                                                        {% endif %}
+                                                                    </span>
+                                                                    <span class="text-muted">Periodo: {{ c.periodo }}</span>
+                                                                </li>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                                {% endif %}
 
-@app.route('/tesoreria')
-def modulo_tesoreria():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    return render_template('tesoreria.html')
+                                            </div>
+                                            <div class="modal-footer py-1">
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ socio.id }}" data-bs-dismiss="modal">Editar Datos</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal fade text-start" id="familyModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-light py-2">
+                                                <h6 class="modal-title fw-bold text-primary">Datos Familiares - {{ socio.nombre_completo }}</h6>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body py-4 small">
+                                                <div class="bg-light p-3 rounded-3 mb-3">
+                                                    <h6 class="fw-bold text-secondary mb-2">Cónyuge</h6>
+                                                    <p class="mb-1"><strong>Nombre:</strong> {{ socio.nombre_esposa or 'No registrado' }}</p>
+                                                    <p class="mb-1"><strong>Teléfono:</strong> {{ socio.telefono_esposa or 'No registrado' }}</p>
+                                                    <p class="mb-2"><strong>Cumpleaños:</strong> {{ socio.fecha_nacimiento_esposa or 'No registrada' }}</p>
+                                                    <p class="mb-3"><strong>Aniversario de Bodas:</strong> {{ socio.aniversario_matrimonio or 'No registrado' }}</p>
+                                                    
+                                                    <h6 class="fw-bold text-secondary mb-2">Hijos / Familiares</h6>
+                                                    {% if socio.hijos %}
+                                                        <ul class="list-unstyled mb-2">
+                                                            {% for hijo in socio.hijos %}
+                                                                <li>- {{ hijo.nombre }} {% if hijo.fecha_nacimiento %}(Nac: {{ hijo.fecha_nacimiento }}){% endif %}</li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    {% else %}
+                                                        <p class="text-muted mb-2">No hay hijos registrados.</p>
+                                                    {% endif %}
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('index_publico'))
+                                                    <h6 class="fw-bold text-secondary mb-1">Emergencia</h6>
+                                                    <p class="mb-0"><strong>Teléfono de Emergencia:</strong> {{ socio.telefono_emergencia or 'No registrado' }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer py-1">
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#profileModal{{ socio.id }}" data-bs-dismiss="modal">Regresar al Expediente</button>
+                                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ socio.id }}" data-bs-dismiss="modal">Editar Familia</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal fade text-start" id="editModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form action="{{ url_for('editar_socio', id=socio.id) }}" method="POST" enctype="multipart/form-data">
+                                                <div class="modal-header bg-light py-2">
+                                                    <h6 class="modal-title fw-bold text-primary">Editar Socio: {{ socio.nombre_completo }}</h6>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body small">
+                                                    <div class="mb-2">
+                                                        <label class="form-label fw-semibold">Nombre Completo</label>
+                                                        <input type="text" class="form-control form-control-sm" name="nombre_completo" value="{{ socio.nombre_completo }}" required>
+                                                    </div>
+                                                    <div class="row mb-2">
+                                                        <div class="col">
+                                                            <label class="form-label fw-semibold">Teléfono</label>
+                                                            <input type="text" class="form-control form-control-sm" name="telefono" value="{{ socio.telefono or '' }}">
+                                                        </div>
+                                                        <div class="col">
+                                                            <label class="form-label fw-semibold">Tipo de Socio</label>
+                                                            <input type="text" class="form-control form-control-sm" name="tipo_socio" value="{{ socio.tipo_socio or 'Socio' }}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <label class="form-label fw-semibold">Correo Electrónico</label>
+                                                        <input type="email" class="form-control form-control-sm" name="correo" value="{{ socio.correo or '' }}">
+                                                    </div>
+                                                    <div class="row mb-2">
+                                                        <div class="col">
+                                                            <label class="form-label fw-semibold">Ciudad</label>
+                                                            <input type="text" class="form-control form-control-sm" name="ciudad" value="{{ socio.ciudad or 'Creel' }}">
+                                                        </div>
+                                                        <div class="col">
+                                                            <label class="form-label fw-semibold">Cambiar Foto</label>
+                                                            <input type="file" class="form-control form-control-sm" name="foto_archivo" accept="image/*">
+                                                        </div>
+                                                    </div>
 
-if __name__ == '__main__':
-    app.run(debug=True)
+                                                    <hr class="my-2">
+                                                    <h6 class="fw-bold text-dark small">Información Familiar</h6>
+                                                    <div class="mb-2">
+                                                        <label class="form-label text-muted">Nombre de la Esposa(o)</label>
+                                                        <input type="text" class="form-control form-control-sm" name="nombre_esposa" value="{{ socio.nombre_esposa or '' }}">
+                                                    </div>
+                                                    <div class="row mb-2">
+                                                        <div class="col">
+                                                            <label class="form-label text-muted">Teléfono Esposa(o)</label>
+                                                            <input type="text" class="form-control form-control-sm" name="telefono_esposa" value="{{ socio.telefono_esposa or '' }}">
+                                                        </div>
+                                                        <div class="col">
+                                                            <label class="form-label text-muted">Tel. Emergencia</label>
+                                                            <input type="text" class="form-control form-control-sm" name="telefono_emergencia" value="{{ socio.telefono_emergencia or '' }}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-2">
+                                                        <div class="col">
+                                                            <label class="form-label text-muted">Cumpleaños Esposa(o)</label>
+                                                            <input type="date" class="form-control form-control-sm" name="fecha_nacimiento_esposa" value="{{ socio.fecha_nacimiento_esposa or '' }}">
+                                                        </div>
+                                                        <div class="col">
+                                                            <label class="form-label text-muted">Aniversario Matrimonio</label>
+                                                            <input type="date" class="form-control form-control-sm" name="aniversario_matrimonio" value="{{ socio.aniversario_matrimonio or '' }}">
+                                                        </div>
+                                                    </div>
+
+                                                    <hr class="my-2">
+                                                    <h6 class="fw-bold text-dark small">Agregar Cargo o Comité (Anterior / Actual)</h6>
+                                                    <div class="row mb-2">
+                                                        <div class="col-7">
+                                                            <label class="form-label text-muted">Cargo / Comité</label>
+                                                            <select class="form-select form-select-sm" name="cargo_nuevo">
+                                                                <option value="">-- Seleccionar Cargo --</option>
+                                                                <option value="Presidente">Presidente</option>
+                                                                <option value="Past President">Past President</option>
+                                                                <option value="Presidente Electo">Presidente Electo</option>
+                                                                <option value="Secretario">Secretario</option>
+                                                                <option value="Tesorero">Tesorero</option>
+                                                                <option value="Macero (Sergeant-at-Arms)">Macero (Sergeant-at-Arms)</option>
+                                                                <option value="Servicio a la Comunidad">Servicio a la Comunidad</option>
+                                                                <option value="Programas para Líderes Jóvenes">Programas para Líderes Jóvenes</option>
+                                                                <option value="Comité de Imagen Pública del club">Comité de Imagen Pública del club</option>
+                                                                <option value="Facilitador de aprendizaje">Facilitador de aprendizaje</option>
+                                                                <option value="Comité de la Fundación Rotaria">Comité de la Fundación Rotaria</option>
+                                                                <option value="Comité de Membresía del club">Comité de Membresía del club</option>
+                                                                <option value="Revisor / Comité de Finanzas">Revisor / Comité de Finanzas</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-5">
+                                                            <label class="form-label text-muted">Periodo</label>
+                                                            <input type="text" class="form-control form-control-sm" name="periodo_nuevo" placeholder="Ej. 2023-2024">
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" name="es_actual" id="esActual{{ socio.id }}">
+                                                        <label class="form-check-label text-muted" for="esActual{{ socio.id }}">
+                                                            Establecer como puesto actual de este periodo
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer py-1">
+                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="submit" class="btn btn-primary btn-sm">Guardar Cambios</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">No hay socios registrados todavía.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
