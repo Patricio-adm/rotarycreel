@@ -275,7 +275,6 @@ def cuotas_sociales():
         "JUL 2026", "AGO 2026", "SEP 2026"
     ]
     
-    # Comprobar si acabamos de registrar un pago para mostrar el modal de recibo automático
     ultimo_pago_id = request.args.get('recibo_id')
     ultimo_pago = PagoCuota.query.get(ultimo_pago_id) if ultimo_pago_id else None
     
@@ -304,7 +303,7 @@ def registrar_pago_cuota():
                     referencia=referencia
                 )
                 db.session.add(nuevo_pago)
-                db.session.flush() # Para obtener el ID
+                db.session.flush()
                 ultimo_pago_creado = nuevo_pago
         db.session.commit()
         flash('Pago(s) registrado(s) correctamente.', 'success')

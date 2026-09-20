@@ -10,7 +10,6 @@
         .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
         .table-fixed th, .table-fixed td { white-space: nowrap; vertical-align: middle; text-align: center; }
         .table-fixed th:nth-child(2), .table-fixed td:nth-child(2) { text-align: left; }
-        /* Estilo para el recibo dentro del modal para captura limpia */
         .receipt-modal-box { background: white; padding: 25px; border: 2px solid #17458F; border-radius: 8px; color: #000; }
     </style>
 </head>
@@ -160,7 +159,7 @@
         </div>
     </div>
 
-    <!-- Modal Automático de Recibo Exitoso (Para Captura y WhatsApp) -->
+    <!-- Modal Automático de Recibo Exitoso -->
     {% if ultimo_pago %}
     <div class="modal fade show" id="modalReciboExito" tabindex="-1" aria-hidden="true" style="display: block; background: rgba(0,0,0,0.6);">
         <div class="modal-dialog modal-dialog-centered">
@@ -172,7 +171,6 @@
                 <div class="modal-body p-4">
                     <p class="text-muted small text-center mb-3">Puede tomar captura de pantalla a este recibo para enviarlo por WhatsApp al socio:</p>
                     
-                    <!-- Vista previa del Recibo -->
                     <div class="receipt-modal-box">
                         <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                             <div>
