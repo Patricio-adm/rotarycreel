@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoridades Rotarias - Rotary Club Creel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; }
+        .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
+        .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
+        .btn-rotary:hover { background-color: #0f326b; color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- Barra Superior -->
+    <nav class="navbar navbar-dark navbar-rotary px-4 mb-3 shadow-sm py-2">
+        <a class="navbar-brand fw-bold fs-6" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Menú Principal</a>
+        <div>
+            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2">Menú Principal</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-warning btn-sm fw-bold">Cerrar Sesión</a>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <div class="container pb-4">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show py-2 small" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold text-dark mb-1">⭐ Autoridades Rotarias (Internacionales y Distritales)</h4>
+                <p class="text-muted small mb-0">Directorio de contactos oficiales de la organización.</p>
+            </div>
+            <button class="btn btn-rotary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAutoridad" onclick="prepararCreacion()">
+                + Agregar Autoridad
+            </button>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="table-light text-secondary">
+                            <tr>
+                                <th class="ps-3 py-2">Nombre</th>
+                                <th class="py-2">Cargo</th>
+                                <th class="py-2">Nivel</th>
+                                <th class="py-2">Correo Electrónico</th>
+                                <th class="py-2">Teléfono</th>
+                                <th class="text-end pe-3 py-2">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if autoridades %}
+                                {% for a in autoridades %}
+                                <tr>
+                                    <td class="ps-3 py-2 fw-bold text-dark">{{ a.nombre }}</td>
+                                    <td>{{ a.cargo }}</td>
+                                    <td>
+                                        {% if a.nivel == 'Internacional' %}
+                                            <span class="badge bg-primary">Internacional</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Distrital</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><a href="mailto:{{ a.correo }}" class="text-decoration-none">{{ a.correo or 'N/D' }}</a></td>
+                                    <td>{{ a.telefono or 'N/D' }}</td>
+                                    <td class="text-end pe-3">
+                                        <button class="btn btn-sm btn-outline-primary py-0 px-2" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modalAutoridad"
+                                                onclick="prepararEdicion('{{ a.id }}', '{{ a.nombre }}', '{{ a.cargo }}', '{{ a.nivel }}', '{{ a.correo or '' }}', '{{ a.telefono or '' }}')">
+                                            Editar
+                                        </button>
+                                        <a href="{{ url_for('eliminar_autoridad', id=a.id) }}" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="return confirm('¿Estás seguro de eliminar esta autoridad?')">Eliminar</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-5">
+                                        No hay autoridades rotarias registradas todavía. Haz clic en "Agregar Autoridad" para empezar.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Flotante para Agregar / Editar Autoridad -->
+    <div class="modal fade" id="modalAutoridad" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ url_for('guardar_autoridad') }}" method="POST">
+                    <div class="modal-header bg-light py-2">
+                        <h6 class="modal-title fw-bold text-primary" id="modalTitulo">Agregar Autoridad Rotaria</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body small">
+                        <input type="hidden" name="auth_id" id="auth_id">
+                        
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold">Nombre Completo</label>
+                            <input type="text" class="form-control form-control-sm" name="nombre" id="nombre" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold">Cargo</label>
+                            <input type="text" class="form-control form-control-sm" name="cargo" id="cargo" placeholder="Ej. Gobernador de Distrito / Presidente RI" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold">Nivel</label>
+                            <select class="form-select form-select-sm" name="nivel" id="nivel" required>
+                                <option value="Distrital">Distrital</option>
+                                <option value="Internacional">Internacional</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold">Correo Electrónico</label>
+                            <input type="email" class="form-control form-control-sm" name="correo" id="correo">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold">Teléfono</label>
+                            <input type="text" class="form-control form-control-sm" name="telefono" id="telefono">
+                        </div>
+                    </div>
+                    <div class="modal-footer py-1">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary btn-sm" id="btnGuardar">Guardar Autoridad</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function prepararCreacion() {
+            document.getElementById('modalTitulo').innerText = 'Agregar Autoridad Rotaria';
+            document.getElementById('auth_id').value = '';
+            document.getElementById('nombre').value = '';
+            document.getElementById('cargo').value = '';
+            document.getElementById('nivel').value = 'Distrital';
+            document.getElementById('correo').value = '';
+            document.getElementById('telefono').value = '';
+            document.getElementById('btnGuardar').innerText = 'Guardar Autoridad';
+        }
+
+        function prepararEdicion(id, nombre, cargo, nivel, correo, telefono) {
+            document.getElementById('modalTitulo').innerText = 'Editar Autoridad Rotaria';
+            document.getElementById('auth_id').value = id;
+            document.getElementById('nombre').value = nombre;
+            document.getElementById('cargo').value = cargo;
+            document.getElementById('nivel').value = nivel;
+            document.getElementById('correo').value = correo !== 'None' ? correo : '';
+            document.getElementById('telefono').value = telefono !== 'None' ? telefono : '';
+            document.getElementById('btnGuardar').innerText = 'Actualizar Cambios';
+        }
+    </script>
+</body>
+</html>

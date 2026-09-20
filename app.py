@@ -46,6 +46,15 @@ class HistorialCargo(db.Model):
     periodo = db.Column(db.String(50), nullable=False)
     es_actual = db.Column(db.Boolean, default=False)
 
+class AutoridadRotaria(db.Model):
+    __tablename__ = 'autoridades_rotarias'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(150), nullable=False)
+    cargo = db.Column(db.String(150), nullable=False)
+    nivel = db.Column(db.String(50), nullable=False)  # 'Internacional' o 'Distrital'
+    correo = db.Column(db.String(100))
+    telefono = db.Column(db.String(50))
+
 class Socio(db.Model):
     __tablename__ = 'socios'
     id = db.Column(db.Integer, primary_key=True)
@@ -69,7 +78,7 @@ class Socio(db.Model):
     aniversario_matrimonio = db.Column(db.Date)
     telefono_esposa = db.Column(db.String(50))
     telefono_emergencia = db.Column(db.String(50))
-    foto_url = db.Column(db.Text)  # Almacena Base64
+    foto_url = db.Column(db.Text)
     
     # Relaciones
     cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
@@ -88,13 +97,11 @@ with app.app_context():
 
 # Rutas de la Aplicación
 
-# 1. Página de Inicio Pública
 @app.route('/')
 def index_publico():
     lista_socios = Socio.query.all()
     return render_template('publico.html', socios=lista_socios)
 
-# 2. Inicio de Sesión para Administración
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -138,7 +145,6 @@ def editar_socio(id):
     socio.tipo_socio = request.form.get('tipo_socio')
     socio.ciudad = request.form.get('ciudad')
     
-    # Datos familiares
     socio.nombre_esposa = request.form.get('nombre_esposa')
     socio.telefono_esposa = request.form.get('telefono_esposa')
     socio.telefono_emergencia = request.form.get('telefono_emergencia')
@@ -154,7 +160,6 @@ def editar_socio(id):
     socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa'))
     socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio'))
     
-    # Manejar subida segura de foto en Base64
     try:
         file = request.files.get('foto_archivo')
         if file and file.filename != '':
@@ -168,7 +173,6 @@ def editar_socio(id):
     except Exception as e:
         print(f"Error procesando imagen: {e}")
 
-    # Agregar nuevo cargo (histórico o actual)
     nuevo_cargo = request.form.get('cargo_nuevo')
     periodo_nuevo = request.form.get('periodo_nuevo')
     es_actual = request.form.get('es_actual') == 'on'
@@ -187,7 +191,7 @@ def editar_socio(id):
         db.session.add(cargo_db)
         
     db.session.commit()
-    flash('Información del socio, familia y cargos actualizados correctamente', 'success')
+    flash('Información del socio y familia actualizados correctamente', 'success')
     return redirect(url_for('gestion_socios'))
 
 @app.route('/cumpleanos-mes')
@@ -241,6 +245,52 @@ def cumpleanos_mes():
     festividades = sorted(festividades, key=lambda x: x['dia'])
     nombre_mes_actual = datetime.now().strftime('%B').capitalize()
     return render_template('cumpleanos.html', festividades=festividades, mes_actual=nombre_mes_actual)
+
+# Rutas para Autoridades Rotarias
+@app.route('/autoridades')
+def gestion_autoridades():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    autoridades = AutoridadRotaria.query.all()
+    return render_template('autoridades.html', autoridades=autoridades)
+
+@app.route('/autoridades/guardar', methods=['POST'])
+def guardar_autoridad():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    auth_id = request.form.get('auth_id')
+    nombre = request.form.get('nombre')
+    cargo = request.form.get('cargo')
+    nivel = request.form.get('nivel')
+    correo = request.form.get('correo')
+    telefono = request.form.get('telefono')
+    
+    if auth_id: # Editar existente
+        autoridad = AutoridadRotaria.query.get_or_404(auth_id)
+        autoridad.nombre = nombre
+        autoridad.cargo = cargo
+        autoridad.nivel = nivel
+        autoridad.correo = correo
+        autoridad.telefono = telefono
+        flash('Autoridad rotaria actualizada correctamente', 'success')
+    else: # Crear nueva
+        nueva = AutoridadRotaria(nombre=nombre, cargo=cargo, nivel=nivel, correo=correo, telefono=telefono)
+        db.session.add(nueva)
+        flash('Autoridad rotaria agregada correctamente', 'success')
+        
+    db.session.commit()
+    return redirect(url_for('gestion_autoridades'))
+
+@app.route('/autoridades/eliminar/<int:id>')
+def eliminar_autoridad(id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    autoridad = AutoridadRotaria.query.get_or_404(id)
+    db.session.delete(autoridad)
+    db.session.commit()
+    flash('Autoridad eliminada correctamente', 'success')
+    return redirect(url_for('gestion_autoridades'))
 
 @app.route('/tesoreria')
 def modulo_tesoreria():
