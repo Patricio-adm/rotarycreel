@@ -16,7 +16,6 @@
         .activity-img { height: 220px; object-fit: cover; }
         .avatar-socio { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 3px solid #17458F; }
         .footer-rotary { background-color: #17458F; color: white; padding: 30px 0; }
-        /* Excepcion para correos y enlaces que no deben ir en mayuscula estricta visual si es tecnica */
         .normal-case { text-transform: none !important; }
     </style>
 </head>
@@ -54,7 +53,6 @@
             </div>
 
             <div class="row g-4">
-                <!-- Actividad 1 (Puedes cambiar la URL de la imagen y el texto cuando gustes) -->
                 <div class="col-md-4">
                     <div class="card card-activity h-100">
                         <img src="https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?auto=format&fit=crop&w=600&q=80" class="card-img-top activity-img" alt="Actividad Rotary">
@@ -64,7 +62,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- Actividad 2 -->
                 <div class="col-md-4">
                     <div class="card card-activity h-100">
                         <img src="https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80" class="card-img-top activity-img" alt="Actividad Rotary">
@@ -74,7 +71,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- Actividad 3 -->
                 <div class="col-md-4">
                     <div class="card card-activity h-100">
                         <img src="https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&w=600&q=80" class="card-img-top activity-img" alt="Actividad Rotary">
@@ -112,7 +108,6 @@
                             </div>
                             <h5 class="fw-bold text-dark mb-1">{{ socio.nombre_completo }}</h5>
                             
-                            <!-- Mostrar cargo actual si lo tiene -->
                             <p class="text-success small fw-semibold mb-2">
                                 {% set ns_activo = namespace(cargo="SOCIO ACTIVO") %}
                                 {% if socio.cargos %}
@@ -136,7 +131,7 @@
 
     </div>
 
-    <!-- Pie de Página Institucional con Contacto y Enlaces Externos -->
+    <!-- Pie de Página Institucional -->
     <footer class="footer-rotary text-center">
         <div class="container">
             <h5 class="fw-bold mb-2">Rotary Club Creel - Distrito 4110</h5>
