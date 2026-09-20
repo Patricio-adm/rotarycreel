@@ -111,13 +111,11 @@
                             
                             <p class="text-success small fw-semibold mb-2">
                                 {% set ns_activo = namespace(cargo="SOCIO ACTIVO") %}
-                                {% if socio.cargos %}
-                                    {% for c in socio.cargos %}
-                                        {% if c.es_actual %}
-                                            {% set ns_activo.cargo = c.cargo ~ ' (' ~ c.periodo ~ ')' %}
-                                        {% endif %}
-                                    endfor %}
-                                {% endif %}
+                                {% for c in socio.cargos or [] %}
+                                    {% if c.es_actual %}
+                                        {% set ns_activo.cargo = c.cargo ~ ' (' ~ c.periodo ~ ')' %}
+                                    {% endif %}
+                                {% endfor %}
                                 {{ ns_activo.cargo }}
                             </p>
                             <p class="text-muted small mb-0">Ubicación: {{ socio.ciudad or 'CREEL' }}, CHIH.</p>
@@ -155,7 +153,7 @@
         </div>
     </footer>
 
-    <!-- Ventana Flotante (Modal) de Contacto Directo con Endpoint Real -->
+    <!-- Ventana Flotante (Modal) de Contacto Directo -->
     <div class="modal fade text-start" id="modalContacto" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content text-dark">
