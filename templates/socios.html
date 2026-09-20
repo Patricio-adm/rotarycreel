@@ -289,6 +289,34 @@
                                                         </div>
                                                     </div>
 
+                                                    <!-- Sección de Hijos Existentes y Agregar Nuevo -->
+                                                    <hr class="my-2">
+                                                    <h6 class="fw-bold text-dark small">Hijos Registrados</h6>
+                                                    {% if socio.hijos %}
+                                                        <ul class="list-group list-group-flush mb-2 small">
+                                                            {% for hijo in socio.hijos %}
+                                                                <li class="list-group-item px-0 py-1 bg-transparent d-flex justify-content-between align-items-center">
+                                                                    <span style="text-transform: uppercase;">{{ hijo.nombre }}</span>
+                                                                    <span class="text-muted">Nac: {{ hijo.fecha_nacimiento or 'N/D' }}</span>
+                                                                </li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    {% else %}
+                                                        <p class="text-muted small mb-2">No hay hijos registrados actualmente.</p>
+                                                    {% endif %}
+
+                                                    <div class="bg-light p-2 rounded mb-2">
+                                                        <label class="form-label text-muted fw-semibold small">Agregar Nuevo Hijo</label>
+                                                        <div class="row g-2">
+                                                            <div class="col-7">
+                                                                <input type="text" class="form-control form-control-sm" name="nombre_hijo_nuevo" placeholder="NOMBRE DEL HIJO(A)">
+                                                            </div>
+                                                            <div class="col-5">
+                                                                <input type="date" class="form-control form-control-sm" name="fecha_hijo_nuevo">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
                                                     <hr class="my-2">
                                                     <h6 class="fw-bold text-dark small">Agregar Cargo o Comité (Anterior / Actual)</h6>
                                                     <div class="row mb-2">

@@ -54,7 +54,7 @@ class AutoridadRotaria(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(150), nullable=False)
     cargo = db.Column(db.String(150), nullable=False)
-    nivel = db.Column(db.String(50), nullable=False)  # 'Internacional' o 'Distrital'
+    nivel = db.Column(db.String(50), nullable=False)
     correo = db.Column(db.String(100))
     telefono = db.Column(db.String(50))
 
@@ -133,7 +133,12 @@ def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    lista_socios = Socio.query.all()
+    try:
+        lista_socios = Socio.query.all()
+    except Exception as e:
+        print(f"Error consultando socios: {e}")
+        lista_socios = []
+        
     return render_template('socios.html', socios=lista_socios)
 
 @app.route('/socios/editar/<int:id>', methods=['POST'])
@@ -144,7 +149,7 @@ def editar_socio(id):
     socio = Socio.query.get_or_404(id)
     socio.nombre_completo = to_upper(request.form.get('nombre_completo'))
     socio.telefono = to_upper(request.form.get('telefono'))
-    socio.correo = request.form.get('correo') # El correo se respeta en minúsculas/normal
+    socio.correo = request.form.get('correo')
     socio.tipo_socio = to_upper(request.form.get('tipo_socio'))
     socio.ciudad = to_upper(request.form.get('ciudad'))
     
@@ -163,6 +168,18 @@ def editar_socio(id):
     socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa'))
     socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio'))
     
+    # Procesar adición de nuevo hijo si se proporcionó nombre
+    nombre_nuevo_hijo = to_upper(request.form.get('nombre_hijo_nuevo'))
+    fecha_nuevo_hijo = parse_date(request.form.get('fecha_hijo_nuevo'))
+    
+    if nombre_nuevo_hijo:
+        nuevo_hijo = Hijo(
+            socio_id=socio.id,
+            nombre=nombre_nuevo_hijo,
+            fecha_nacimiento=fecha_nuevo_hijo
+        )
+        db.session.add(nuevo_hijo)
+
     try:
         file = request.files.get('foto_archivo')
         if file and file.filename != '':
@@ -194,7 +211,7 @@ def editar_socio(id):
         db.session.add(cargo_db)
         
     db.session.commit()
-    flash('Información del socio, familia y cargos actualizados correctamente', 'success')
+    flash('Información del socio, familia, hijos y cargos actualizados correctamente', 'success')
     return redirect(url_for('gestion_socios'))
 
 @app.route('/cumpleanos-mes')
