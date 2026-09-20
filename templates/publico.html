@@ -115,7 +115,7 @@
                                         {% if c.es_actual %}
                                             {% set ns_activo.cargo = c.cargo ~ ' (' ~ c.periodo ~ ')' %}
                                         {% endif %}
-                                    endfor %}
+                                    {% endfor %}
                                 {% endif %}
                                 {{ ns_activo.cargo }}
                             </p>
