@@ -88,7 +88,7 @@
                                                     <span class="badge bg-success mb-1">{{ c.cargo }} ({{ c.periodo }})</span><br>
                                                     {% set ns.has_cargo = true %}
                                                 {% endif %}
-                                            {% endfor %}
+                                            endfor %}
                                         {% endif %}
                                         {% if not ns.has_cargo %}
                                             <span class="text-muted">Socio Activo</span>
@@ -103,7 +103,7 @@
                                     </td>
                                 </tr>
 
-                                <!-- Modal de Perfil Completo -->
+                                <!-- Modal de Perfil Completo (Oculta sección si no hay cargos >= 2023-2024) -->
                                 <div class="modal fade text-start" id="profileModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
@@ -128,33 +128,37 @@
                                                     <p class="mb-0"><strong>Ubicación:</strong> {{ socio.ciudad or 'Creel' }}, {{ socio.estado or 'Chih.' }}</p>
                                                 </div>
 
+                                                <!-- Verificación para mostrar historial solo si existen cargos >= 2023-2024 -->
+                                                {% set ns_cargos = namespace(count=0) %}
+                                                {% if socio.cargos %}
+                                                    {% for c in socio.cargos %}
+                                                        {% if c.periodo >= '2023-2024' %}
+                                                            {% set ns_cargos.count = ns_cargos.count + 1 %}
+                                                        {% endif %}
+                                                    endfor %}
+                                                {% endif %}
+
+                                                {% if ns_cargos.count > 0 %}
                                                 <div class="text-start">
                                                     <h6 class="fw-bold text-secondary small text-uppercase">Historial de Cargos (Desde 2023-2024)</h6>
-                                                    {% set ns_cargos = namespace(count=0) %}
-                                                    {% if socio.cargos %}
-                                                        <ul class="list-group list-group-flush small">
-                                                            {% for c in socio.cargos %}
-                                                                {% if c.periodo >= '2023-2024' %}
-                                                                    {% set ns_cargos.count = ns_cargos.count + 1 %}
-                                                                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
-                                                                        <span>
-                                                                            <strong>{{ c.cargo }}</strong>
-                                                                            {% if c.es_actual %}
-                                                                                <span class="badge bg-success ms-1">Actual</span>
-                                                                            {% endif %}
-                                                                        </span>
-                                                                        <span class="text-muted">Periodo: {{ c.periodo }}</span>
-                                                                    </li>
-                                                                {% endif %}
-                                                            {% endfor %}
-                                                        </ul>
-                                                        {% if ns_cargos.count == 0 %}
-                                                            <p class="text-muted small italic">No hay registros de cargos a partir del periodo 2023-2024.</p>
-                                                        {% endif %}
-                                                    {% else %}
-                                                        <p class="text-muted small italic">No hay historial de cargos registrado.</p>
-                                                    {% endif %}
+                                                    <ul class="list-group list-group-flush small">
+                                                        {% for c in socio.cargos %}
+                                                            {% if c.periodo >= '2023-2024' %}
+                                                                <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
+                                                                    <span>
+                                                                        <strong>{{ c.cargo }}</strong>
+                                                                        {% if c.es_actual %}
+                                                                            <span class="badge bg-success ms-1">Actual</span>
+                                                                        {% endif %}
+                                                                    </span>
+                                                                    <span class="text-muted">Periodo: {{ c.periodo }}</span>
+                                                                </li>
+                                                            {% endif %}
+                                                        endfor %}
+                                                    </ul>
                                                 </div>
+                                                {% endif %}
+
                                             </div>
                                             <div class="modal-footer py-1">
                                                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
@@ -165,7 +169,7 @@
                                 </div>
                                 <!-- Fin Modal de Perfil -->
 
-                                <!-- Modal de Edición -->
+                                <!-- Modal de Edición (Con opción para agregar cargos anteriores y actuales) -->
                                 <div class="modal fade text-start" id="editModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
@@ -204,12 +208,12 @@
                                                         </div>
                                                     </div>
                                                     <hr class="my-2">
-                                                    <h6 class="fw-bold text-dark small">Asignar Cargo / Comité Actual</h6>
+                                                    <h6 class="fw-bold text-dark small">Agregar Cargo o Comité (Anterior / Actual)</h6>
                                                     <div class="row mb-2">
-                                                        <div class="col-8">
+                                                        <div class="col-7">
                                                             <label class="form-label text-muted">Cargo / Comité</label>
-                                                            <select class="form-select form-select-sm" name="cargo_actual">
-                                                                <option value="">-- Sin Cargo Directivo --</option>
+                                                            <select class="form-select form-select-sm" name="cargo_nuevo">
+                                                                <option value="">-- Seleccionar Cargo --</option>
                                                                 <option value="Presidente">Presidente</option>
                                                                 <option value="Past President">Past President</option>
                                                                 <option value="Presidente Electo">Presidente Electo</option>
@@ -225,10 +229,16 @@
                                                                 <option value="Revisor / Comité de Finanzas">Revisor / Comité de Finanzas</option>
                                                             </select>
                                                         </div>
-                                                        <div class="col-4">
+                                                        <div class="col-5">
                                                             <label class="form-label text-muted">Periodo</label>
-                                                            <input type="text" class="form-control form-control-sm" name="periodo_actual" value="2026-2027">
+                                                            <input type="text" class="form-control form-control-sm" name="periodo_nuevo" placeholder="Ej. 2023-2024">
                                                         </div>
+                                                    </div>
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" name="es_actual" id="esActual{{ socio.id }}">
+                                                        <label class="form-check-label text-muted" for="esActual{{ socio.id }}">
+                                                            Establecer como puesto actual de este periodo
+                                                        </label>
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer py-1">
