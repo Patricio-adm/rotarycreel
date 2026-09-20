@@ -116,7 +116,7 @@
                                         {% if c.es_actual %}
                                             {% set ns_activo.cargo = c.cargo ~ ' (' ~ c.periodo ~ ')' %}
                                         {% endif %}
-                                    {% endfor %}
+                                    endfor %}
                                 {% endif %}
                                 {{ ns_activo.cargo }}
                             </p>
@@ -155,7 +155,7 @@
         </div>
     </footer>
 
-    <!-- Ventana Flotante (Modal) de Contacto Directo -->
+    <!-- Ventana Flotante (Modal) de Contacto Directo con Endpoint Real -->
     <div class="modal fade text-start" id="modalContacto" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content text-dark">
@@ -163,7 +163,7 @@
                     <h5 class="modal-title fw-bold fs-6">Enviar Mensaje a Rotary Club Creel</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="https://formspree.io/f/xlgppwnd" method="POST">
+                <form action="https://formspree.io/f/mljdjdll" method="POST">
                     <div class="modal-body py-3 small">
                         <p class="text-muted mb-3">¿Tienes alguna duda o deseas contactar al club? Envíanos un mensaje y te responderemos a la brevedad a través de <strong>rotarycreelmx@gmail.com</strong>.</p>
                         
