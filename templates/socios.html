@@ -88,7 +88,7 @@
                                                     <span class="badge bg-success mb-1">{{ c.cargo }} ({{ c.periodo }})</span><br>
                                                     {% set ns.has_cargo = true %}
                                                 {% endif %}
-                                            endfor %}
+                                            {% endfor %}
                                         {% endif %}
                                         {% if not ns.has_cargo %}
                                             <span class="text-muted">Socio Activo</span>
@@ -103,7 +103,7 @@
                                     </td>
                                 </tr>
 
-                                <!-- Modal de Perfil Completo (Oculta sección si no hay cargos >= 2023-2024) -->
+                                <!-- Modal de Perfil Completo -->
                                 <div class="modal fade text-start" id="profileModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
@@ -135,7 +135,7 @@
                                                         {% if c.periodo >= '2023-2024' %}
                                                             {% set ns_cargos.count = ns_cargos.count + 1 %}
                                                         {% endif %}
-                                                    endfor %}
+                                                    {% endfor %}
                                                 {% endif %}
 
                                                 {% if ns_cargos.count > 0 %}
@@ -154,7 +154,7 @@
                                                                     <span class="text-muted">Periodo: {{ c.periodo }}</span>
                                                                 </li>
                                                             {% endif %}
-                                                        endfor %}
+                                                        {% endfor %}
                                                     </ul>
                                                 </div>
                                                 {% endif %}
@@ -169,7 +169,7 @@
                                 </div>
                                 <!-- Fin Modal de Perfil -->
 
-                                <!-- Modal de Edición (Con opción para agregar cargos anteriores y actuales) -->
+                                <!-- Modal de Edición -->
                                 <div class="modal fade text-start" id="editModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
