@@ -1,20 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 import os
+import base64
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-# Inicializar la aplicación Flask (PRIMERO QUE TODO)
+# Inicializar la aplicación Flask
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_rotary_creel_2026'
 
-# Configuración de la carpeta de subidas de fotos
-UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Asegurarse de que la carpeta de subidas exista
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -46,7 +41,7 @@ class Socio(db.Model):
     ciudad = db.Column(db.String(100))
     estado = db.Column(db.String(100))
     es_activo = db.Column(db.Boolean)
-    foto_url = db.Column(db.String(255))
+    foto_url = db.Column(db.Text)  # Cambiado a Text para almacenar Base64 de forma segura
     
     # Relación con el historial de cargos
     cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
@@ -115,14 +110,16 @@ def editar_socio(id):
     socio.tipo_socio = request.form.get('tipo_socio')
     socio.ciudad = request.form.get('ciudad')
     
-    # Manejar la subida de la foto local
+    # Manejar la subida de la foto convirtiéndola a Base64 para guardarla en Supabase
     file = request.files.get('foto_archivo')
     if file and file.filename != '':
         if allowed_file(file.filename):
-            filename = secure_filename(f"socio_{socio.id}_{file.filename}")
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            socio.foto_url = f"/{filepath}" if not filepath.startswith('/') else filepath
+            file_bytes = file.read()
+            encoded_img = base64.b64encode(file_bytes).decode('utf-8')
+            # Detectar tipo de imagen (por defecto png/jpeg)
+            ext = file.filename.rsplit('.', 1)[1].lower()
+            mime_type = f"image/jpeg" if ext in ['jpg', 'jpeg'] else f"image/{ext}"
+            socio.foto_url = f"data:{mime_type};base64,{encoded_img}"
     
     # Agregar nuevo cargo (histórico o actual)
     nuevo_cargo = request.form.get('cargo_nuevo')

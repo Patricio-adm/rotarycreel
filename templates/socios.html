@@ -67,7 +67,7 @@
                                 <tr>
                                     <td class="ps-3 py-2">
                                         {% if socio.foto_url %}
-                                            <img src="{{ socio.foto_url.lstrip('/') }}" alt="Foto" class="avatar-img">
+                                            <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-img">
                                         {% else %}
                                             <div class="avatar-img bg-secondary text-white d-flex align-items-center justify-content-center fw-bold fs-5">
                                                 {{ socio.nombre_completo[:2].upper() }}
@@ -113,7 +113,7 @@
                                             </div>
                                             <div class="modal-body text-center py-4">
                                                 {% if socio.foto_url %}
-                                                    <img src="{{ socio.foto_url.lstrip('/') }}" alt="Foto" class="avatar-lg mb-3 shadow-sm">
+                                                    <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-lg mb-3 shadow-sm">
                                                 {% else %}
                                                     <div class="avatar-lg bg-secondary text-white d-flex align-items-center justify-content-center fw-bold fs-2 mx-auto mb-3 shadow-sm">
                                                         {{ socio.nombre_completo[:2].upper() }}
