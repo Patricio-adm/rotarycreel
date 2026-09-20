@@ -17,7 +17,6 @@
         .avatar-socio { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 3px solid #17458F; }
         .footer-rotary { background-color: #17458F; color: white; padding: 30px 0; }
         .normal-case { text-transform: none !important; }
-        /* Permitir minúsculas dentro del formulario modal para escribir correos y mensajes cómodamente */
         .modal-body input, .modal-body textarea { text-transform: none !important; }
     </style>
 </head>
@@ -117,7 +116,7 @@
                                         {% if c.es_actual %}
                                             {% set ns_activo.cargo = c.cargo ~ ' (' ~ c.periodo ~ ')' %}
                                         {% endif %}
-                                    endfor %}
+                                    {% endfor %}
                                 {% endif %}
                                 {{ ns_activo.cargo }}
                             </p>
@@ -139,7 +138,6 @@
             <h5 class="fw-bold mb-2">Rotary Club Creel - Distrito 4110</h5>
             <p class="mb-1">Creel, Municipio de Bocoyna, Chihuahua, México.</p>
             
-            <!-- Botón que abre la ventana flotante (Modal) para enviar correo directo -->
             <p class="mb-3">
                 Correo institucional: 
                 <button type="button" class="btn btn-warning btn-sm fw-bold normal-case px-3 py-1 ms-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalContacto">
@@ -165,7 +163,6 @@
                     <h5 class="modal-title fw-bold fs-6">Enviar Mensaje a Rotary Club Creel</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <!-- Usamos Formspree o un servicio seguro de envío directo al correo -->
                 <form action="https://formspree.io/f/xlgppwnd" method="POST">
                     <div class="modal-body py-3 small">
                         <p class="text-muted mb-3">¿Tienes alguna duda o deseas contactar al club? Envíanos un mensaje y te responderemos a la brevedad a través de <strong>rotarycreelmx@gmail.com</strong>.</p>
