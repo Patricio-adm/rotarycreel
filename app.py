@@ -58,7 +58,7 @@ class PagoCuota(db.Model):
     __tablename__ = 'pagos_cuotas'
     id = db.Column(db.Integer, primary_key=True)
     socio_id = db.Column(db.Integer, db.ForeignKey('socios.id'), nullable=False)
-    mes_anio = db.Column(db.String(20), nullable=False)  # Ej. "JULIO 2025", "AGOSTO 2025"
+    mes_anio = db.Column(db.String(20), nullable=False)  # Ej. "JUL 2025"
     monto = db.Column(db.Float, default=500.0)
     metodo_pago = db.Column(db.String(50))  # EFECTIVO o TRANSFERENCIA
     fecha_pago = db.Column(db.Date, default=datetime.utcnow)
@@ -256,22 +256,30 @@ def eliminar_autoridad(id):
     flash('Autoridad eliminada correctamente', 'success')
     return redirect(url_for('gestion_autoridades'))
 
-# --- MÓDULO DE TESORERÍA Y CUOTAS SOCIALES ---
+# --- MÓDULO DE TESORERÍA ---
 @app.route('/tesoreria')
 def modulo_tesoreria():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    return render_template('tesoreria_menu.html')
+
+@app.route('/tesoreria/cuotas-sociales')
+def cuotas_sociales():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     
     socios = Socio.query.order_by(Socio.nombre_completo).all()
-    
-    # Generar lista de meses desde JULIO 2025 hasta el mes actual (SEP 2026 o posterior)
     meses_control = [
         "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
         "ENE 2026", "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
         "JUL 2026", "AGO 2026", "SEP 2026"
     ]
     
-    return render_template('tesoreria.html', socios=socios, meses=meses_control)
+    # Comprobar si acabamos de registrar un pago para mostrar el modal de recibo automático
+    ultimo_pago_id = request.args.get('recibo_id')
+    ultimo_pago = PagoCuota.query.get(ultimo_pago_id) if ultimo_pago_id else None
+    
+    return render_template('tesoreria.html', socios=socios, meses=meses_control, ultimo_pago=ultimo_pago)
 
 @app.route('/tesoreria/registrar-pago', methods=['POST'])
 def registrar_pago_cuota():
@@ -279,13 +287,13 @@ def registrar_pago_cuota():
         return redirect(url_for('login'))
     
     socio_id = request.form.get('socio_id')
-    meses_pagados = request.form.getlist('meses') # Lista de meses seleccionados
+    meses_pagados = request.form.getlist('meses')
     metodo = request.form.get('metodo_pago')
     referencia = to_upper(request.form.get('referencia'))
     
+    ultimo_pago_creado = None
     if socio_id and meses_pagados:
         for m in meses_pagados:
-            # Verificar si ya existe pago para ese mes
             existente = PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=m).first()
             if not existente:
                 nuevo_pago = PagoCuota(
@@ -296,12 +304,17 @@ def registrar_pago_cuota():
                     referencia=referencia
                 )
                 db.session.add(nuevo_pago)
+                db.session.flush() # Para obtener el ID
+                ultimo_pago_creado = nuevo_pago
         db.session.commit()
-        flash('Pago(s) de cuota registrado(s) correctamente', 'success')
-    else:
-        flash('Debe seleccionar al menos un mes y un socio', 'warning')
+        flash('Pago(s) registrado(s) correctamente.', 'success')
         
-    return redirect(url_for('modulo_tesoreria'))
+        if ultimo_pago_creado:
+            return redirect(url_for('cuotas_sociales', recibo_id=ultimo_pago_creado.id))
+    else:
+        flash('Debe seleccionar al menos un mes y un socio.', 'warning')
+        
+    return redirect(url_for('cuotas_sociales'))
 
 @app.route('/tesoreria/recibo/<int:pago_id>')
 def ver_recibo(pago_id):
@@ -309,7 +322,6 @@ def ver_recibo(pago_id):
         return redirect(url_for('login'))
     pago = PagoCuota.query.get_or_404(pago_id)
     
-    # Formatear fecha actual en español
     meses_es = {"January": "ENERO", "February": "FEBRERO", "March": "MARZO", "April": "ABRIL", "May": "MAYO", "June": "JUNIO", "July": "JULIO", "August": "AGOSTO", "September": "SEPTIEMBRE", "October": "OCTUBRE", "November": "NOVIEMBRE", "December": "DICIEMBRE"}
     dias_es = {"Monday": "LUNES", "Tuesday": "MARTES", "Wednesday": "MIÉRCOLES", "Thursday": "JUEVES", "Friday": "VIERNES", "Saturday": "SÁBADO", "Sunday": "DOMINGO"}
     

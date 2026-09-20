@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Tesorería - Rotary Club Creel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-transform: uppercase; }
+        .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
+        .card-menu { transition: transform 0.2s, box-shadow 0.2s; border: none; border-radius: 12px; }
+        .card-menu:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+    </style>
+</head>
+<body>
+
+    <!-- Barra Superior -->
+    <nav class="navbar navbar-dark navbar-rotary px-4 mb-4 shadow-sm py-2">
+        <a class="navbar-brand fw-bold fs-6" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Tesorería</a>
+        <div>
+            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2">Menú Principal</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-warning btn-sm fw-bold">Cerrar Sesión</a>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold text-primary">Gestión de Tesorería</h2>
+            <p class="text-muted">Seleccione el módulo o concepto que desea administrar</p>
+        </div>
+
+        <div class="row justify-content-center g-4">
+            <!-- Opción Cuotas Sociales -->
+            <div class="col-md-4">
+                <a href="{{ url_for('cuotas_sociales') }}" class="text-decoration-none">
+                    <div class="card card-menu shadow-sm p-4 text-center bg-white h-100">
+                        <div class="fs-1 mb-3">💵</div>
+                        <h4 class="fw-bold text-dark mb-2">Cuotas Sociales</h4>
+                        <p class="text-muted small mb-0">Control mensual de pagos de socios ($500.00 MXN), adeudos e historial desde julio 2025.</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Próximos módulos de tesorería -->
+            <div class="col-md-4">
+                <div class="card card-menu shadow-sm p-4 text-center bg-light h-100 border opacity-75">
+                    <div class="fs-1 mb-3">📋</div>
+                    <h4 class="fw-bold text-secondary mb-2">Otros Ingresos / Eventos</h4>
+                    <p class="text-muted small mb-0">Próximamente: Registro de eventos con causa, donaciones y aportaciones extraordinarias.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
