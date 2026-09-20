@@ -6,7 +6,7 @@
     <title>Rotary Club Creel - Distrito 4110</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-transform: uppercase; }
         .hero-section { background: linear-gradient(135deg, #17458F, #0f326b); color: white; padding: 60px 20px; border-bottom: 5px solid #F7A81B; }
         .navbar-rotary { background-color: #17458F; }
         .btn-rotary { background-color: #F7A81B; color: #17458F; font-weight: bold; }
@@ -16,6 +16,8 @@
         .activity-img { height: 220px; object-fit: cover; }
         .avatar-socio { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 3px solid #17458F; }
         .footer-rotary { background-color: #17458F; color: white; padding: 30px 0; }
+        /* Excepcion para correos y enlaces que no deben ir en mayuscula estricta visual si es tecnica */
+        .normal-case { text-transform: none !important; }
     </style>
 </head>
 <body>
@@ -33,7 +35,11 @@
         <div class="container">
             <h1 class="display-5 fw-bold mb-3">Dar de Sí Antes de Pensar en Sí</h1>
             <p class="lead mb-4">Bienvenidos al sitio oficial de Rotary Club Creel, Chihuahua. Trabajando unidos por nuestra comunidad, la educación, la salud y el medio ambiente en la Sierra Tarahumara.</p>
-            <a href="#actividades" class="btn btn-rotary btn-lg px-4 shadow">Ver Nuestras Actividades</a>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <a href="#actividades" class="btn btn-rotary btn-lg px-4 shadow">Ver Nuestras Actividades</a>
+                <a href="https://www.rotary.org/es" target="_blank" class="btn btn-outline-light btn-lg px-4 normal-case">Rotary International</a>
+                <a href="https://rotary4110.org" target="_blank" class="btn btn-outline-light btn-lg px-4 normal-case">Distrito 4110</a>
+            </div>
         </div>
     </header>
 
@@ -48,7 +54,7 @@
             </div>
 
             <div class="row g-4">
-                <!-- Actividad 1 -->
+                <!-- Actividad 1 (Puedes cambiar la URL de la imagen y el texto cuando gustes) -->
                 <div class="col-md-4">
                     <div class="card card-activity h-100">
                         <img src="https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?auto=format&fit=crop&w=600&q=80" class="card-img-top activity-img" alt="Actividad Rotary">
@@ -108,17 +114,17 @@
                             
                             <!-- Mostrar cargo actual si lo tiene -->
                             <p class="text-success small fw-semibold mb-2">
-                                {% set ns_activo = namespace(cargo="Socio Activo") %}
+                                {% set ns_activo = namespace(cargo="SOCIO ACTIVO") %}
                                 {% if socio.cargos %}
                                     {% for c in socio.cargos %}
                                         {% if c.es_actual %}
                                             {% set ns_activo.cargo = c.cargo ~ ' (' ~ c.periodo ~ ')' %}
                                         {% endif %}
-                                    {% endfor %}
+                                    endfor %}
                                 {% endif %}
                                 {{ ns_activo.cargo }}
                             </p>
-                            <p class="text-muted small mb-0">Ubicación: {{ socio.ciudad or 'Creel' }}, Chih.</p>
+                            <p class="text-muted small mb-0">Ubicación: {{ socio.ciudad or 'CREEL' }}, CHIH.</p>
                         </div>
                     </div>
                     {% endfor %}
@@ -130,12 +136,19 @@
 
     </div>
 
-    <!-- Pie de Página Institucional con Contacto y Correo del Club -->
+    <!-- Pie de Página Institucional con Contacto y Enlaces Externos -->
     <footer class="footer-rotary text-center">
         <div class="container">
             <h5 class="fw-bold mb-2">Rotary Club Creel - Distrito 4110</h5>
             <p class="mb-1">Creel, Municipio de Bocoyna, Chihuahua, México.</p>
-            <p class="mb-3">Correo electrónico institucional: <a href="mailto:contacto@rotarycreel.org" class="text-warning text-decoration-none fw-semibold">contacto@rotarycreel.org</a></p>
+            <p class="mb-3">Correo electrónico institucional: <a href="mailto:contacto@rotarycreel.org" class="text-warning text-decoration-none fw-semibold normal-case">contacto@rotarycreel.org</a></p>
+            
+            <div class="mb-3">
+                <a href="https://www.facebook.com" target="_blank" class="text-white text-decoration-none mx-2 fw-semibold">Facebook del Club</a> |
+                <a href="https://www.rotary.org/es" target="_blank" class="text-white text-decoration-none mx-2 fw-semibold normal-case">Rotary International</a> |
+                <a href="https://rotary4110.org" target="_blank" class="text-white text-decoration-none mx-2 fw-semibold normal-case">Distrito 4110</a>
+            </div>
+
             <p class="small text-white-50 mb-0">&copy; 2026 Rotary Club Creel. Todos los derechos reservados.</p>
         </div>
     </footer>
