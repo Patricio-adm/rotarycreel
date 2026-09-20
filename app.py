@@ -190,6 +190,58 @@ def editar_socio(id):
     flash('Información del socio, familia y cargos actualizados correctamente', 'success')
     return redirect(url_for('gestion_socios'))
 
+@app.route('/cumpleanos-mes')
+def cumpleanos_mes():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    mes_actual = datetime.now().month
+    todos_socios = Socio.query.all()
+    festividades = []
+    
+    for socio in todos_socios:
+        if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual:
+            festividades.append({
+                'dia': socio.fecha_nacimiento.day,
+                'fecha_str': socio.fecha_nacimiento.strftime('%d/%m/%Y'),
+                'tipo': 'Cumpleaños Socio',
+                'persona': socio.nombre_completo,
+                'detalle': f"Socio ID: {socio.numero_socio or socio.id}"
+            })
+        
+        if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual:
+            festividades.append({
+                'dia': socio.fecha_nacimiento_esposa.day,
+                'fecha_str': socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y'),
+                'tipo': 'Cumpleaños Esposa(o)',
+                'persona': socio.nombre_esposa or 'Esposa(o)',
+                'detalle': f"Esposa de: {socio.nombre_completo}"
+            })
+                
+        if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual:
+            festividades.append({
+                'dia': socio.aniversario_matrimonio.day,
+                'fecha_str': socio.aniversario_matrimonio.strftime('%d/%m/%Y'),
+                'tipo': 'Aniversario de Bodas',
+                'persona': f"{socio.nombre_completo} y {socio.nombre_esposa or 'Cónyuge'}",
+                'detalle': "Aniversario matrimonial"
+            })
+                
+        if socio.hijos:
+            for hijo in socio.hijos:
+                if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual:
+                    festividades.append({
+                        'dia': hijo.fecha_nacimiento.day,
+                        'fecha_str': hijo.fecha_nacimiento.strftime('%d/%m/%Y'),
+                        'tipo': 'Cumpleaños Hijo(a)',
+                        'persona': hijo.nombre,
+                        'detalle': f"Hijo(a) de: {socio.nombre_completo}"
+                    })
+
+    festividades = sorted(festividades, key=lambda x: x['dia'])
+    nombre_mes_actual = datetime.now().strftime('%B').capitalize()
+    return render_template('cumpleanos.html', festividades=festividades, mes_actual=nombre_mes_actual)
+
 @app.route('/tesoreria')
 def modulo_tesoreria():
     if 'user_id' not in session:
