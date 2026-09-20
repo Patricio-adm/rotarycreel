@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesorería - Cuotas Sociales - Rotary Club Creel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-size: 0.85rem; }
+        .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
+        .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
+        .btn-rotary:hover { background-color: #0f326b; color: white; }
+        .table-fixed th, .table-fixed td { white-space: nowrap; vertical-align: middle; text-align: center; }
+        .table-fixed th:nth-child(2), .table-fixed td:nth-child(2) { text-align: left; }
+        input[type="text"] { text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <!-- Barra Superior -->
+    <nav class="navbar navbar-dark navbar-rotary px-4 mb-3 shadow-sm py-2">
+        <a class="navbar-brand fw-bold fs-6 text-uppercase" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Módulo de Tesorería</a>
+        <div>
+            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2">Menú Principal</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-warning btn-sm fw-bold">Cerrar Sesión</a>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4 pb-4">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show py-2 small" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold text-dark mb-0 text-uppercase">Control de Cuotas Sociales ($500.00 MXN / Mes)</h5>
+                <p class="text-muted small mb-0">Seguimiento de pagos históricos desde Julio 2025</p>
+            </div>
+            <div>
+                <button class="btn btn-success btn-sm shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago">
+                    ➕ Registrar Nuevo Pago
+                </button>
+            </div>
+        </div>
+
+        <!-- Matriz de Control de Cuotas -->
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover mb-0 table-fixed small">
+                        <thead class="table-light text-secondary">
+                            <tr>
+                                <th class="ps-3">#</th>
+                                <th style="min-width: 200px;">Nombre del Socio</th>
+                                {% for m in meses %}
+                                    <th>{{ m }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if socios %}
+                                {% for socio in socios %}
+                                <tr>
+                                    <td class="ps-3 fw-bold text-secondary">{{ socio.numero_socio or loop.index }}</td>
+                                    <td class="fw-bold text-dark text-start" style="text-transform: uppercase;">{{ socio.nombre_completo }}</td>
+                                    
+                                    {% for m in meses %}
+                                        {% set ns = namespace(pago_encontrado=None) %}
+                                        {% for p in socio.pagos %}
+                                            {% if p.mes_anio == m %}
+                                                {% set ns.pago_encontrado = p %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        <td>
+                                            {% if ns.pago_encontrado %}
+                                                <a href="{{ url_for('ver_recibo', pago_id=ns.pago_encontrado.id) }}" class="badge bg-success text-decoration-none" title="Pagado vía {{ ns.pago_encontrado.metodo_pago }}">
+                                                    ✓ PAGADO
+                                                </a>
+                                            {% else %}
+                                                <span class="badge bg-danger bg-opacity-75">PENDIENTE</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="{{ meses|length + 2 }}" class="text-center text-muted py-4">No hay socios registrados para mostrar.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Registrar Pago -->
+    <div class="modal fade text-start" id="modalRegistrarPago" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ url_for('registrar_pago_cuota') }}" method="POST">
+                    <div class="modal-header bg-light py-2">
+                        <h6 class="modal-title fw-bold text-primary">Registrar Pago de Cuota Social</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body small">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Seleccionar Socio</label>
+                            <select class="form-select form-select-sm" name="socio_id" required>
+                                <option value="">-- SELECCIONE SOCIO --</option>
+                                {% for socio in socios %}
+                                    <option value="{{ socio.id }}" style="text-transform: uppercase;">{{ socio.nombre_completo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Mes(es) a Pagar ($500 c/u)</label>
+                            <div class="border p-2 rounded bg-light" style="max-height: 150px; overflow-y: auto;">
+                                {% for m in meses %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="meses" value="{{ m }}" id="chk_{{ loop.index }}">
+                                        <label class="form-check-label text-dark fw-semibold" for="chk_{{ loop.index }}">
+                                            {{ m }} ($500.00)
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label fw-semibold">Método de Pago</label>
+                                <select class="form-select form-select-sm" name="metodo_pago" required>
+                                    <option value="EFECTIVO">EFECTIVO</option>
+                                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                                </select>
+                            </div>
+                            <div class="col">
+                                <label class="form-label fw-semibold">Referencia / Folio (Opcional)</label>
+                                <input type="text" class="form-control form-control-sm" name="referencia" placeholder="EJ. REF123456">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-1">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success btn-sm fw-bold">Guardar Pago</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

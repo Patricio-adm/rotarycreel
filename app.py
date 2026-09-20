@@ -4,9 +4,7 @@ import os
 import base64
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 
-# Inicializar la aplicación Flask
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_rotary_creel_2026'
 
@@ -18,7 +16,6 @@ def allowed_file(filename):
 def to_upper(val):
     return val.strip().upper() if val else None
 
-# Configuración de la base de datos (con tu conexión a Supabase)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -27,7 +24,6 @@ db = SQLAlchemy(app, engine_options={
     "pool_recycle": 300,
 })
 
-# Modelos de la Base de Datos
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -58,6 +54,16 @@ class AutoridadRotaria(db.Model):
     correo = db.Column(db.String(100))
     telefono = db.Column(db.String(50))
 
+class PagoCuota(db.Model):
+    __tablename__ = 'pagos_cuotas'
+    id = db.Column(db.Integer, primary_key=True)
+    socio_id = db.Column(db.Integer, db.ForeignKey('socios.id'), nullable=False)
+    mes_anio = db.Column(db.String(20), nullable=False)  # Ej. "JULIO 2025", "AGOSTO 2025"
+    monto = db.Column(db.Float, default=500.0)
+    metodo_pago = db.Column(db.String(50))  # EFECTIVO o TRANSFERENCIA
+    fecha_pago = db.Column(db.Date, default=datetime.utcnow)
+    referencia = db.Column(db.String(100))
+
 class Socio(db.Model):
     __tablename__ = 'socios'
     id = db.Column(db.Integer, primary_key=True)
@@ -75,7 +81,6 @@ class Socio(db.Model):
     estado = db.Column(db.String(100))
     estado_civil = db.Column(db.String(50))
     
-    # Datos familiares
     nombre_esposa = db.Column(db.String(150))
     fecha_nacimiento_esposa = db.Column(db.Date)
     aniversario_matrimonio = db.Column(db.Date)
@@ -83,11 +88,10 @@ class Socio(db.Model):
     telefono_emergencia = db.Column(db.String(50))
     foto_url = db.Column(db.Text)
     
-    # Relaciones
     cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
     hijos = db.relationship('Hijo', backref='socio', lazy=True, cascade="all, delete-orphan")
+    pagos = db.relationship('PagoCuota', backref='socio', lazy=True, cascade="all, delete-orphan")
 
-# Crear tablas automáticamente y asegurar usuario administrador al iniciar
 with app.app_context():
     db.create_all()
     if not Usuario.query.filter_by(username='admin').first():
@@ -97,8 +101,6 @@ with app.app_context():
         )
         db.session.add(admin_user)
         db.session.commit()
-
-# Rutas de la Aplicación
 
 @app.route('/')
 def index_publico():
@@ -110,16 +112,13 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
         user = Usuario.query.filter_by(username=username).first()
-        
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
             session['username'] = user.username
             return redirect(url_for('menu_principal'))
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
-            
     return render_template('login.html')
 
 @app.route('/menu')
@@ -132,27 +131,19 @@ def menu_principal():
 def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
-    try:
-        lista_socios = Socio.query.all()
-    except Exception as e:
-        print(f"Error consultando socios: {e}")
-        lista_socios = []
-        
+    lista_socios = Socio.query.all()
     return render_template('socios.html', socios=lista_socios)
 
 @app.route('/socios/editar/<int:id>', methods=['POST'])
 def editar_socio(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
     socio = Socio.query.get_or_404(id)
     socio.nombre_completo = to_upper(request.form.get('nombre_completo'))
     socio.telefono = to_upper(request.form.get('telefono'))
     socio.correo = request.form.get('correo')
     socio.tipo_socio = to_upper(request.form.get('tipo_socio'))
     socio.ciudad = to_upper(request.form.get('ciudad'))
-    
     socio.nombre_esposa = to_upper(request.form.get('nombre_esposa'))
     socio.telefono_esposa = to_upper(request.form.get('telefono_esposa'))
     socio.telefono_emergencia = to_upper(request.form.get('telefono_emergencia'))
@@ -168,16 +159,10 @@ def editar_socio(id):
     socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa'))
     socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio'))
     
-    # Procesar adición de nuevo hijo si se proporcionó nombre
     nombre_nuevo_hijo = to_upper(request.form.get('nombre_hijo_nuevo'))
     fecha_nuevo_hijo = parse_date(request.form.get('fecha_hijo_nuevo'))
-    
     if nombre_nuevo_hijo:
-        nuevo_hijo = Hijo(
-            socio_id=socio.id,
-            nombre=nombre_nuevo_hijo,
-            fecha_nacimiento=fecha_nuevo_hijo
-        )
+        nuevo_hijo = Hijo(socio_id=socio.id, nombre=nombre_nuevo_hijo, fecha_nacimiento=fecha_nuevo_hijo)
         db.session.add(nuevo_hijo)
 
     try:
@@ -196,72 +181,35 @@ def editar_socio(id):
     nuevo_cargo = request.form.get('cargo_nuevo')
     periodo_nuevo = request.form.get('periodo_nuevo')
     es_actual = request.form.get('es_actual') == 'on'
-    
     if nuevo_cargo and periodo_nuevo:
         if es_actual:
             for c in socio.cargos:
                 c.es_actual = False
-                
-        cargo_db = HistorialCargo(
-            socio_id=socio.id, 
-            cargo=to_upper(nuevo_cargo), 
-            periodo=to_upper(periodo_nuevo), 
-            es_actual=es_actual
-        )
+        cargo_db = HistorialCargo(socio_id=socio.id, cargo=to_upper(nuevo_cargo), periodo=to_upper(periodo_nuevo), es_actual=es_actual)
         db.session.add(cargo_db)
         
     db.session.commit()
-    flash('Información del socio, familia, hijos y cargos actualizados correctamente', 'success')
+    flash('Información actualizada correctamente', 'success')
     return redirect(url_for('gestion_socios'))
 
 @app.route('/cumpleanos-mes')
 def cumpleanos_mes():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
     mes_actual = datetime.now().month
     todos_socios = Socio.query.all()
     festividades = []
-    
     for socio in todos_socios:
         if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual:
-            festividades.append({
-                'dia': socio.fecha_nacimiento.day,
-                'fecha_str': socio.fecha_nacimiento.strftime('%d/%m/%Y'),
-                'tipo': 'CUMPLEANOS SOCIO',
-                'persona': socio.nombre_completo,
-                'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}"
-            })
-        
+            festividades.append({'dia': socio.fecha_nacimiento.day, 'fecha_str': socio.fecha_nacimiento.strftime('%d/%m/%Y'), 'tipo': 'CUMPLEANOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}"})
         if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual:
-            festividades.append({
-                'dia': socio.fecha_nacimiento_esposa.day,
-                'fecha_str': socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y'),
-                'tipo': 'CUMPLEANOS ESPOSA(O)',
-                'persona': socio.nombre_esposa or 'ESPOSA(O)',
-                'detalle': f"ESPOSA DE: {socio.nombre_completo}"
-            })
-                
+            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'fecha_str': socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y'), 'tipo': 'CUMPLEANOS ESPOSA(O)', 'persona': socio.nombre_esposa or 'ESPOSA(O)', 'detalle': f"ESPOSA DE: {socio.nombre_completo}"})
         if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual:
-            festividades.append({
-                'dia': socio.aniversario_matrimonio.day,
-                'fecha_str': socio.aniversario_matrimonio.strftime('%d/%m/%Y'),
-                'tipo': 'ANIVERSARIO DE BODAS',
-                'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CÓNYUGE'}",
-                'detalle': "ANIVERSARIO MATRIMONIAL"
-            })
-                
+            festividades.append({'dia': socio.aniversario_matrimonio.day, 'fecha_str': socio.aniversario_matrimonio.strftime('%d/%m/%Y'), 'tipo': 'ANIVERSARIO DE BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CÓNYUGE'}", 'detalle': "ANIVERSARIO MATRIMONIAL"})
         if socio.hijos:
             for hijo in socio.hijos:
                 if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual:
-                    festividades.append({
-                        'dia': hijo.fecha_nacimiento.day,
-                        'fecha_str': hijo.fecha_nacimiento.strftime('%d/%m/%Y'),
-                        'tipo': 'CUMPLEANOS HIJO(A)',
-                        'persona': hijo.nombre,
-                        'detalle': f"HIJO(A) DE: {socio.nombre_completo}"
-                    })
-
+                    festividades.append({'dia': hijo.fecha_nacimiento.day, 'fecha_str': hijo.fecha_nacimiento.strftime('%d/%m/%Y'), 'tipo': 'CUMPLEANOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
     festividades = sorted(festividades, key=lambda x: x['dia'])
     nombre_mes_actual = datetime.now().strftime('%B').upper()
     return render_template('cumpleanos.html', festividades=festividades, mes_actual=nombre_mes_actual)
@@ -277,14 +225,12 @@ def gestion_autoridades():
 def guardar_autoridad():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
     auth_id = request.form.get('auth_id')
     nombre = to_upper(request.form.get('nombre'))
     cargo = to_upper(request.form.get('cargo'))
     nivel = to_upper(request.form.get('nivel'))
     correo = request.form.get('correo')
     telefono = to_upper(request.form.get('telefono'))
-    
     if auth_id:
         autoridad = AutoridadRotaria.query.get_or_404(auth_id)
         autoridad.nombre = nombre
@@ -292,12 +238,11 @@ def guardar_autoridad():
         autoridad.nivel = nivel
         autoridad.correo = correo
         autoridad.telefono = telefono
-        flash('Autoridad rotaria actualizada correctamente', 'success')
+        flash('Autoridad actualizada correctamente', 'success')
     else:
         nueva = AutoridadRotaria(nombre=nombre, cargo=cargo, nivel=nivel, correo=correo, telefono=telefono)
         db.session.add(nueva)
-        flash('Autoridad rotaria agregada correctamente', 'success')
-        
+        flash('Autoridad agregada correctamente', 'success')
     db.session.commit()
     return redirect(url_for('gestion_autoridades'))
 
@@ -311,11 +256,69 @@ def eliminar_autoridad(id):
     flash('Autoridad eliminada correctamente', 'success')
     return redirect(url_for('gestion_autoridades'))
 
+# --- MÓDULO DE TESORERÍA Y CUOTAS SOCIALES ---
 @app.route('/tesoreria')
 def modulo_tesoreria():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    return render_template('tesoreria.html')
+    
+    socios = Socio.query.order_by(Socio.nombre_completo).all()
+    
+    # Generar lista de meses desde JULIO 2025 hasta el mes actual (SEP 2026 o posterior)
+    meses_control = [
+        "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
+        "ENE 2026", "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
+        "JUL 2026", "AGO 2026", "SEP 2026"
+    ]
+    
+    return render_template('tesoreria.html', socios=socios, meses=meses_control)
+
+@app.route('/tesoreria/registrar-pago', methods=['POST'])
+def registrar_pago_cuota():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    socio_id = request.form.get('socio_id')
+    meses_pagados = request.form.getlist('meses') # Lista de meses seleccionados
+    metodo = request.form.get('metodo_pago')
+    referencia = to_upper(request.form.get('referencia'))
+    
+    if socio_id and meses_pagados:
+        for m in meses_pagados:
+            # Verificar si ya existe pago para ese mes
+            existente = PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=m).first()
+            if not existente:
+                nuevo_pago = PagoCuota(
+                    socio_id=socio_id,
+                    mes_anio=m,
+                    monto=500.0,
+                    metodo_pago=metodo,
+                    referencia=referencia
+                )
+                db.session.add(nuevo_pago)
+        db.session.commit()
+        flash('Pago(s) de cuota registrado(s) correctamente', 'success')
+    else:
+        flash('Debe seleccionar al menos un mes y un socio', 'warning')
+        
+    return redirect(url_for('modulo_tesoreria'))
+
+@app.route('/tesoreria/recibo/<int:pago_id>')
+def ver_recibo(pago_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    pago = PagoCuota.query.get_or_404(pago_id)
+    
+    # Formatear fecha actual en español
+    meses_es = {"January": "ENERO", "February": "FEBRERO", "March": "MARZO", "April": "ABRIL", "May": "MAYO", "June": "JUNIO", "July": "JULIO", "August": "AGOSTO", "September": "SEPTIEMBRE", "October": "OCTUBRE", "November": "NOVIEMBRE", "December": "DICIEMBRE"}
+    dias_es = {"Monday": "LUNES", "Tuesday": "MARTES", "Wednesday": "MIÉRCOLES", "Thursday": "JUEVES", "Friday": "VIERNES", "Saturday": "SÁBADO", "Sunday": "DOMINGO"}
+    
+    ahora = datetime.now()
+    dia_sem = dias_es.get(ahora.strftime('%A'), '')
+    mes_str = meses_es.get(ahora.strftime('%B'), '')
+    fecha_recibo = f"{dia_sem}, {ahora.day} DE {mes_str} DE {ahora.year}"
+    
+    return render_template('recibo_pdf.html', pago=pago, fecha_recibo=fecha_recibo)
 
 @app.route('/logout')
 def logout():
