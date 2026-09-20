@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_sqlalchemy import SQLAlchemy
 import os
 import base64
+from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -30,21 +31,12 @@ class Usuario(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
 
-class Socio(db.Model):
-    __tablename__ = 'socios'
+class Hijo(db.Model):
+    __tablename__ = 'hijos'
     id = db.Column(db.Integer, primary_key=True)
-    numero_socio = db.Column(db.String(50))
-    nombre_completo = db.Column(db.String(150), nullable=False)
-    telefono = db.Column(db.String(50))
-    correo = db.Column(db.String(100))
-    tipo_socio = db.Column(db.String(50))
-    ciudad = db.Column(db.String(100))
-    estado = db.Column(db.String(100))
-    es_activo = db.Column(db.Boolean)
-    foto_url = db.Column(db.Text)  # Almacena Base64 de la foto
-    
-    # Relación con el historial de cargos
-    cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
+    socio_id = db.Column(db.Integer, db.ForeignKey('socios.id'), nullable=False)
+    nombre = db.Column(db.String(150), nullable=False)
+    fecha_nacimiento = db.Column(db.Date)
 
 class HistorialCargo(db.Model):
     __tablename__ = 'historial_cargos'
@@ -53,6 +45,35 @@ class HistorialCargo(db.Model):
     cargo = db.Column(db.String(100), nullable=False)
     periodo = db.Column(db.String(50), nullable=False)
     es_actual = db.Column(db.Boolean, default=False)
+
+class Socio(db.Model):
+    __tablename__ = 'socios'
+    id = db.Column(db.Integer, primary_key=True)
+    numero_socio = db.Column(db.String(50))
+    nombre_completo = db.Column(db.String(150), nullable=False)
+    telefono = db.Column(db.String(50))
+    correo = db.Column(db.String(100))
+    fecha_nacimiento = db.Column(db.Date)
+    es_activo = db.Column(db.Boolean)
+    tipo_socio = db.Column(db.String(50))
+    calle_numero = db.Column(db.String(150))
+    colonia = db.Column(db.String(100))
+    codigo_postal = db.Column(db.String(20))
+    ciudad = db.Column(db.String(100))
+    estado = db.Column(db.String(100))
+    estado_civil = db.Column(db.String(50))
+    
+    # Datos familiares
+    nombre_esposa = db.Column(db.String(150))
+    fecha_nacimiento_esposa = db.Column(db.Date)
+    aniversario_matrimonio = db.Column(db.Date)
+    telefono_esposa = db.Column(db.String(50))
+    telefono_emergencia = db.Column(db.String(50))
+    foto_url = db.Column(db.Text)  # Almacena Base64
+    
+    # Relaciones
+    cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
+    hijos = db.relationship('Hijo', backref='socio', lazy=True, cascade="all, delete-orphan")
 
 # Crear tablas automáticamente y asegurar usuario administrador al iniciar
 with app.app_context():
@@ -67,7 +88,7 @@ with app.app_context():
 
 # Rutas de la Aplicación
 
-# 1. Página de Inicio Pública (Para visitantes y comunidad)
+# 1. Página de Inicio Pública
 @app.route('/')
 def index_publico():
     lista_socios = Socio.query.all()
@@ -117,7 +138,23 @@ def editar_socio(id):
     socio.tipo_socio = request.form.get('tipo_socio')
     socio.ciudad = request.form.get('ciudad')
     
-    # Manejar la subida de la foto convirtiéndola a Base64
+    # Datos familiares
+    socio.nombre_esposa = request.form.get('nombre_esposa')
+    socio.telefono_esposa = request.form.get('telefono_esposa')
+    socio.telefono_emergencia = request.form.get('telefono_emergencia')
+    
+    def parse_date(date_str):
+        if date_str:
+            try:
+                return datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return None
+        return None
+
+    socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa'))
+    socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio'))
+    
+    # Manejar subida segura de foto en Base64
     try:
         file = request.files.get('foto_archivo')
         if file and file.filename != '':
@@ -150,7 +187,7 @@ def editar_socio(id):
         db.session.add(cargo_db)
         
     db.session.commit()
-    flash('Información del socio y cargos actualizados correctamente', 'success')
+    flash('Información del socio, familia y cargos actualizados correctamente', 'success')
     return redirect(url_for('gestion_socios'))
 
 @app.route('/tesoreria')

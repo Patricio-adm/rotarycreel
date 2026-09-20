@@ -103,7 +103,7 @@
                                     </td>
                                 </tr>
 
-                                <!-- Modal de Perfil Completo (Dentro del for) -->
+                                <!-- Modal de Perfil Completo -->
                                 <div class="modal fade text-start" id="profileModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
@@ -128,6 +128,13 @@
                                                     <p class="mb-0"><strong>Ubicación:</strong> {{ socio.ciudad or 'Creel' }}, {{ socio.estado or 'Chih.' }}</p>
                                                 </div>
 
+                                                <!-- Botón para ver Datos Familiares -->
+                                                <div class="mb-3">
+                                                    <button type="button" class="btn btn-outline-info btn-sm fw-semibold w-100" data-bs-toggle="modal" data-bs-target="#familyModal{{ socio.id }}" data-bs-dismiss="modal">
+                                                        Ver Datos Familiares
+                                                    </button>
+                                                </div>
+
                                                 <!-- Contar cargos válidos (>= 2023-2024) -->
                                                 {% set ns_cargos = namespace(count=0) %}
                                                 {% if socio.cargos %}
@@ -138,7 +145,7 @@
                                                     {% endfor %}
                                                 {% endif %}
 
-                                                <!-- Mostrar título y lista SOLO SI HAY CARGOS VÁLIDOS -->
+                                                <!-- Mostrar historial SOLO SI HAY CARGOS VÁLIDOS -->
                                                 {% if ns_cargos.count > 0 %}
                                                 <div class="text-start">
                                                     <h6 class="fw-bold text-secondary small text-uppercase">Historial de Cargos (Desde 2023-2024)</h6>
@@ -170,7 +177,47 @@
                                 </div>
                                 <!-- Fin Modal de Perfil -->
 
-                                <!-- Modal de Edición (Dentro del for) -->
+                                <!-- Modal: Datos Familiares Detallados -->
+                                <div class="modal fade text-start" id="familyModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-light py-2">
+                                                <h6 class="modal-title fw-bold text-primary">Datos Familiares - {{ socio.nombre_completo }}</h6>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body py-4 small">
+                                                <div class="bg-light p-3 rounded-3 mb-3">
+                                                    <h6 class="fw-bold text-secondary mb-2">Cónyuge</h6>
+                                                    <p class="mb-1"><strong>Nombre:</strong> {{ socio.nombre_esposa or 'No registrado' }}</p>
+                                                    <p class="mb-1"><strong>Teléfono:</strong> {{ socio.telefono_esposa or 'No registrado' }}</p>
+                                                    <p class="mb-2"><strong>Cumpleaños:</strong> {{ socio.fecha_nacimiento_esposa or 'No registrada' }}</p>
+                                                    <p class="mb-3"><strong>Aniversario de Bodas:</strong> {{ socio.aniversario_matrimonio or 'No registrado' }}</p>
+                                                    
+                                                    <h6 class="fw-bold text-secondary mb-2">Hijos / Familiares</h6>
+                                                    {% if socio.hijos %}
+                                                        <ul class="list-unstyled mb-2">
+                                                            {% for hijo in socio.hijos %}
+                                                                <li>- {{ hijo.nombre }} {% if hijo.fecha_nacimiento %}(Nac: {{ hijo.fecha_nacimiento }}){% endif %}</li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    {% else %}
+                                                        <p class="text-muted mb-2">No hay hijos registrados.</p>
+                                                    {% endif %}
+
+                                                    <h6 class="fw-bold text-secondary mb-1">Emergencia</h6>
+                                                    <p class="mb-0"><strong>Teléfono de Emergencia:</strong> {{ socio.telefono_emergencia or 'No registrado' }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer py-1">
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#profileModal{{ socio.id }}" data-bs-dismiss="modal">Regresar al Expediente</button>
+                                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ socio.id }}" data-bs-dismiss="modal">Editar Familia</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Fin Modal Datos Familiares -->
+
+                                <!-- Modal de Edición -->
                                 <div class="modal fade text-start" id="editModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
@@ -208,6 +255,34 @@
                                                             <input type="file" class="form-control form-control-sm" name="foto_archivo" accept="image/*">
                                                         </div>
                                                     </div>
+
+                                                    <hr class="my-2">
+                                                    <h6 class="fw-bold text-dark small">Información Familiar</h6>
+                                                    <div class="mb-2">
+                                                        <label class="form-label text-muted">Nombre de la Esposa(o)</label>
+                                                        <input type="text" class="form-control form-control-sm" name="nombre_esposa" value="{{ socio.nombre_esposa or '' }}">
+                                                    </div>
+                                                    <div class="row mb-2">
+                                                        <div class="col">
+                                                            <label class="form-label text-muted">Teléfono Esposa(o)</label>
+                                                            <input type="text" class="form-control form-control-sm" name="telefono_esposa" value="{{ socio.telefono_esposa or '' }}">
+                                                        </div>
+                                                        <div class="col">
+                                                            <label class="form-label text-muted">Tel. Emergencia</label>
+                                                            <input type="text" class="form-control form-control-sm" name="telefono_emergencia" value="{{ socio.telefono_emergencia or '' }}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-2">
+                                                        <div class="col">
+                                                            <label class="form-label text-muted">Cumpleaños Esposa(o)</label>
+                                                            <input type="date" class="form-control form-control-sm" name="fecha_nacimiento_esposa" value="{{ socio.fecha_nacimiento_esposa or '' }}">
+                                                        </div>
+                                                        <div class="col">
+                                                            <label class="form-label text-muted">Aniversario Matrimonio</label>
+                                                            <input type="date" class="form-control form-control-sm" name="aniversario_matrimonio" value="{{ socio.aniversario_matrimonio or '' }}">
+                                                        </div>
+                                                    </div>
+
                                                     <hr class="my-2">
                                                     <h6 class="fw-bold text-dark small">Agregar Cargo o Comité (Anterior / Actual)</h6>
                                                     <div class="row mb-2">
