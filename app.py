@@ -41,7 +41,7 @@ class Socio(db.Model):
     ciudad = db.Column(db.String(100))
     estado = db.Column(db.String(100))
     es_activo = db.Column(db.Boolean)
-    foto_url = db.Column(db.Text)  # Cambiado a Text para almacenar Base64 de forma segura
+    foto_url = db.Column(db.Text)  # Almacena Base64 de la foto
     
     # Relación con el historial de cargos
     cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
@@ -67,7 +67,14 @@ with app.app_context():
 
 # Rutas de la Aplicación
 
-@app.route('/', methods=['GET', 'POST'])
+# 1. Página de Inicio Pública (Para visitantes y comunidad)
+@app.route('/')
+def index_publico():
+    lista_socios = Socio.query.all()
+    return render_template('publico.html', socios=lista_socios)
+
+# 2. Inicio de Sesión para Administración
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
@@ -110,17 +117,20 @@ def editar_socio(id):
     socio.tipo_socio = request.form.get('tipo_socio')
     socio.ciudad = request.form.get('ciudad')
     
-    # Manejar la subida de la foto convirtiéndola a Base64 para guardarla en Supabase
-    file = request.files.get('foto_archivo')
-    if file and file.filename != '':
-        if allowed_file(file.filename):
-            file_bytes = file.read()
-            encoded_img = base64.b64encode(file_bytes).decode('utf-8')
-            # Detectar tipo de imagen (por defecto png/jpeg)
-            ext = file.filename.rsplit('.', 1)[1].lower()
-            mime_type = f"image/jpeg" if ext in ['jpg', 'jpeg'] else f"image/{ext}"
-            socio.foto_url = f"data:{mime_type};base64,{encoded_img}"
-    
+    # Manejar la subida de la foto convirtiéndola a Base64
+    try:
+        file = request.files.get('foto_archivo')
+        if file and file.filename != '':
+            if allowed_file(file.filename):
+                file_bytes = file.read()
+                if file_bytes:
+                    encoded_img = base64.b64encode(file_bytes).decode('utf-8')
+                    ext = file.filename.rsplit('.', 1)[1].lower()
+                    mime_type = "image/jpeg" if ext in ['jpg', 'jpeg'] else f"image/{ext}"
+                    socio.foto_url = f"data:{mime_type};base64,{encoded_img}"
+    except Exception as e:
+        print(f"Error procesando imagen: {e}")
+
     # Agregar nuevo cargo (histórico o actual)
     nuevo_cargo = request.form.get('cargo_nuevo')
     periodo_nuevo = request.form.get('periodo_nuevo')
@@ -152,7 +162,7 @@ def modulo_tesoreria():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    return redirect(url_for('index_publico'))
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotary Club Creel - Distrito 4110</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hero-section { background: linear-gradient(135deg, #17458F, #0f326b); color: white; padding: 60px 20px; border-bottom: 5px solid #F7A81B; }
+        .navbar-rotary { background-color: #17458F; }
+        .btn-rotary { background-color: #F7A81B; color: #17458F; font-weight: bold; }
+        .btn-rotary:hover { background-color: #e09612; color: #17458F; }
+        .card-activity { transition: transform 0.2s; border: none; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card-activity:hover { transform: translateY(-5px); }
+        .activity-img { height: 220px; object-fit: cover; }
+        .avatar-socio { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 3px solid #17458F; }
+        .footer-rotary { background-color: #17458F; color: white; padding: 30px 0; }
+    </style>
+</head>
+<body>
+
+    <!-- Barra de Navegación Pública -->
+    <nav class="navbar navbar-dark navbar-rotary px-4 shadow-sm py-2">
+        <a class="navbar-brand fw-bold fs-5" href="#">Rotary Club Creel</a>
+        <div>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm">Acceso Socios / Admin</a>
+        </div>
+    </nav>
+
+    <!-- Sección de Bienvenida (Hero) -->
+    <header class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-5 fw-bold mb-3">Dar de Sí Antes de Pensar en Sí</h1>
+            <p class="lead mb-4">Bienvenidos al sitio oficial de Rotary Club Creel, Chihuahua. Trabajando unidos por nuestra comunidad, la educación, la salud y el medio ambiente en la Sierra Tarahumara.</p>
+            <a href="#actividades" class="btn btn-rotary btn-lg px-4 shadow">Ver Nuestras Actividades</a>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <div class="container my-5">
+
+        <!-- Sección de Actividades y Obras Comunitarias -->
+        <section id="actividades" class="mb-5">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold text-primary">Nuestras Actividades y Obras</h2>
+                <p class="text-muted">Momentos destacados de servicio y apoyo a la comunidad de Creel</p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Actividad 1 -->
+                <div class="col-md-4">
+                    <div class="card card-activity h-100">
+                        <img src="https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?auto=format&fit=crop&w=600&q=80" class="card-img-top activity-img" alt="Actividad Rotary">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-primary">Apoyo a Comunidades Serranas</h5>
+                            <p class="card-text small text-muted">Entrega de víveres, cobijas y suministros esenciales en las comunidades de la región de la Sierra Tarahumara.</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Actividad 2 -->
+                <div class="col-md-4">
+                    <div class="card card-activity h-100">
+                        <img src="https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80" class="card-img-top activity-img" alt="Actividad Rotary">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-primary">Proyectos Educativos y Culturales</h5>
+                            <p class="card-text small text-muted">Impulso a la educación infantil y eventos artísticos con causa para promover el talento local y la cultura.</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Actividad 3 -->
+                <div class="col-md-4">
+                    <div class="card card-activity h-100">
+                        <img src="https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&w=600&q=80" class="card-img-top activity-img" alt="Actividad Rotary">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-primary">Salud y Bienestar Comunitario</h5>
+                            <p class="card-text small text-muted">Jornadas de salud, prevención y gestión de infraestructura social para mejorar la calidad de vida en Bocoyna.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <hr class="my-5">
+
+        <!-- Sección de Socios y Consejo Directivo -->
+        <section class="mb-5">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold text-primary">Nuestros Socios y Directiva</h2>
+                <p class="text-muted">Liderazgo y compromiso al servicio de Creel</p>
+            </div>
+
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                {% if socios %}
+                    {% for socio in socios %}
+                    <div class="col">
+                        <div class="card h-100 shadow-sm border-0 text-center p-3">
+                            <div class="d-flex justify-content-center mb-3">
+                                {% if socio.foto_url %}
+                                    <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-socio shadow-sm">
+                                {% else %}
+                                    <div class="avatar-socio bg-secondary text-white d-flex align-items-center justify-content-center fw-bold fs-3 mx-auto shadow-sm">
+                                        {{ socio.nombre_completo[:2].upper() }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <h5 class="fw-bold text-dark mb-1">{{ socio.nombre_completo }}</h5>
+                            
+                            <!-- Mostrar cargo actual si lo tiene -->
+                            <p class="text-success small fw-semibold mb-2">
+                                {% set ns_activo = namespace(cargo="Socio Activo") %}
+                                {% if socio.cargos %}
+                                    {% for c in socio.cargos %}
+                                        {% if c.es_actual %}
+                                            {% set ns_activo.cargo = c.cargo ~ ' (' ~ c.periodo ~ ')' %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                                {{ ns_activo.cargo }}
+                            </p>
+                            <p class="text-muted small mb-0">Ubicación: {{ socio.ciudad or 'Creel' }}, Chih.</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-center text-muted">No hay socios públicos para mostrar por el momento.</p>
+                {% endif %}
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Pie de Página Institucional con Contacto y Correo del Club -->
+    <footer class="footer-rotary text-center">
+        <div class="container">
+            <h5 class="fw-bold mb-2">Rotary Club Creel - Distrito 4110</h5>
+            <p class="mb-1">Creel, Municipio de Bocoyna, Chihuahua, México.</p>
+            <p class="mb-3">Correo electrónico institucional: <a href="mailto:contacto@rotarycreel.org" class="text-warning text-decoration-none fw-semibold">contacto@rotarycreel.org</a></p>
+            <p class="small text-white-50 mb-0">&copy; 2026 Rotary Club Creel. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
