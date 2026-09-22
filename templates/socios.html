@@ -13,10 +13,13 @@
 </head>
 <body>
 
-    <!-- Barra Superior -->
+    <!-- Barra Superior con el botón ubicado exactamente a la izquierda de Menú Principal -->
     <nav class="navbar navbar-dark navbar-rotary px-4 mb-4 shadow-sm py-2">
         <a class="navbar-brand fw-bold fs-6" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Directorio de Socios</a>
-        <div>
+        <div class="d-flex align-items-center">
+            <button class="btn btn-warning btn-sm shadow-sm fw-bold text-dark me-2 py-1 px-3" data-bs-toggle="modal" data-bs-target="#modalFestividadesMes">
+                🎉 CUMPLEAÑOS / ANIVERSARIOS DEL MES DE: <span class="text-uppercase text-danger fw-bolder">{{ mes_actual_nombre }}</span>
+            </button>
             <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2">Menú Principal</a>
             <a href="{{ url_for('logout') }}" class="btn btn-warning btn-sm fw-bold">Cerrar Sesión</a>
         </div>
@@ -35,16 +38,10 @@
           {% endif %}
         {% endwith %}
 
-        <!-- Encabezado y Botón de Cumpleaños / Aniversarios del Mes -->
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h3 class="fw-bold text-primary mb-0">Directorio de Socios</h3>
-                <p class="text-muted small mb-0">Consulta de información general del club</p>
-            </div>
-            <div>
-                <button class="btn btn-warning btn-sm shadow-sm fw-bold text-dark px-3 py-2" data-bs-toggle="modal" data-bs-target="#modalFestividadesMes">
-                    🎉 Cumpleaños / Aniversarios del mes de: <span class="text-uppercase text-danger fw-bolder">{{ mes_actual_nombre }}</span>
-                </button>
+                <p class="text-muted small mb-0">Consulta ordenada alfabéticamente</p>
             </div>
         </div>
 

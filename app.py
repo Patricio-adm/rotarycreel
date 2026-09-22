@@ -153,8 +153,30 @@ def menu_principal():
 def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
     lista_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
-    return render_template('socios.html', socios=lista_socios)
+    
+    # Cálculo de festividades del mes actual en español
+    meses_es = {1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO", 9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"}
+    mes_actual_num = datetime.now().month
+    mes_actual_nombre = meses_es.get(mes_actual_num, "MES")
+    
+    festividades = []
+    for socio in lista_socios:
+        if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual_num:
+            festividades.append({'dia': socio.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}"})
+        if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual_num:
+            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CÓNYUGE', 'persona': socio.nombre_esposa or 'CÓNYUGE', 'detalle': f"CÓNYUGE DE: {socio.nombre_completo}"})
+        if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual_num:
+            festividades.append({'dia': socio.aniversario_matrimonio.day, 'tipo': 'ANIVERSARIO DE BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CÓNYUGE'}", 'detalle': "ANIVERSARIO MATRIMONIAL"})
+        if socio.hijos:
+            for hijo in socio.hijos:
+                if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual_num:
+                    festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
+                    
+    festividades = sorted(festividades, key=lambda x: x['dia'])
+
+    return render_template('socios.html', socios=lista_socios, mes_actual_nombre=mes_actual_nombre, festividades_mes=festividades)
 
 @app.route('/socios/editar/<int:id>', methods=['POST'])
 def editar_socio(id):
@@ -315,7 +337,6 @@ def cuotas_sociales():
         flash('Acceso restringido al módulo de tesorería.', 'danger')
         return redirect(url_for('menu_principal'))
     
-    # Socios ordenados alfabéticamente por nombre/apellido
     socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     meses_control = [
         "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
