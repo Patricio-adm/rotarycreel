@@ -13,7 +13,6 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# --- REGLA AUTOMÁTICA DE MAYÚSCULAS (EXCEPTO CONTRASEÑAS) ---
 def to_upper(val):
     if val and isinstance(val, str):
         return val.strip().upper()
@@ -76,7 +75,7 @@ class Socio(db.Model):
     telefono = db.Column(db.String(50))
     correo = db.Column(db.String(100))
     fecha_nacimiento = db.Column(db.Date)
-    es_activo = db.Column(db.Boolean)
+    es_activo = db.Column(db.Boolean, default=True)
     tipo_socio = db.Column(db.String(50))
     calle_numero = db.Column(db.String(150))
     colonia = db.Column(db.String(100))
@@ -134,9 +133,8 @@ def index_publico():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # El usuario se toma tal cual (sin forzar to_upper al username para permitir credenciales originales)
         username = request.form['username'].strip()
-        password = request.form['password'] # Contraseña intacta
+        password = request.form['password']
         user = Usuario.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
@@ -181,6 +179,65 @@ def gestion_socios():
 
     return render_template('socios.html', socios=lista_socios, mes_actual_nombre=mes_actual_nombre, festividades_mes=festividades)
 
+@app.route('/socios/agregar', methods=['POST'])
+def agregar_socio():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('Acceso denegado: No tiene permisos para agregar nuevos socios.', 'danger')
+        return redirect(url_for('gestion_socios'))
+
+    def parse_date(date_str):
+        if date_str:
+            try:
+                return datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return None
+        return None
+
+    nuevo = Socio(
+        numero_socio=to_upper(request.form.get('numero_socio')),
+        nombre_completo=to_upper(request.form.get('nombre_completo')),
+        tipo_socio=to_upper(request.form.get('tipo_socio')) or 'SOCIO',
+        telefono=to_upper(request.form.get('telefono')),
+        correo=request.form.get('correo'),
+        fecha_nacimiento=parse_date(request.form.get('fecha_nacimiento')),
+        ciudad=to_upper(request.form.get('ciudad')) or 'CREEL',
+        nombre_esposa=to_upper(request.form.get('nombre_esposa')),
+        fecha_nacimiento_esposa=parse_date(request.form.get('fecha_nacimiento_esposa')),
+        aniversario_matrimonio=parse_date(request.form.get('aniversario_matrimonio')),
+        telefono_esposa=to_upper(request.form.get('telefono_esposa')),
+        telefono_emergencia=to_upper(request.form.get('telefono_emergencia')),
+        es_activo=True
+    )
+
+    try:
+        file = request.files.get('foto_archivo')
+        if file and file.filename != '':
+            if allowed_file(file.filename):
+                file_bytes = file.read()
+                if file_bytes:
+                    encoded_img = base64.b64encode(file_bytes).decode('utf-8')
+                    ext = file.filename.rsplit('.', 1)[1].lower()
+                    mime_type = "image/jpeg" if ext in ['jpg', 'jpeg'] else f"image/{ext}"
+                    nuevo.foto_url = f"data:{mime_type};base64,{encoded_img}"
+    except Exception as e:
+        print(f"Error procesando imagen: {e}")
+
+    db.session.add(nuevo)
+    db.session.flush() # Para obtener el ID del nuevo socio
+
+    # Guardar cargo inicial si se proporcionó
+    cargo_inicial = request.form.get('cargo_inicial')
+    periodo_inicial = request.form.get('periodo_inicial')
+    if cargo_inicial and periodo_inicial:
+        db.session.add(HistorialCargo(socio_id=nuevo.id, cargo=to_upper(cargo_inicial), periodo=to_upper(periodo_inicial), es_actual=True))
+
+    db.session.commit()
+    flash('¡Socio registrado exitosamente!', 'success')
+    return redirect(url_for('gestion_socios'))
+
 @app.route('/socios/editar/<int:id>', methods=['POST'])
 def editar_socio(id):
     if 'user_id' not in session:
@@ -192,6 +249,7 @@ def editar_socio(id):
 
     socio = Socio.query.get_or_404(id)
     
+    socio.numero_socio = to_upper(request.form.get('numero_socio'))
     socio.nombre_completo = to_upper(request.form.get('nombre_completo'))
     socio.telefono = to_upper(request.form.get('telefono'))
     socio.correo = request.form.get('correo')
@@ -209,6 +267,7 @@ def editar_socio(id):
                 return None
         return None
 
+    socio.fecha_nacimiento = parse_date(request.form.get('fecha_nacimiento'))
     socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa'))
     socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio'))
     

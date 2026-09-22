@@ -13,7 +13,7 @@
 </head>
 <body>
 
-    <!-- Barra Superior con el botón ubicado exactamente a la izquierda de Menú Principal -->
+    <!-- Barra Superior -->
     <nav class="navbar navbar-dark navbar-rotary px-4 mb-4 shadow-sm py-2">
         <a class="navbar-brand fw-bold fs-6" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Directorio de Socios</a>
         <div class="d-flex align-items-center">
@@ -38,10 +38,18 @@
           {% endif %}
         {% endwith %}
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <!-- Encabezado y Botón de Agregar Nuevo Socio -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
             <div>
                 <h3 class="fw-bold text-primary mb-0">Directorio de Socios</h3>
                 <p class="text-muted small mb-0">Consulta ordenada alfabéticamente</p>
+            </div>
+            <div>
+                {% if session.get('rol') in ['ADMIN', 'TESORERO', 'PRESIDENTE'] %}
+                <button class="btn btn-success btn-sm shadow-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#modalAgregarSocio">
+                    ➕ Agregar Nuevo Socio
+                </button>
+                {% endif %}
             </div>
         </div>
 
@@ -153,17 +161,21 @@
                                     
                                     <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">1. Datos Personales</h6>
                                     <div class="row g-2 mb-2">
-                                        <div class="col-md-8">
+                                        <div class="col-md-6">
                                             <label class="form-label fw-semibold">Nombre Completo</label>
                                             <input type="text" class="form-control form-control-sm" name="nombre_completo" value="{{ socio.nombre_completo }}" required>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Núm. Socio</label>
+                                            <input type="text" class="form-control form-control-sm" name="numero_socio" value="{{ socio.numero_socio or '' }}">
+                                        </div>
+                                        <div class="col-md-3">
                                             <label class="form-label fw-semibold">Tipo de Socio</label>
                                             <input type="text" class="form-control form-control-sm" name="tipo_socio" value="{{ socio.tipo_socio or 'SOCIO' }}">
                                         </div>
                                     </div>
                                     <div class="row g-2 mb-3">
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <label class="form-label fw-semibold">Teléfono</label>
                                             <input type="text" class="form-control form-control-sm" name="telefono" value="{{ socio.telefono or '' }}">
                                         </div>
@@ -171,7 +183,11 @@
                                             <label class="form-label fw-semibold">Correo Electrónico</label>
                                             <input type="email" class="form-control form-control-sm" name="correo" value="{{ socio.correo or '' }}" style="text-transform: none;">
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Fecha Nacimiento</label>
+                                            <input type="date" class="form-control form-control-sm" name="fecha_nacimiento" value="{{ socio.fecha_nacimiento.strftime('%Y-%m-%d') if socio.fecha_nacimiento else '' }}">
+                                        </div>
+                                        <div class="col-md-2">
                                             <label class="form-label fw-semibold">Ciudad</label>
                                             <input type="text" class="form-control form-control-sm" name="ciudad" value="{{ socio.ciudad or '' }}">
                                         </div>
@@ -262,6 +278,105 @@
             {% else %}
                 <p class="text-center text-muted">No hay socios registrados.</p>
             {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal Agregar Nuevo Socio -->
+    <div class="modal fade text-start" id="modalAgregarSocio" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form action="{{ url_for('agregar_socio') }}" method="POST" enctype="multipart/form-data">
+                    <div class="modal-header bg-success text-white py-2">
+                        <h6 class="modal-title fw-bold fs-6">➕ Registrar Nuevo Socio</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body small" style="max-height: 75vh; overflow-y: auto;">
+                        
+                        <h6 class="text-success fw-bold border-bottom pb-1 mb-2">1. Datos Personales</h6>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Nombre Completo *</label>
+                                <input type="text" class="form-control form-control-sm" name="nombre_completo" placeholder="APELLIDOS Y NOMBRES" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Núm. Socio</label>
+                                <input type="text" class="form-control form-control-sm" name="numero_socio" placeholder="EJ. 1234">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Tipo de Socio</label>
+                                <input type="text" class="form-control form-control-sm" name="tipo_socio" value="SOCIO">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Teléfono</label>
+                                <input type="text" class="form-control form-control-sm" name="telefono" placeholder="635...">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Correo Electrónico</label>
+                                <input type="email" class="form-control form-control-sm" name="correo" placeholder="correo@dominio.com" style="text-transform: none;">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Fecha Nacimiento</label>
+                                <input type="date" class="form-control form-control-sm" name="fecha_nacimiento">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-semibold">Ciudad</label>
+                                <input type="text" class="form-control form-control-sm" name="ciudad" value="CREEL">
+                            </div>
+                        </div>
+
+                        <h6 class="text-success fw-bold border-bottom pb-1 mb-2">2. Información Familiar y Fechas</h6>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Nombre de Esposa(o)</label>
+                                <input type="text" class="form-control form-control-sm" name="nombre_esposa" placeholder="NOMBRE CÓNYUGE">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Cumpleaños Cónyuge</label>
+                                <input type="date" class="form-control form-control-sm" name="fecha_nacimiento_esposa">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Aniversario de Bodas</label>
+                                <input type="date" class="form-control form-control-sm" name="aniversario_matrimonio">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Teléfono Cónyuge</label>
+                                <input type="text" class="form-control form-control-sm" name="telefono_esposa">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Teléfono de Emergencia</label>
+                                <input type="text" class="form-control form-control-sm" name="telefono_emergencia">
+                            </div>
+                        </div>
+
+                        <h6 class="text-success fw-bold border-bottom pb-1 mb-2">3. Cargo Inicial en el Club (Opcional)</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold">Cargo</label>
+                                <input type="text" class="form-control form-control-sm" name="cargo_inicial" placeholder="EJ. SOCIO ACTIVO, TESORERO, ETC.">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Periodo</label>
+                                <input type="text" class="form-control form-control-sm" name="periodo_inicial" placeholder="EJ. 2026-2027">
+                            </div>
+                        </div>
+
+                        <h6 class="text-success fw-bold border-bottom pb-1 mb-2">4. Fotografía de Perfil</h6>
+                        <div class="mb-2">
+                            <input type="file" class="form-control form-control-sm" name="foto_archivo" accept="image/*">
+                            <div class="form-text">Subir imagen en formato JPG o PNG.</div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success btn-sm fw-bold">Guardar Nuevo Socio</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
