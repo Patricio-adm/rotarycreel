@@ -69,7 +69,7 @@
                             {% endif %}
                             <div>
                                 <h6 class="fw-bold text-dark mb-0">{{ socio.nombre_completo }}</h6>
-                                <span class="badge bg-primary text-white mt-1" style="font-size: 10px;">{{ socio.tipo_socio or 'SOCIO' }}</span>
+                                <span class="badge bg-primary text-white mt-1" style="font-size: 10px;">{{ socio.tipo_socio or 'ACTIVO' }}</span>
                             </div>
                         </div>
 
@@ -113,11 +113,11 @@
                                     <div class="col-md-6 border-end">
                                         <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">Datos Personales</h6>
                                         <p class="mb-1"><strong>Número de Socio:</strong> {{ socio.numero_socio or 'N/D' }}</p>
-                                        <p class="mb-1"><strong>Tipo de Socio:</strong> {{ socio.tipo_socio or 'SOCIO' }}</p>
+                                        <p class="mb-1"><strong>Tipo de Socio:</strong> {{ socio.tipo_socio or 'ACTIVO' }}</p>
                                         <p class="mb-1"><strong>Teléfono:</strong> {{ socio.telefono or 'N/D' }}</p>
                                         <p class="mb-1"><strong>Correo:</strong> <span style="text-transform: none;">{{ socio.correo or 'N/D' }}</span></p>
                                         <p class="mb-1"><strong>Fecha de Nacimiento:</strong> {{ socio.fecha_nacimiento.strftime('%d/%m/%Y') if socio.fecha_nacimiento else 'N/D' }}</p>
-                                        <p class="mb-1"><strong>Domicilio:</strong> {{ socio.calle_numero or '' }}, Col. {{ socio.colonia or '' }}, CP {{ socio.codigo_postal or '' }}, {{ socio.ciudad or 'CREEL' }}, {{ socio.estado or 'CHIH.' }}</p>
+                                        <p class="mb-1"><strong>Domicilio:</strong> {{ socio.calle_numero or '' }}, Col. {{ socio.colonia or '' }}, CP {{ socio.codigo_postal or '' }}, {{ socio.ciudad or 'CREEL' }}, {{ socio.estado or 'CHIHUAHUA' }}</p>
                                     </div>
                                     <div class="col-md-6">
                                         <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">Información Familiar</h6>
@@ -171,7 +171,10 @@
                                         </div>
                                         <div class="col-md-3">
                                             <label class="form-label fw-semibold">Tipo de Socio</label>
-                                            <input type="text" class="form-control form-control-sm" name="tipo_socio" value="{{ socio.tipo_socio or 'SOCIO' }}">
+                                            <select class="form-select form-select-sm" name="tipo_socio" required>
+                                                <option value="ACTIVO" {% if socio.tipo_socio == 'ACTIVO' or not socio.tipo_socio %}selected{% endif %}>ACTIVO</option>
+                                                <option value="HONORARIO" {% if socio.tipo_socio == 'HONORARIO' %}selected{% endif %}>HONORARIO</option>
+                                            </select>
                                         </div>
                                     </div>
                                     <div class="row g-2 mb-3">
@@ -304,7 +307,10 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Tipo de Socio</label>
-                                <input type="text" class="form-control form-control-sm" name="tipo_socio" value="SOCIO">
+                                <select class="form-select form-select-sm" name="tipo_socio" required>
+                                    <option value="ACTIVO" selected>ACTIVO</option>
+                                    <option value="HONORARIO">HONORARIO</option>
+                                </select>
                             </div>
                         </div>
                         <div class="row g-2 mb-3">
@@ -356,7 +362,7 @@
                         <div class="row g-2 mb-3">
                             <div class="col-md-8">
                                 <label class="form-label fw-semibold">Cargo</label>
-                                <input type="text" class="form-control form-control-sm" name="cargo_inicial" placeholder="EJ. SOCIO ACTIVO, TESORERO, ETC.">
+                                <input type="text" class="form-control form-control-sm" name="cargo_inicial" placeholder="EJ. SOCIO, TESORERO, ETC.">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Periodo</label>
