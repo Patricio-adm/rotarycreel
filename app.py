@@ -13,6 +13,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# --- REGLA AUTOMÁTICA DE MAYÚSCULAS ---
 def to_upper(val):
     if val and isinstance(val, str):
         return val.strip().upper()
@@ -203,7 +204,12 @@ def agregar_socio():
         telefono=to_upper(request.form.get('telefono')),
         correo=request.form.get('correo'),
         fecha_nacimiento=parse_date(request.form.get('fecha_nacimiento')),
+        calle_numero=to_upper(request.form.get('calle_numero')),
+        colonia=to_upper(request.form.get('colonia')),
+        codigo_postal=to_upper(request.form.get('codigo_postal')),
         ciudad=to_upper(request.form.get('ciudad')) or 'CREEL',
+        estado=to_upper(request.form.get('estado')) or 'CHIHUAHUA',
+        estado_civil=to_upper(request.form.get('estado_civil')),
         nombre_esposa=to_upper(request.form.get('nombre_esposa')),
         fecha_nacimiento_esposa=parse_date(request.form.get('fecha_nacimiento_esposa')),
         aniversario_matrimonio=parse_date(request.form.get('aniversario_matrimonio')),
@@ -226,9 +232,8 @@ def agregar_socio():
         print(f"Error procesando imagen: {e}")
 
     db.session.add(nuevo)
-    db.session.flush() # Para obtener el ID del nuevo socio
+    db.session.flush()
 
-    # Guardar cargo inicial si se proporcionó
     cargo_inicial = request.form.get('cargo_inicial')
     periodo_inicial = request.form.get('periodo_inicial')
     if cargo_inicial and periodo_inicial:
@@ -254,7 +259,12 @@ def editar_socio(id):
     socio.telefono = to_upper(request.form.get('telefono'))
     socio.correo = request.form.get('correo')
     socio.tipo_socio = to_upper(request.form.get('tipo_socio'))
+    socio.calle_numero = to_upper(request.form.get('calle_numero'))
+    socio.colonia = to_upper(request.form.get('colonia'))
+    socio.codigo_postal = to_upper(request.form.get('codigo_postal'))
     socio.ciudad = to_upper(request.form.get('ciudad'))
+    socio.estado = to_upper(request.form.get('estado'))
+    socio.estado_civil = to_upper(request.form.get('estado_civil'))
     socio.nombre_esposa = to_upper(request.form.get('nombre_esposa'))
     socio.telefono_esposa = to_upper(request.form.get('telefono_esposa'))
     socio.telefono_emergencia = to_upper(request.form.get('telefono_emergencia'))
