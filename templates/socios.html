@@ -89,7 +89,7 @@
                     </div>
                 </div>
 
-                <!-- Modal Ver Detalles (Incluyendo Datos Familiares Completos) -->
+                <!-- Modal Ver Detalles -->
                 <div class="modal fade text-start" id="modalVerSocio_{{ socio.id }}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-lg">
                         <div class="modal-content">
@@ -136,47 +136,88 @@
                     </div>
                 </div>
 
-                <!-- Modal Editar Socio (Solo para Autorizados) -->
+                <!-- Modal Editar Socio (Incluyendo Datos Familiares Completos) -->
                 {% if session.get('rol') in ['ADMIN', 'TESORERO', 'PRESIDENTE'] %}
                 <div class="modal fade text-start" id="modalEditarSocio_{{ socio.id }}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                             <form action="{{ url_for('editar_socio', id=socio.id) }}" method="POST" enctype="multipart/form-data">
                                 <div class="modal-header bg-primary text-white py-2">
-                                    <h6 class="modal-title fw-bold fs-6">Editar Datos de Socio</h6>
+                                    <h6 class="modal-title fw-bold fs-6">Editar Datos de Socio y Familia: {{ socio.nombre_completo }}</h6>
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <div class="modal-body small">
+                                <div class="modal-body small" style="max-height: 75vh; overflow-y: auto;">
+                                    
+                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">1. Datos Personales</h6>
                                     <div class="row g-2 mb-2">
                                         <div class="col-md-8">
                                             <label class="form-label fw-semibold">Nombre Completo</label>
                                             <input type="text" class="form-control form-control-sm" name="nombre_completo" value="{{ socio.nombre_completo }}" required>
                                         </div>
                                         <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Tipo de Socio</label>
+                                            <input type="text" class="form-control form-control-sm" name="tipo_socio" value="{{ socio.tipo_socio or 'SOCIO' }}">
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-4">
                                             <label class="form-label fw-semibold">Teléfono</label>
                                             <input type="text" class="form-control form-control-sm" name="telefono" value="{{ socio.telefono or '' }}">
                                         </div>
-                                    </div>
-                                    <div class="row g-2 mb-2">
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <label class="form-label fw-semibold">Correo Electrónico</label>
                                             <input type="email" class="form-control form-control-sm" name="correo" value="{{ socio.correo or '' }}" style="text-transform: none;">
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <label class="form-label fw-semibold">Ciudad</label>
                                             <input type="text" class="form-control form-control-sm" name="ciudad" value="{{ socio.ciudad or '' }}">
                                         </div>
                                     </div>
+
+                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">2. Información Familiar y Fechas</h6>
                                     <div class="row g-2 mb-2">
                                         <div class="col-md-6">
                                             <label class="form-label fw-semibold">Nombre de Esposa(o)</label>
                                             <input type="text" class="form-control form-control-sm" name="nombre_esposa" value="{{ socio.nombre_esposa or '' }}">
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label fw-semibold">Fotografía</label>
-                                            <input type="file" class="form-control form-control-sm" name="foto_archivo" accept="image/*">
+                                            <label class="form-label fw-semibold">Cumpleaños Cónyuge</label>
+                                            <input type="date" class="form-control form-control-sm" name="fecha_nacimiento_esposa" value="{{ socio.fecha_nacimiento_esposa.strftime('%Y-%m-%d') if socio.fecha_nacimiento_esposa else '' }}">
                                         </div>
                                     </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Aniversario de Bodas</label>
+                                            <input type="date" class="form-control form-control-sm" name="aniversario_matrimonio" value="{{ socio.aniversario_matrimonio.strftime('%Y-%m-%d') if socio.aniversario_matrimonio else '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Teléfono Cónyuge</label>
+                                            <input type="text" class="form-control form-control-sm" name="telefono_esposa" value="{{ socio.telefono_esposa or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Teléfono de Emergencia</label>
+                                            <input type="text" class="form-control form-control-sm" name="telefono_emergencia" value="{{ socio.telefono_emergencia or '' }}">
+                                        </div>
+                                    </div>
+
+                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">3. Agregar Nuevo Hijo(a)</h6>
+                                    <div class="row g-2 mb-3 p-2 bg-light rounded border">
+                                        <div class="col-md-8">
+                                            <label class="form-label fw-semibold">Nombre del Hijo(a)</label>
+                                            <input type="text" class="form-control form-control-sm" name="nombre_hijo_nuevo" placeholder="NOMBRE COMPLETO">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Fecha de Nacimiento</label>
+                                            <input type="date" class="form-control form-control-sm" name="fecha_hijo_nuevo">
+                                        </div>
+                                    </div>
+
+                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">4. Fotografía de Perfil</h6>
+                                    <div class="mb-2">
+                                        <input type="file" class="form-control form-control-sm" name="foto_archivo" accept="image/*">
+                                        <div class="form-text">Subir imagen en formato JPG o PNG.</div>
+                                    </div>
+
                                 </div>
                                 <div class="modal-footer py-2">
                                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
