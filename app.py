@@ -94,6 +94,11 @@ class Socio(db.Model):
 
 with app.app_context():
     db.create_all()
+    try:
+        PagoCuota.__table__.create(db.engine, checkfirst=True)
+    except Exception as e:
+        print(f"Info tabla pagos: {e}")
+
     if not Usuario.query.filter_by(username='admin').first():
         admin_user = Usuario(
             username='admin',
