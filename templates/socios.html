@@ -35,10 +35,16 @@
           {% endif %}
         {% endwith %}
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <!-- Encabezado y Botón de Cumpleaños / Aniversarios del Mes -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
             <div>
                 <h3 class="fw-bold text-primary mb-0">Directorio de Socios</h3>
                 <p class="text-muted small mb-0">Consulta de información general del club</p>
+            </div>
+            <div>
+                <button class="btn btn-warning btn-sm shadow-sm fw-bold text-dark px-3 py-2" data-bs-toggle="modal" data-bs-target="#modalFestividadesMes">
+                    🎉 Cumpleaños / Aniversarios del mes de: <span class="text-uppercase text-danger fw-bolder">{{ mes_actual_nombre }}</span>
+                </button>
             </div>
         </div>
 
@@ -136,7 +142,7 @@
                     </div>
                 </div>
 
-                <!-- Modal Editar Socio (Con Edición de Hijos Existentes) -->
+                <!-- Modal Editar Socio -->
                 {% if session.get('rol') in ['ADMIN', 'TESORERO', 'PRESIDENTE'] %}
                 <div class="modal fade text-start" id="modalEditarSocio_{{ socio.id }}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-lg">
@@ -259,6 +265,40 @@
             {% else %}
                 <p class="text-center text-muted">No hay socios registrados.</p>
             {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal Cumpleaños / Aniversarios del Mes -->
+    <div class="modal fade text-start" id="modalFestividadesMes" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark py-2">
+                    <h6 class="modal-title fw-bold">🎉 Festividades del Mes de: {{ mes_actual_nombre }}</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body small" style="max-height: 70vh; overflow-y: auto;">
+                    {% if festividades_mes %}
+                        <div class="list-group">
+                            {% for f in festividades_mes %}
+                            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2">
+                                <div>
+                                    <span class="badge bg-primary me-2" style="font-size: 11px;">DÍA {{ f.dia }}</span>
+                                    <strong class="text-dark">{{ f.persona }}</strong>
+                                    <br>
+                                    <span class="text-muted" style="font-size: 11px;">{{ f.detalle }}</span>
+                                </div>
+                                <span class="badge bg-success text-white" style="font-size: 10px;">{{ f.tipo }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center text-muted py-4 mb-0">No hay cumpleaños ni aniversarios registrados para este mes.</p>
+                    {% endif %}
+                </div>
+                <div class="modal-footer py-1">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
         </div>
     </div>
 
