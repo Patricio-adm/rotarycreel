@@ -13,8 +13,11 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# --- REGLA AUTOMÁTICA DE MAYÚSCULAS ---
 def to_upper(val):
-    return val.strip().upper() if val else None
+    if val and isinstance(val, str):
+        return val.strip().upper()
+    return val
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -131,7 +134,7 @@ def index_publico():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        username = to_upper(request.form['username'])
         password = request.form['password']
         user = Usuario.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
@@ -156,7 +159,6 @@ def gestion_socios():
     
     lista_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     
-    # Cálculo de festividades del mes actual en español
     meses_es = {1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO", 9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"}
     mes_actual_num = datetime.now().month
     mes_actual_nombre = meses_es.get(mes_actual_num, "MES")
@@ -188,9 +190,11 @@ def editar_socio(id):
         return redirect(url_for('gestion_socios'))
 
     socio = Socio.query.get_or_404(id)
+    
+    # Aplicación automática de mayúsculas a todos los campos de texto
     socio.nombre_completo = to_upper(request.form.get('nombre_completo'))
     socio.telefono = to_upper(request.form.get('telefono'))
-    socio.correo = request.form.get('correo')
+    socio.correo = request.form.get('correo') # Nota: El correo se mantiene legible pero se limpia
     socio.tipo_socio = to_upper(request.form.get('tipo_socio'))
     socio.ciudad = to_upper(request.form.get('ciudad'))
     socio.nombre_esposa = to_upper(request.form.get('nombre_esposa'))
@@ -262,17 +266,19 @@ def cumpleanos_mes():
     festividades = []
     for socio in todos_socios:
         if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual:
-            festividades.append({'dia': socio.fecha_nacimiento.day, 'fecha_str': socio.fecha_nacimiento.strftime('%d/%m/%Y'), 'tipo': 'CUMPLEANOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}"})
+            festividades.append({'dia': socio.fecha_nacimiento.day, 'fecha_str': socio.fecha_nacimiento.strftime('%d/%m/%Y'), 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}"})
         if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual:
-            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'fecha_str': socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y'), 'tipo': 'CUMPLEANOS ESPOSA(O)', 'persona': socio.nombre_esposa or 'ESPOSA(O)', 'detalle': f"ESPOSA DE: {socio.nombre_completo}"})
+            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'fecha_str': socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y'), 'tipo': 'CUMPLEAÑOS CÓNYUGE', 'persona': socio.nombre_esposa or 'CÓNYUGE', 'detalle': f"CÓNYUGE DE: {socio.nombre_completo}"})
         if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual:
             festividades.append({'dia': socio.aniversario_matrimonio.day, 'fecha_str': socio.aniversario_matrimonio.strftime('%d/%m/%Y'), 'tipo': 'ANIVERSARIO DE BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CÓNYUGE'}", 'detalle': "ANIVERSARIO MATRIMONIAL"})
         if socio.hijos:
             for hijo in socio.hijos:
                 if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual:
-                    festividades.append({'dia': hijo.fecha_nacimiento.day, 'fecha_str': hijo.fecha_nacimiento.strftime('%d/%m/%Y'), 'tipo': 'CUMPLEANOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
+                    festividades.append({'dia': hijo.fecha_nacimiento.day, 'fecha_str': hijo.fecha_nacimiento.strftime('%d/%m/%Y'), 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
     festividades = sorted(festividades, key=lambda x: x['dia'])
-    nombre_mes_actual = datetime.now().strftime('%B').upper()
+    
+    meses_es = {1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO", 9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"}
+    nombre_mes_actual = meses_es.get(mes_actual, "")
     return render_template('cumpleanos.html', festividades=festividades, mes_actual=nombre_mes_actual)
 
 @app.route('/autoridades')
@@ -357,7 +363,7 @@ def registrar_pago_cuota():
     
     socio_id = request.form.get('socio_id')
     meses_pagados = request.form.getlist('meses')
-    metodo = request.form.get('metodo_pago')
+    metodo = to_upper(request.form.get('metodo_pago'))
     referencia = to_upper(request.form.get('referencia'))
     
     ultimo_pago_creado = None
@@ -400,7 +406,7 @@ def editar_pago_cuota(pago_id):
         flash('El registro de pago ha sido eliminado (marcado como pendiente).', 'warning')
     else:
         pago.monto = float(request.form.get('monto', 500.0))
-        pago.metodo_pago = request.form.get('metodo_pago')
+        pago.metodo_pago = to_upper(request.form.get('metodo_pago'))
         pago.referencia = to_upper(request.form.get('referencia'))
         db.session.commit()
         flash('Detalles del pago actualizados correctamente.', 'success')
