@@ -186,6 +186,20 @@ def editar_socio(id):
     socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa'))
     socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio'))
     
+    # Actualizar o eliminar hijos existentes
+    for hijo in socio.hijos:
+        prefix = f"hijo_{hijo.id}_"
+        eliminar_hijo = request.form.get(f"{prefix}eliminar") == 'on'
+        if eliminar_hijo:
+            db.session.delete(hijo)
+        else:
+            nuevo_nombre = to_upper(request.form.get(f"{prefix}nombre"))
+            nueva_fecha = parse_date(request.form.get(f"{prefix}fecha"))
+            if nuevo_nombre:
+                hijo.nombre = nuevo_nombre
+                hijo.fecha_nacimiento = nueva_fecha
+
+    # Agregar nuevo hijo
     nombre_nuevo_hijo = to_upper(request.form.get('nombre_hijo_nuevo'))
     fecha_nuevo_hijo = parse_date(request.form.get('fecha_hijo_nuevo'))
     if nombre_nuevo_hijo:

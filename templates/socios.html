@@ -136,7 +136,7 @@
                     </div>
                 </div>
 
-                <!-- Modal Editar Socio (Incluyendo Datos Familiares Completos) -->
+                <!-- Modal Editar Socio (Con Edición de Hijos Existentes) -->
                 {% if session.get('rol') in ['ADMIN', 'TESORERO', 'PRESIDENTE'] %}
                 <div class="modal fade text-start" id="modalEditarSocio_{{ socio.id }}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-lg">
@@ -200,8 +200,34 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">3. Agregar Nuevo Hijo(a)</h6>
-                                    <div class="row g-2 mb-3 p-2 bg-light rounded border">
+                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">3. Hijos(as) Registrados (Modificar o Eliminar)</h6>
+                                    {% if socio.hijos %}
+                                        <div class="mb-3">
+                                            {% for hijo in socio.hijos %}
+                                            <div class="row g-2 align-items-center mb-2 p-2 bg-light rounded border">
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-semibold mb-0" style="font-size: 11px;">Nombre del Hijo(a)</label>
+                                                    <input type="text" class="form-control form-control-sm" name="hijo_{{ hijo.id }}_nombre" value="{{ hijo.nombre }}" required>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold mb-0" style="font-size: 11px;">Fecha de Nacimiento</label>
+                                                    <input type="date" class="form-control form-control-sm" name="hijo_{{ hijo.id }}_fecha" value="{{ hijo.fecha_nacimiento.strftime('%Y-%m-%d') if hijo.fecha_nacimiento else '' }}">
+                                                </div>
+                                                <div class="col-md-2 text-center pt-3">
+                                                    <div class="form-check text-danger">
+                                                        <input class="form-check-input" type="checkbox" name="hijo_{{ hijo.id }}_eliminar" id="chk_del_{{ hijo.id }}">
+                                                        <label class="form-check-label fw-bold" for="chk_del_{{ hijo.id }}" style="font-size: 10px;">Eliminar</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted small mb-3">No hay hijos registrados actualmente.</p>
+                                    {% endif %}
+
+                                    <h6 class="text-success fw-bold border-bottom pb-1 mb-2">4. Agregar Nuevo Hijo(a)</h6>
+                                    <div class="row g-2 mb-3 p-2 bg-success bg-opacity-10 rounded border border-success">
                                         <div class="col-md-8">
                                             <label class="form-label fw-semibold">Nombre del Hijo(a)</label>
                                             <input type="text" class="form-control form-control-sm" name="nombre_hijo_nuevo" placeholder="NOMBRE COMPLETO">
@@ -212,7 +238,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">4. Fotografía de Perfil</h6>
+                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">5. Fotografía de Perfil</h6>
                                     <div class="mb-2">
                                         <input type="file" class="form-control form-control-sm" name="foto_archivo" accept="image/*">
                                         <div class="form-text">Subir imagen en formato JPG o PNG.</div>
