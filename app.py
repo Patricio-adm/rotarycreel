@@ -29,7 +29,7 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    rol = db.Column(db.String(50), default='SOCIO')
+    rol = db.Column(db.String(50), default='SOCIO') # ADMIN, PRESIDENTE, TESORERO, SOCIO
 
 class Hijo(db.Model):
     __tablename__ = 'hijos'
@@ -105,29 +105,23 @@ with app.app_context():
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        print(f"Info columna rol: {e}")
 
-    admin = Usuario.query.filter_by(username='admin').first()
-    if not admin:
-        admin_user = Usuario(username='admin', password_hash=generate_password_hash('rotary2026'), rol='ADMIN')
-        db.session.add(admin_user)
-    else:
-        admin.rol = 'ADMIN'
+    # Configuración de usuarios y contraseñas requeridas
+    pass_hash = generate_password_hash('rotary2026')
+    
+    credenciales = [
+        ('admin', pass_hash, 'ADMIN'),
+        ('presidente', pass_hash, 'PRESIDENTE'),
+        ('tesorero', pass_hash, 'TESORERO'),
+        ('rccreel', pass_hash, 'SOCIO')
+    ]
 
-    tesorero = Usuario.query.filter_by(username='tesorero').first()
-    if not tesorero:
-        tesorero_user = Usuario(username='tesorero', password_hash=generate_password_hash('tesoreria2026'), rol='TESORERO')
-        db.session.add(tesorero_user)
-    else:
-        tesorero.rol = 'TESORERO'
-
-    presidente = Usuario.query.filter_by(username='presidente').first()
-    if not presidente:
-        presidente_user = Usuario(username='presidente', password_hash=generate_password_hash('presidente2026'), rol='PRESIDENTE')
-        db.session.add(presidente_user)
-    else:
-        presidente.rol = 'PRESIDENTE'
-
+    for usr, phash, r in credenciales:
+        u_db = Usuario.query.filter_by(username=usr).first()
+        if not u_db:
+            db.session.add(Usuario(username=usr, password_hash=phash, rol=r))
+        else:
+            u_db.rol = r  # Asegurar rol actualizado
     db.session.commit()
 
 @app.route('/')
@@ -167,8 +161,10 @@ def gestion_socios():
 def editar_socio(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
+    # Solo el ADMIN o personal autorizado puede editar
     if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('No tiene permisos para realizar modificaciones', 'danger')
+        flash('No tiene permisos para realizar modificaciones.', 'danger')
         return redirect(url_for('gestion_socios'))
 
     socio = Socio.query.get_or_404(id)
@@ -299,7 +295,7 @@ def modulo_tesoreria():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('Acceso restringido solo a Tesorero, Presidente o Administrador.', 'danger')
+        flash('Acceso restringido. Solo el Presidente, Tesorero o Administrador pueden ingresar a Tesorería.', 'danger')
         return redirect(url_for('menu_principal'))
     return render_template('tesoreria_menu.html')
 
