@@ -100,7 +100,6 @@ with app.app_context():
     except Exception as e:
         print(f"Info tabla pagos: {e}")
 
-    # Asegurar que la columna 'rol' exista en la tabla usuarios de PostgreSQL
     try:
         db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(50) DEFAULT 'SOCIO';"))
         db.session.commit()
@@ -108,7 +107,6 @@ with app.app_context():
         db.session.rollback()
         print(f"Info columna rol: {e}")
 
-    # Actualizar o crear usuarios por defecto con sus roles
     admin = Usuario.query.filter_by(username='admin').first()
     if not admin:
         admin_user = Usuario(username='admin', password_hash=generate_password_hash('rotary2026'), rol='ADMIN')
@@ -169,7 +167,6 @@ def gestion_socios():
 def editar_socio(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
     if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         flash('No tiene permisos para realizar modificaciones', 'danger')
         return redirect(url_for('gestion_socios'))
@@ -357,6 +354,28 @@ def registrar_pago_cuota():
             return redirect(url_for('cuotas_sociales', recibo_id=ultimo_pago_creado.id))
     else:
         flash('Debe seleccionar al menos un mes y un socio.', 'warning')
+        
+    return redirect(url_for('cuotas_sociales'))
+
+@app.route('/tesoreria/editar-pago/<int:pago_id>', methods=['POST'])
+def editar_pago_cuota(pago_id):
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('No autorizado para modificar pagos.', 'danger')
+        return redirect(url_for('menu_principal'))
+    
+    pago = PagoCuota.query.get_or_404(pago_id)
+    accion = request.form.get('accion')
+    
+    if accion == 'eliminar':
+        db.session.delete(pago)
+        db.session.commit()
+        flash('El registro de pago ha sido eliminado (marcado como pendiente).', 'warning')
+    else:
+        pago.monto = float(request.form.get('monto', 500.0))
+        pago.metodo_pago = request.form.get('metodo_pago')
+        pago.referencia = to_upper(request.form.get('referencia'))
+        db.session.commit()
+        flash('Detalles del pago actualizados correctamente.', 'success')
         
     return redirect(url_for('cuotas_sociales'))
 
