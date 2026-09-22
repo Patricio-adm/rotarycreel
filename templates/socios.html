@@ -74,6 +74,7 @@
                         </div>
 
                         <ul class="list-unstyled small text-muted mb-3">
+                            <li class="mb-1">🆔 <strong>Núm. Socio:</strong> {{ socio.numero_socio or 'N/D' }}</li>
                             <li class="mb-1">📞 <strong>Teléfono:</strong> {{ socio.telefono or 'No registrado' }}</li>
                             <li class="mb-1">✉️ <strong style="text-transform: none;">Correo:</strong> {{ socio.correo or 'No registrado' }}</li>
                             <li class="mb-1">📍 <strong>Ciudad:</strong> {{ socio.ciudad or 'CREEL' }}, CHIH.</li>
@@ -166,8 +167,9 @@
                                             <input type="text" class="form-control form-control-sm" name="nombre_completo" value="{{ socio.nombre_completo }}" required>
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label fw-semibold">Núm. Socio</label>
-                                            <input type="text" class="form-control form-control-sm" name="numero_socio" value="{{ socio.numero_socio or '' }}">
+                                            <label class="form-label fw-semibold text-danger">Núm. Socio *</label>
+                                            <input type="text" class="form-control form-control-sm border-danger bg-danger bg-opacity-10 fw-bold" name="numero_socio" value="{{ socio.numero_socio or '' }}" required>
+                                            <div class="form-text text-danger" style="font-size: 10px;">Campo obligatorio</div>
                                         </div>
                                         <div class="col-md-3">
                                             <label class="form-label fw-semibold">Tipo de Socio</label>
@@ -302,8 +304,9 @@
                                 <input type="text" class="form-control form-control-sm" name="nombre_completo" placeholder="APELLIDOS Y NOMBRES" required>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-semibold">Núm. Socio</label>
-                                <input type="text" class="form-control form-control-sm" name="numero_socio" placeholder="EJ. 1234">
+                                <label class="form-label fw-semibold text-danger">Núm. Socio *</label>
+                                <input type="text" class="form-control form-control-sm border-danger bg-danger bg-opacity-10 fw-bold" name="numero_socio" placeholder="EJ. 123" required>
+                                <div class="form-text text-danger" style="font-size: 10px;">Campo obligatorio</div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Tipo de Socio</label>
