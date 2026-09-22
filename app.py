@@ -13,7 +13,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# --- REGLA AUTOMÁTICA DE MAYÚSCULAS ---
+# --- REGLA AUTOMÁTICA DE MAYÚSCULAS (EXCEPTO CONTRASEÑAS) ---
 def to_upper(val):
     if val and isinstance(val, str):
         return val.strip().upper()
@@ -134,8 +134,9 @@ def index_publico():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = to_upper(request.form['username'])
-        password = request.form['password']
+        # El usuario se toma tal cual (sin forzar to_upper al username para permitir credenciales originales)
+        username = request.form['username'].strip()
+        password = request.form['password'] # Contraseña intacta
         user = Usuario.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
@@ -191,10 +192,9 @@ def editar_socio(id):
 
     socio = Socio.query.get_or_404(id)
     
-    # Aplicación automática de mayúsculas a todos los campos de texto
     socio.nombre_completo = to_upper(request.form.get('nombre_completo'))
     socio.telefono = to_upper(request.form.get('telefono'))
-    socio.correo = request.form.get('correo') # Nota: El correo se mantiene legible pero se limpia
+    socio.correo = request.form.get('correo')
     socio.tipo_socio = to_upper(request.form.get('tipo_socio'))
     socio.ciudad = to_upper(request.form.get('ciudad'))
     socio.nombre_esposa = to_upper(request.form.get('nombre_esposa'))
