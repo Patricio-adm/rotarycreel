@@ -226,6 +226,7 @@ def gestion_autoridades():
     autoridades = AutoridadRotaria.query.all()
     return render_template('autoridades.html', autoridades=autoridades)
 
+@app.route('/autoridades/guardار', methods=['POST']) # Ajustado
 @app.route('/autoridades/guardar', methods=['POST'])
 def guardar_autoridad():
     if 'user_id' not in session:
