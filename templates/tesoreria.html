@@ -11,8 +11,9 @@
         .table-fixed th, .table-fixed td { white-space: nowrap; vertical-align: middle; text-align: center; }
         .table-fixed th:nth-child(2), .table-fixed td:nth-child(2) { text-align: left; }
         .receipt-modal-box { background: white; padding: 25px; border: 2px solid #17458F; border-radius: 8px; color: #000; }
-        /* Margen inferior extendido para la comodidad de la barra deslizante */
-        .table-container-wrapper { padding-bottom: 40px; }
+        /* Margen inferior holgado para evitar que la barra de desplazamiento tape el contenido */
+        .table-container-wrapper { padding-bottom: 60px; }
+        .table-responsive { padding-bottom: 25px; }
     </style>
 </head>
 <body>
@@ -42,7 +43,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
                 <h5 class="fw-bold text-dark mb-0">Control de Cuotas Sociales ($500.00 MXN / Mes)</h5>
-                <p class="text-muted small mb-0">Seguimiento de pagos históricos desde Julio 2025</p>
+                <p class="text-muted small mb-0">Seguimiento de pagos históricos desde Julio 2025 (Orden alfabético)</p>
             </div>
             <div>
                 <button class="btn btn-success btn-sm shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago">

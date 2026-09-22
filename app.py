@@ -125,7 +125,7 @@ with app.app_context():
 
 @app.route('/')
 def index_publico():
-    lista_socios = Socio.query.all()
+    lista_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     return render_template('publico.html', socios=lista_socios)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -153,7 +153,7 @@ def menu_principal():
 def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    lista_socios = Socio.query.all()
+    lista_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     return render_template('socios.html', socios=lista_socios)
 
 @app.route('/socios/editar/<int:id>', methods=['POST'])
@@ -186,7 +186,6 @@ def editar_socio(id):
     socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa'))
     socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio'))
     
-    # Actualizar o eliminar hijos existentes
     for hijo in socio.hijos:
         prefix = f"hijo_{hijo.id}_"
         eliminar_hijo = request.form.get(f"{prefix}eliminar") == 'on'
@@ -199,7 +198,6 @@ def editar_socio(id):
                 hijo.nombre = nuevo_nombre
                 hijo.fecha_nacimiento = nueva_fecha
 
-    # Agregar nuevo hijo
     nombre_nuevo_hijo = to_upper(request.form.get('nombre_hijo_nuevo'))
     fecha_nuevo_hijo = parse_date(request.form.get('fecha_hijo_nuevo'))
     if nombre_nuevo_hijo:
@@ -238,7 +236,7 @@ def cumpleanos_mes():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     mes_actual = datetime.now().month
-    todos_socios = Socio.query.all()
+    todos_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     festividades = []
     for socio in todos_socios:
         if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual:
@@ -317,7 +315,8 @@ def cuotas_sociales():
         flash('Acceso restringido al módulo de tesorería.', 'danger')
         return redirect(url_for('menu_principal'))
     
-    socios = Socio.query.order_by(Socio.nombre_completo).all()
+    # Socios ordenados alfabéticamente por nombre/apellido
+    socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     meses_control = [
         "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
         "ENE 2026", "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
