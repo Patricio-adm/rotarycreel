@@ -29,6 +29,7 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    rol = db.Column(db.String(50), default='SOCIO') # ADMIN, TESORERO, PRESIDENTE, SOCIO
 
 class Hijo(db.Model):
     __tablename__ = 'hijos'
@@ -58,9 +59,9 @@ class PagoCuota(db.Model):
     __tablename__ = 'pagos_cuotas'
     id = db.Column(db.Integer, primary_key=True)
     socio_id = db.Column(db.Integer, db.ForeignKey('socios.id'), nullable=False)
-    mes_anio = db.Column(db.String(20), nullable=False)  # Ej. "JUL 2025"
+    mes_anio = db.Column(db.String(20), nullable=False)
     monto = db.Column(db.Float, default=500.0)
-    metodo_pago = db.Column(db.String(50))  # EFECTIVO o TRANSFERENCIA
+    metodo_pago = db.Column(db.String(50))
     fecha_pago = db.Column(db.Date, default=datetime.utcnow)
     referencia = db.Column(db.String(100))
 
@@ -99,12 +100,12 @@ with app.app_context():
     except Exception as e:
         print(f"Info tabla pagos: {e}")
 
+    # Crear usuarios por defecto si no existen
     if not Usuario.query.filter_by(username='admin').first():
-        admin_user = Usuario(
-            username='admin',
-            password_hash=generate_password_hash('rotary2026')
-        )
-        db.session.add(admin_user)
+        admin_user = Usuario(username='admin', password_hash=generate_password_hash('rotary2026'), rol='ADMIN')
+        tesorero_user = Usuario(username='tesorero', password_hash=generate_password_hash('tesoreria2026'), rol='TESORERO')
+        presidente_user = Usuario(username='presidente', password_hash=generate_password_hash('presidente2026'), rol='PRESIDENTE')
+        db.session.add_all([admin_user, tesorero_user, presidente_user])
         db.session.commit()
 
 @app.route('/')
@@ -121,6 +122,7 @@ def login():
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
             session['username'] = user.username
+            session['rol'] = user.rol
             return redirect(url_for('menu_principal'))
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
@@ -143,6 +145,13 @@ def gestion_socios():
 def editar_socio(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
+    # Validar contraseña especial de autorización para modificar
+    clave_autorizacion = request.form.get('clave_autorizacion')
+    if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('No tiene permisos para realizar modificaciones', 'danger')
+        return redirect(url_for('gestion_socios'))
+
     socio = Socio.query.get_or_404(id)
     socio.nombre_completo = to_upper(request.form.get('nombre_completo'))
     socio.telefono = to_upper(request.form.get('telefono'))
@@ -226,11 +235,12 @@ def gestion_autoridades():
     autoridades = AutoridadRotaria.query.all()
     return render_template('autoridades.html', autoridades=autoridades)
 
-@app.route('/autoridades/guardار', methods=['POST']) # Ajustado
 @app.route('/autoridades/guardar', methods=['POST'])
 def guardar_autoridad():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('No autorizado', 'danger')
+        return redirect(url_for('gestion_autoridades'))
+    
     auth_id = request.form.get('auth_id')
     nombre = to_upper(request.form.get('nombre'))
     cargo = to_upper(request.form.get('cargo'))
@@ -254,8 +264,10 @@ def guardar_autoridad():
 
 @app.route('/autoridades/eliminar/<int:id>')
 def eliminar_autoridad(id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('No autorizado', 'danger')
+        return redirect(url_for('gestion_autoridades'))
+    
     autoridad = AutoridadRotaria.query.get_or_404(id)
     db.session.delete(autoridad)
     db.session.commit()
@@ -267,12 +279,16 @@ def eliminar_autoridad(id):
 def modulo_tesoreria():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('Acceso restringido solo a Tesorero, Presidente o Administrador.', 'danger')
+        return redirect(url_for('menu_principal'))
     return render_template('tesoreria_menu.html')
 
 @app.route('/tesoreria/cuotas-sociales')
 def cuotas_sociales():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('Acceso restringido al módulo de tesorería.', 'danger')
+        return redirect(url_for('menu_principal'))
     
     socios = Socio.query.order_by(Socio.nombre_completo).all()
     meses_control = [
@@ -288,8 +304,9 @@ def cuotas_sociales():
 
 @app.route('/tesoreria/registrar-pago', methods=['POST'])
 def registrar_pago_cuota():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('No autorizado para registrar pagos.', 'danger')
+        return redirect(url_for('menu_principal'))
     
     socio_id = request.form.get('socio_id')
     meses_pagados = request.form.getlist('meses')
@@ -323,7 +340,7 @@ def registrar_pago_cuota():
 
 @app.route('/tesoreria/recibo/<int:pago_id>')
 def ver_recibo(pago_id):
-    if 'user_id' not in session:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     pago = PagoCuota.query.get_or_404(pago_id)
     
