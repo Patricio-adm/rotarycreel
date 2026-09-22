@@ -29,7 +29,7 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    rol = db.Column(db.String(50), default='SOCIO') # ADMIN, PRESIDENTE, TESORERO, SOCIO
+    rol = db.Column(db.String(50), default='SOCIO')
 
 class Hijo(db.Model):
     __tablename__ = 'hijos'
@@ -106,7 +106,6 @@ with app.app_context():
     except Exception as e:
         db.session.rollback()
 
-    # Configuración de usuarios y contraseñas requeridas
     pass_hash = generate_password_hash('rotary2026')
     
     credenciales = [
@@ -121,7 +120,7 @@ with app.app_context():
         if not u_db:
             db.session.add(Usuario(username=usr, password_hash=phash, rol=r))
         else:
-            u_db.rol = r  # Asegurar rol actualizado
+            u_db.rol = r
     db.session.commit()
 
 @app.route('/')
@@ -162,9 +161,8 @@ def editar_socio(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    # Solo el ADMIN o personal autorizado puede editar
     if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('No tiene permisos para realizar modificaciones.', 'danger')
+        flash('Acceso denegado: El usuario con rol de socio no tiene permisos para realizar modificaciones.', 'danger')
         return redirect(url_for('gestion_socios'))
 
     socio = Socio.query.get_or_404(id)

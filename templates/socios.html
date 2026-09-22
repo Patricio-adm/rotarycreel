@@ -6,30 +6,23 @@
     <title>Gestión de Socios - Rotary Club Creel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f4f6f9; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-transform: uppercase; }
         .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
-        .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
-        .btn-rotary:hover { background-color: #0f326b; color: white; }
-        .avatar-img { width: 72px; height: 72px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; }
-        .avatar-lg { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid #17458F; }
-        .clickable-name { color: #17458F; text-decoration: none; font-weight: 600; cursor: pointer; text-transform: uppercase; }
-        .clickable-name:hover { color: #F7A81B; text-decoration: underline; }
-        input[type="text"] { text-transform: uppercase; }
+        .avatar-socio { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; }
     </style>
 </head>
 <body>
 
     <!-- Barra Superior -->
-    <nav class="navbar navbar-dark navbar-rotary px-4 mb-3 shadow-sm py-2">
-        <a class="navbar-brand fw-bold fs-6" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Padrón de Socios</a>
+    <nav class="navbar navbar-dark navbar-rotary px-4 mb-4 shadow-sm py-2">
+        <a class="navbar-brand fw-bold fs-6" href="{{ url_for('menu_principal') }}">Rotary Club Creel - Directorio de Socios</a>
         <div>
             <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2">Menú Principal</a>
             <a href="{{ url_for('logout') }}" class="btn btn-warning btn-sm fw-bold">Cerrar Sesión</a>
         </div>
     </nav>
 
-    <!-- Contenido Principal -->
-    <div class="container pb-4">
+    <div class="container my-4">
         
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
@@ -42,333 +35,153 @@
           {% endif %}
         {% endwith %}
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold text-dark mb-0">Gestión de Socios y Cargos</h5>
+        <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <a href="{{ url_for('cumpleanos_mes') }}" class="btn btn-warning btn-sm shadow-sm fw-semibold me-2">
-                    🎂 Cumpleaños / Aniversarios del Mes
-                </a>
-                <a href="#" class="btn btn-rotary btn-sm shadow-sm">Registrar Nuevo Socio</a>
+                <h3 class="fw-bold text-primary mb-0">Directorio de Socios</h3>
+                <p class="text-muted small mb-0">Consulta de información general del club</p>
             </div>
         </div>
 
-        <div class="card shadow-sm border-0 rounded-3">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle mb-0 small">
-                        <thead class="table-light text-secondary">
-                            <tr>
-                                <th class="ps-3 py-2">Foto</th>
-                                <th class="py-2"># Socio</th>
-                                <th class="py-2">Nombre Completo</th>
-                                <th class="py-2">Puesto Actual / Cargos</th>
-                                <th class="py-2">Teléfono</th>
-                                <th class="py-2">Ubicación</th>
-                                <th class="text-end pe-3 py-2">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if socios %}
-                                {% for socio in socios %}
-                                <tr>
-                                    <td class="ps-3 py-2">
-                                        {% if socio.foto_url %}
-                                            <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-img">
-                                        {% else %}
-                                            <div class="avatar-img bg-secondary text-white d-flex align-items-center justify-content-center fw-bold fs-5">
-                                                {{ socio.nombre_completo[:2].upper() }}
-                                            </div>
-                                        {% endif %}
-                                    </td>
-                                    <td class="fw-bold text-secondary">{{ socio.numero_socio or socio.id }}</td>
-                                    <td>
-                                        <a href="#" class="clickable-name" data-bs-toggle="modal" data-bs-target="#profileModal{{ socio.id }}">
-                                            {{ socio.nombre_completo }}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        {% set ns = namespace(has_cargo=false) %}
-                                        {% if socio.cargos %}
-                                            {% for c in socio.cargos %}
-                                                {% if c.es_actual %}
-                                                    <span class="badge bg-success mb-1">{{ c.cargo | upper }} ({{ c.periodo }})</span><br>
-                                                    {% set ns.has_cargo = true %}
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-                                        {% if not ns.has_cargo %}
-                                            <span class="text-muted">SOCIO ACTIVO</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ socio.telefono or 'N/D' }}</td>
-                                    <td>{{ socio.ciudad or 'CREEL' }}</td>
-                                    <td class="text-end pe-3">
-                                        <button class="btn btn-sm btn-outline-primary py-0 px-2" data-bs-toggle="modal" data-bs-target="#editModal{{ socio.id }}">
-                                            Editar / Cargos
-                                        </button>
-                                    </td>
-                                </tr>
-
-                                <!-- Modal de Perfil Completo -->
-                                <div class="modal fade text-start" id="profileModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header bg-light py-2">
-                                                <h6 class="modal-title fw-bold text-primary">Expediente del Socio</h6>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body text-center py-4">
-                                                {% if socio.foto_url %}
-                                                    <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-lg mb-3 shadow-sm">
-                                                {% else %}
-                                                    <div class="avatar-lg bg-secondary text-white d-flex align-items-center justify-content-center fw-bold fs-2 mx-auto mb-3 shadow-sm">
-                                                        {{ socio.nombre_completo[:2].upper() }}
-                                                    </div>
-                                                {% endif %}
-                                                <h4 class="fw-bold text-dark mb-1" style="text-transform: uppercase;">{{ socio.nombre_completo }}</h4>
-                                                <p class="text-muted mb-3">Socio ID: {{ socio.numero_socio or socio.id }} | <span class="badge bg-secondary">{{ (socio.tipo_socio or 'SOCIO') | upper }}</span></p>
-
-                                                <div class="text-start bg-light p-3 rounded-3 mb-3 small">
-                                                    <p class="mb-1"><strong>Teléfono:</strong> {{ socio.telefono or 'No registrado' }}</p>
-                                                    <p class="mb-1"><strong>Correo:</strong> {{ socio.correo or 'No registrado' }}</p>
-                                                    <p class="mb-0" style="text-transform: uppercase;"><strong>Ubicación:</strong> {{ socio.ciudad or 'Creel' }}, {{ socio.estado or 'Chih.' }}</p>
-                                                </div>
-
-                                                <!-- Botón para ver Datos Familiares -->
-                                                <div class="mb-3">
-                                                    <button type="button" class="btn btn-outline-info btn-sm fw-semibold w-100" data-bs-toggle="modal" data-bs-target="#familyModal{{ socio.id }}" data-bs-dismiss="modal">
-                                                        Ver Datos Familiares
-                                                    </button>
-                                                </div>
-
-                                                <!-- Contar cargos válidos (>= 2023-2024) -->
-                                                {% set ns_cargos = namespace(count=0) %}
-                                                {% if socio.cargos %}
-                                                    {% for c in socio.cargos %}
-                                                        {% if c.periodo >= '2023-2024' %}
-                                                            {% set ns_cargos.count = ns_cargos.count + 1 %}
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                {% endif %}
-
-                                                <!-- Mostrar historial SOLO SI HAY CARGOS VÁLIDOS -->
-                                                {% if ns_cargos.count > 0 %}
-                                                <div class="text-start">
-                                                    <h6 class="fw-bold text-secondary small text-uppercase">Historial de Cargos (Desde 2023-2024)</h6>
-                                                    <ul class="list-group list-group-flush small">
-                                                        {% for c in socio.cargos %}
-                                                            {% if c.periodo >= '2023-2024' %}
-                                                                <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0">
-                                                                    <span>
-                                                                        <strong style="text-transform: uppercase;">{{ c.cargo }}</strong>
-                                                                        {% if c.es_actual %}
-                                                                            <span class="badge bg-success ms-1">Actual</span>
-                                                                        {% endif %}
-                                                                    </span>
-                                                                    <span class="text-muted">Periodo: {{ c.periodo }}</span>
-                                                                </li>
-                                                            {% endif %}
-                                                        {% endfor %}
-                                                    </ul>
-                                                </div>
-                                                {% endif %}
-
-                                            </div>
-                                            <div class="modal-footer py-1">
-                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-                                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ socio.id }}" data-bs-dismiss="modal">Editar Datos</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Fin Modal de Perfil -->
-
-                                <!-- Modal: Datos Familiares Detallados -->
-                                <div class="modal fade text-start" id="familyModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header bg-light py-2">
-                                                <h6 class="modal-title fw-bold text-primary" style="text-transform: uppercase;">Datos Familiares - {{ socio.nombre_completo }}</h6>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body py-4 small">
-                                                <div class="bg-light p-3 rounded-3 mb-3">
-                                                    <h6 class="fw-bold text-secondary mb-2">Cónyuge</h6>
-                                                    <p class="mb-1" style="text-transform: uppercase;"><strong>Nombre:</strong> {{ socio.nombre_esposa or 'No registrado' }}</p>
-                                                    <p class="mb-1"><strong>Teléfono:</strong> {{ socio.telefono_esposa or 'No registrado' }}</p>
-                                                    <p class="mb-2"><strong>Cumpleaños:</strong> {{ socio.fecha_nacimiento_esposa or 'No registrada' }}</p>
-                                                    <p class="mb-3"><strong>Aniversario de Bodas:</strong> {{ socio.aniversario_matrimonio or 'No registrado' }}</p>
-                                                    
-                                                    <h6 class="fw-bold text-secondary mb-2">Hijos / Familiares</h6>
-                                                    {% if socio.hijos %}
-                                                        <ul class="list-unstyled mb-2">
-                                                            {% for hijo in socio.hijos %}
-                                                                <li style="text-transform: uppercase;">- {{ hijo.nombre }} {% if hijo.fecha_nacimiento %}(Nac: {{ hijo.fecha_nacimiento }}){% endif %}</li>
-                                                            {% endfor %}
-                                                        </ul>
-                                                    {% else %}
-                                                        <p class="text-muted mb-2">No hay hijos registrados.</p>
-                                                    {% endif %}
-
-                                                    <h6 class="fw-bold text-secondary mb-1">Emergencia</h6>
-                                                    <p class="mb-0" style="text-transform: uppercase;"><strong>Teléfono de Emergencia:</strong> {{ socio.telefono_emergencia or 'No registrado' }}</p>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer py-1">
-                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#profileModal{{ socio.id }}" data-bs-dismiss="modal">Regresar al Expediente</button>
-                                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ socio.id }}" data-bs-dismiss="modal">Editar Familia</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Fin Modal Datos Familiares -->
-
-                                <!-- Modal de Edición -->
-                                <div class="modal fade text-start" id="editModal{{ socio.id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <form action="{{ url_for('editar_socio', id=socio.id) }}" method="POST" enctype="multipart/form-data">
-                                                <div class="modal-header bg-light py-2">
-                                                    <h6 class="modal-title fw-bold text-primary" style="text-transform: uppercase;">Editar Socio: {{ socio.nombre_completo }}</h6>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body small">
-                                                    <div class="mb-2">
-                                                        <label class="form-label fw-semibold">Nombre Completo</label>
-                                                        <input type="text" class="form-control form-control-sm" name="nombre_completo" value="{{ socio.nombre_completo }}" required>
-                                                    </div>
-                                                    <div class="row mb-2">
-                                                        <div class="col">
-                                                            <label class="form-label fw-semibold">Teléfono</label>
-                                                            <input type="text" class="form-control form-control-sm" name="telefono" value="{{ socio.telefono or '' }}">
-                                                        </div>
-                                                        <div class="col">
-                                                            <label class="form-label fw-semibold">Tipo de Socio</label>
-                                                            <input type="text" class="form-control form-control-sm" name="tipo_socio" value="{{ socio.tipo_socio or 'Socio' }}">
-                                                        </div>
-                                                    </div>
-                                                    <div class="mb-2">
-                                                        <label class="form-label fw-semibold">Correo Electrónico</label>
-                                                        <input type="email" class="form-control form-control-sm" name="correo" value="{{ socio.correo or '' }}">
-                                                    </div>
-                                                    <div class="row mb-2">
-                                                        <div class="col">
-                                                            <label class="form-label fw-semibold">Ciudad</label>
-                                                            <input type="text" class="form-control form-control-sm" name="ciudad" value="{{ socio.ciudad or 'CREEL' }}">
-                                                        </div>
-                                                        <div class="col">
-                                                            <label class="form-label fw-semibold">Cambiar Foto</label>
-                                                            <input type="file" class="form-control form-control-sm" name="foto_archivo" accept="image/*">
-                                                        </div>
-                                                    </div>
-
-                                                    <hr class="my-2">
-                                                    <h6 class="fw-bold text-dark small">Información Familiar</h6>
-                                                    <div class="mb-2">
-                                                        <label class="form-label text-muted">Nombre de la Esposa(o)</label>
-                                                        <input type="text" class="form-control form-control-sm" name="nombre_esposa" value="{{ socio.nombre_esposa or '' }}">
-                                                    </div>
-                                                    <div class="row mb-2">
-                                                        <div class="col">
-                                                            <label class="form-label text-muted">Teléfono Esposa(o)</label>
-                                                            <input type="text" class="form-control form-control-sm" name="telefono_esposa" value="{{ socio.telefono_esposa or '' }}">
-                                                        </div>
-                                                        <div class="col">
-                                                            <label class="form-label text-muted">Tel. Emergencia</label>
-                                                            <input type="text" class="form-control form-control-sm" name="telefono_emergencia" value="{{ socio.telefono_emergencia or '' }}">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row mb-2">
-                                                        <div class="col">
-                                                            <label class="form-label text-muted">Cumpleaños Esposa(o)</label>
-                                                            <input type="date" class="form-control form-control-sm" name="fecha_nacimiento_esposa" value="{{ socio.fecha_nacimiento_esposa or '' }}">
-                                                        </div>
-                                                        <div class="col">
-                                                            <label class="form-label text-muted">Aniversario Matrimonio</label>
-                                                            <input type="date" class="form-control form-control-sm" name="aniversario_matrimonio" value="{{ socio.aniversario_matrimonio or '' }}">
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Sección de Hijos Existentes y Agregar Nuevo -->
-                                                    <hr class="my-2">
-                                                    <h6 class="fw-bold text-dark small">Hijos Registrados</h6>
-                                                    {% if socio.hijos %}
-                                                        <ul class="list-group list-group-flush mb-2 small">
-                                                            {% for hijo in socio.hijos %}
-                                                                <li class="list-group-item px-0 py-1 bg-transparent d-flex justify-content-between align-items-center">
-                                                                    <span style="text-transform: uppercase;">{{ hijo.nombre }}</span>
-                                                                    <span class="text-muted">Nac: {{ hijo.fecha_nacimiento or 'N/D' }}</span>
-                                                                </li>
-                                                            {% endfor %}
-                                                        </ul>
-                                                    {% else %}
-                                                        <p class="text-muted small mb-2">No hay hijos registrados actualmente.</p>
-                                                    {% endif %}
-
-                                                    <div class="bg-light p-2 rounded mb-2">
-                                                        <label class="form-label text-muted fw-semibold small">Agregar Nuevo Hijo</label>
-                                                        <div class="row g-2">
-                                                            <div class="col-7">
-                                                                <input type="text" class="form-control form-control-sm" name="nombre_hijo_nuevo" placeholder="NOMBRE DEL HIJO(A)">
-                                                            </div>
-                                                            <div class="col-5">
-                                                                <input type="date" class="form-control form-control-sm" name="fecha_hijo_nuevo">
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <hr class="my-2">
-                                                    <h6 class="fw-bold text-dark small">Agregar Cargo o Comité (Anterior / Actual)</h6>
-                                                    <div class="row mb-2">
-                                                        <div class="col-7">
-                                                            <label class="form-label text-muted">Cargo / Comité</label>
-                                                            <select class="form-select form-select-sm" name="cargo_nuevo">
-                                                                <option value="">-- SELECCIONAR CARGO --</option>
-                                                                <option value="PRESIDENTE">PRESIDENTE</option>
-                                                                <option value="PAST PRESIDENT">PAST PRESIDENT</option>
-                                                                <option value="PRESIDENTE ELECTO">PRESIDENTE ELECTO</option>
-                                                                <option value="SECRETARIO">SECRETARIO</option>
-                                                                <option value="TESORERO">TESORERO</option>
-                                                                <option value="MACERO (SERGEANT-AT-ARMS)">MACERO (SERGEANT-AT-ARMS)</option>
-                                                                <option value="SERVICIO A LA COMUNIDAD">SERVICIO A LA COMUNIDAD</option>
-                                                                <option value="PROGRAMAS PARA LÍDERES JÓVENES">PROGRAMAS PARA LÍDERES JÓVENES</option>
-                                                                <option value="COMITÉ DE IMAGEN PÚBLICA DEL CLUB">COMITÉ DE IMAGEN PÚBLICA DEL CLUB</option>
-                                                                <option value="FACILITADOR DE APRENDIZAJE">FACILITADOR DE APRENDIZAJE</option>
-                                                                <option value="COMITÉ DE LA FUNDACIÓN ROTARIA">COMITÉ DE LA FUNDACIÓN ROTARIA</option>
-                                                                <option value="COMITÉ DE MEMBRESÍA DEL CLUB">COMITÉ DE MEMBRESÍA DEL CLUB</option>
-                                                                <option value="REVISOR / COMITÉ DE FINANZAS">REVISOR / COMITÉ DE FINANZAS</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="col-5">
-                                                            <label class="form-label text-muted">Periodo</label>
-                                                            <input type="text" class="form-control form-control-sm" name="periodo_nuevo" placeholder="EJ. 2023-2024">
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-check mb-2">
-                                                        <input class="form-check-input" type="checkbox" name="es_actual" id="esActual{{ socio.id }}">
-                                                        <label class="form-check-label text-muted" for="esActual{{ socio.id }}">
-                                                            Establecer como puesto actual de este periodo
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer py-1">
-                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                                                    <button type="submit" class="btn btn-primary btn-sm">Guardar Cambios</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Fin Modal Edición -->
-
-                                {% endfor %}
+        <!-- Tarjetas de Socios -->
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% if socios %}
+                {% for socio in socios %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 rounded-3 p-3 bg-white">
+                        <div class="d-flex align-items-center mb-3">
+                            {% if socio.foto_url %}
+                                <img src="{{ socio.foto_url }}" alt="Foto" class="avatar-socio me-3 shadow-sm">
                             {% else %}
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">No hay socios registrados todavía.</td>
-                                </tr>
+                                <div class="avatar-socio bg-secondary text-white d-flex align-items-center justify-content-center fw-bold fs-6 me-3 shadow-sm">
+                                    {{ socio.nombre_completo[:2].upper() }}
+                                </div>
                             {% endif %}
-                        </tbody>
-                    </table>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">{{ socio.nombre_completo }}</h6>
+                                <span class="badge bg-primary text-white mt-1" style="font-size: 10px;">{{ socio.tipo_socio or 'SOCIO' }}</span>
+                            </div>
+                        </div>
+
+                        <ul class="list-unstyled small text-muted mb-3">
+                            <li class="mb-1">📞 <strong>Teléfono:</strong> {{ socio.telefono or 'No registrado' }}</li>
+                            <li class="mb-1">✉️ <strong style="text-transform: none;">Correo:</strong> {{ socio.correo or 'No registrado' }}</li>
+                            <li class="mb-1">📍 <strong>Ciudad:</strong> {{ socio.ciudad or 'CREEL' }}, CHIH.</li>
+                            {% if socio.nombre_esposa %}
+                            <li class="mb-1">💍 <strong>Esposa(o):</strong> {{ socio.nombre_esposa }}</li>
+                            {% endif %}
+                        </ul>
+
+                        <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalVerSocio_{{ socio.id }}">
+                                👁️ Ver Detalles
+                            </button>
+                            
+                            {% if session.get('rol') in ['ADMIN', 'TESORERO', 'PRESIDENTE'] %}
+                                <button type="button" class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditarSocio_{{ socio.id }}">
+                                    ✏️ Editar
+                                </button>
+                            {% else %}
+                                <button type="button" class="btn btn-outline-danger btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalSinAcceso">
+                                    🔒 Editar
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Ver Detalles -->
+                <div class="modal fade text-start" id="modalVerSocio_{{ socio.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-light py-2">
+                                <h6 class="modal-title fw-bold text-primary">Información de Socio</h6>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body small">
+                                <p><strong>Nombre Completo:</strong> {{ socio.nombre_completo }}</p>
+                                <p><strong>Teléfono:</strong> {{ socio.telefono or 'N/D' }}</p>
+                                <p><strong>Correo:</strong> <span style="text-transform: none;">{{ socio.correo or 'N/D' }}</span></p>
+                                <p><strong>Dirección:</strong> {{ socio.calle_numero or '' }}, Col. {{ socio.colonia or '' }}, {{ socio.ciudad or '' }}</p>
+                                <p><strong>Esposa(o):</strong> {{ socio.nombre_esposa or 'N/D' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Editar Socio (Solo para Autorizados) -->
+                {% if session.get('rol') in ['ADMIN', 'TESORERO', 'PRESIDENTE'] %}
+                <div class="modal fade text-start" id="modalEditarSocio_{{ socio.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <form action="{{ url_for('editar_socio', id=socio.id) }}" method="POST" enctype="multipart/form-data">
+                                <div class="modal-header bg-primary text-white py-2">
+                                    <h6 class="modal-title fw-bold fs-6">Editar Datos de Socio</h6>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body small">
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-md-8">
+                                            <label class="form-label fw-semibold">Nombre Completo</label>
+                                            <input type="text" class="form-control form-control-sm" name="nombre_completo" value="{{ socio.nombre_completo }}" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Teléfono</label>
+                                            <input type="text" class="form-control form-control-sm" name="telefono" value="{{ socio.telefono or '' }}">
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">Correo Electrónico</label>
+                                            <input type="email" class="form-control form-control-sm" name="correo" value="{{ socio.correo or '' }}" style="text-transform: none;">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">Ciudad</label>
+                                            <input type="text" class="form-control form-control-sm" name="ciudad" value="{{ socio.ciudad or '' }}">
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">Nombre de Esposa(o)</label>
+                                            <input type="text" class="form-control form-control-sm" name="nombre_esposa" value="{{ socio.nombre_esposa or '' }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">Fotografía</label>
+                                            <input type="file" class="form-control form-control-sm" name="foto_archivo" accept="image/*">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer py-2">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Cambios</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% endfor %}
+            {% else %}
+                <p class="text-center text-muted">No hay socios registrados.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal de Aviso: Sin Acceso para Edición -->
+    <div class="modal fade text-start" id="modalSinAcceso" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white py-2">
+                    <h6 class="modal-title fw-bold">Acceso Restringido</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="fs-1 mb-2">🔒</div>
+                    <h5 class="fw-bold text-dark mb-2">Sin Permisos de Edición</h5>
+                    <p class="text-muted small mb-0">El usuario actual (Socio) tiene acceso de consulta y lectura, pero no cuenta con privilegios para modificar registros. Solo el Presidente, Tesorero o Administrador pueden realizar cambios.</p>
+                </div>
+                <div class="modal-footer py-1 justify-content-center">
+                    <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Entendido</button>
                 </div>
             </div>
         </div>
