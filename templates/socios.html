@@ -89,20 +89,48 @@
                     </div>
                 </div>
 
-                <!-- Modal Ver Detalles -->
+                <!-- Modal Ver Detalles (Incluyendo Datos Familiares Completos) -->
                 <div class="modal fade text-start" id="modalVerSocio_{{ socio.id }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
                         <div class="modal-content">
-                            <div class="modal-header bg-light py-2">
-                                <h6 class="modal-title fw-bold text-primary">Información de Socio</h6>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <div class="modal-header bg-primary text-white py-2">
+                                <h6 class="modal-title fw-bold">Expediente de Socio: {{ socio.nombre_completo }}</h6>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body small">
-                                <p><strong>Nombre Completo:</strong> {{ socio.nombre_completo }}</p>
-                                <p><strong>Teléfono:</strong> {{ socio.telefono or 'N/D' }}</p>
-                                <p><strong>Correo:</strong> <span style="text-transform: none;">{{ socio.correo or 'N/D' }}</span></p>
-                                <p><strong>Dirección:</strong> {{ socio.calle_numero or '' }}, Col. {{ socio.colonia or '' }}, {{ socio.ciudad or '' }}</p>
-                                <p><strong>Esposa(o):</strong> {{ socio.nombre_esposa or 'N/D' }}</p>
+                                <div class="row">
+                                    <div class="col-md-6 border-end">
+                                        <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">Datos Personales</h6>
+                                        <p class="mb-1"><strong>Número de Socio:</strong> {{ socio.numero_socio or 'N/D' }}</p>
+                                        <p class="mb-1"><strong>Tipo de Socio:</strong> {{ socio.tipo_socio or 'SOCIO' }}</p>
+                                        <p class="mb-1"><strong>Teléfono:</strong> {{ socio.telefono or 'N/D' }}</p>
+                                        <p class="mb-1"><strong>Correo:</strong> <span style="text-transform: none;">{{ socio.correo or 'N/D' }}</span></p>
+                                        <p class="mb-1"><strong>Fecha de Nacimiento:</strong> {{ socio.fecha_nacimiento.strftime('%d/%m/%Y') if socio.fecha_nacimiento else 'N/D' }}</p>
+                                        <p class="mb-1"><strong>Domicilio:</strong> {{ socio.calle_numero or '' }}, Col. {{ socio.colonia or '' }}, CP {{ socio.codigo_postal or '' }}, {{ socio.ciudad or 'CREEL' }}, {{ socio.estado or 'CHIH.' }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">Información Familiar</h6>
+                                        <p class="mb-1"><strong>Nombre Cónyuge:</strong> {{ socio.nombre_esposa or 'N/D' }}</p>
+                                        <p class="mb-1"><strong>Cumpleaños Cónyuge:</strong> {{ socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y') if socio.fecha_nacimiento_esposa else 'N/D' }}</p>
+                                        <p class="mb-1"><strong>Aniversario de Bodas:</strong> {{ socio.aniversario_matrimonio.strftime('%d/%m/%Y') if socio.aniversario_matrimonio else 'N/D' }}</p>
+                                        <p class="mb-1"><strong>Teléfono Cónyuge:</strong> {{ socio.telefono_esposa or 'N/D' }}</p>
+                                        <p class="mb-3"><strong>Teléfono de Emergencia:</strong> {{ socio.telefono_emergencia or 'N/D' }}</p>
+
+                                        <h6 class="text-secondary fw-bold border-bottom pb-1 mb-2">Hijos(as) Registrados</h6>
+                                        {% if socio.hijos %}
+                                            <ul class="ps-3 mb-0">
+                                                {% for hijo in socio.hijos %}
+                                                <li>{{ hijo.nombre }} {% if hijo.fecha_nacimiento %}(Nac: {{ hijo.fecha_nacimiento.strftime('%d/%m/%Y') }}){% endif %}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                            <p class="text-muted mb-0">No hay hijos registrados.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer py-1">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
                             </div>
                         </div>
                     </div>

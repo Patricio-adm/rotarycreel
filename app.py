@@ -293,7 +293,7 @@ def modulo_tesoreria():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('Acceso restringido. Solo el Presidente, Tesorero o Administrador pueden ingresar a Tesorería.', 'danger')
+        flash('Acceso restringido: El usuario socio no tiene permisos para ingresar al módulo de Tesorería.', 'danger')
         return redirect(url_for('menu_principal'))
     return render_template('tesoreria_menu.html')
 
