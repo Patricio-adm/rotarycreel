@@ -29,7 +29,7 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    rol = db.Column(db.String(50), default='SOCIO') # ADMIN, TESORERO, PRESIDENTE, SOCIO
+    rol = db.Column(db.String(50), default='SOCIO')
 
 class Hijo(db.Model):
     __tablename__ = 'hijos'
@@ -100,13 +100,37 @@ with app.app_context():
     except Exception as e:
         print(f"Info tabla pagos: {e}")
 
-    # Crear usuarios por defecto si no existen
-    if not Usuario.query.filter_by(username='admin').first():
-        admin_user = Usuario(username='admin', password_hash=generate_password_hash('rotary2026'), rol='ADMIN')
-        tesorero_user = Usuario(username='tesorero', password_hash=generate_password_hash('tesoreria2026'), rol='TESORERO')
-        presidente_user = Usuario(username='presidente', password_hash=generate_password_hash('presidente2026'), rol='PRESIDENTE')
-        db.session.add_all([admin_user, tesorero_user, presidente_user])
+    # Asegurar que la columna 'rol' exista en la tabla usuarios de PostgreSQL
+    try:
+        db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(50) DEFAULT 'SOCIO';"))
         db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Info columna rol: {e}")
+
+    # Actualizar o crear usuarios por defecto con sus roles
+    admin = Usuario.query.filter_by(username='admin').first()
+    if not admin:
+        admin_user = Usuario(username='admin', password_hash=generate_password_hash('rotary2026'), rol='ADMIN')
+        db.session.add(admin_user)
+    else:
+        admin.rol = 'ADMIN'
+
+    tesorero = Usuario.query.filter_by(username='tesorero').first()
+    if not tesorero:
+        tesorero_user = Usuario(username='tesorero', password_hash=generate_password_hash('tesoreria2026'), rol='TESORERO')
+        db.session.add(tesorero_user)
+    else:
+        tesorero.rol = 'TESORERO'
+
+    presidente = Usuario.query.filter_by(username='presidente').first()
+    if not presidente:
+        presidente_user = Usuario(username='presidente', password_hash=generate_password_hash('presidente2026'), rol='PRESIDENTE')
+        db.session.add(presidente_user)
+    else:
+        presidente.rol = 'PRESIDENTE'
+
+    db.session.commit()
 
 @app.route('/')
 def index_publico():
@@ -146,8 +170,6 @@ def editar_socio(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    # Validar contraseña especial de autorización para modificar
-    clave_autorizacion = request.form.get('clave_autorizacion')
     if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         flash('No tiene permisos para realizar modificaciones', 'danger')
         return redirect(url_for('gestion_socios'))
