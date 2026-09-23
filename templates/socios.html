@@ -224,7 +224,53 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">3. Hijos(as) Registrados (Modificar o Eliminar)</h6>
+                                    <!-- Historial de Cargos / Agregar Cargo Anterior -->
+                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">3. Historial y Cargos en el Club</h6>
+                                    <div class="mb-3 p-2 bg-light rounded border">
+                                        <label class="form-label fw-semibold mb-1" style="font-size: 11px;">Cargos Registrados:</label>
+                                        {% if socio.cargos %}
+                                            <ul class="small ps-3 mb-2">
+                                                {% for c in socio.cargos %}
+                                                <li><strong>{{ c.cargo }}</strong> (PERIODO: {{ c.periodo }}) {% if c.es_actual %}<span class="badge bg-success" style="font-size: 9px;">ACTUAL</span>{% endif %}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                            <p class="text-muted small mb-2">No hay cargos registrados.</p>
+                                        {% endif %}
+
+                                        <div class="row g-2 pt-2 border-top">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold" style="font-size: 11px;">Agregar Cargo (Nuevo o Anterior)</label>
+                                                <select class="form-select form-select-sm" name="cargo_nuevo">
+                                                    <option value="" selected>-- SELECCIONAR CARGO --</option>
+                                                    <option value="PRESIDENTE">PRESIDENTE</option>
+                                                    <option value="TESORERO">TESORERO</option>
+                                                    <option value="MACERO">MACERO</option>
+                                                    <option value="PAST PRESIDENT">PAST PRESIDENT</option>
+                                                    <option value="SECRETARIO">SECRETARIO</option>
+                                                    <option value="PROGRAMAS PARA LÍDERES JÓVENES">PROGRAMAS PARA LÍDERES JÓVENES</option>
+                                                    <option value="PROYECTOS DE SERVICIO DEL CLUB">PROYECTOS DE SERVICIO DEL CLUB</option>
+                                                    <option value="IMAGEN PÚBLICA DEL CLUB">IMAGEN PÚBLICA DEL CLUB</option>
+                                                    <option value="FACILITADOR DE APRENDIZAJE DEL CLUB">FACILITADOR DE APRENDIZAJE DEL CLUB</option>
+                                                    <option value="FUNDACION ROTARIA">FUNDACION ROTARIA</option>
+                                                    <option value="MEMBRESÍA DEL CLUB">MEMBRESÍA DEL CLUB</option>
+                                                    <option value="SOCIO ACTIVO">SOCIO ACTIVO</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold" style="font-size: 11px;">Periodo</label>
+                                                <input type="text" class="form-control form-control-sm" name="periodo_nuevo" placeholder="EJ. 2026-2027">
+                                            </div>
+                                            <div class="col-md-2 text-center pt-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="es_actual" id="chk_actual_{{ socio.id }}" value="on" checked>
+                                                    <label class="form-check-label fw-bold" for="chk_actual_{{ socio.id }}" style="font-size: 10px;">¿Es actual?</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">4. Hijos(as) Registrados (Modificar o Eliminar)</h6>
                                     {% if socio.hijos %}
                                         <div class="mb-3">
                                             {% for hijo in socio.hijos %}
@@ -250,7 +296,7 @@
                                         <p class="text-muted small mb-3">No hay hijos registrados actualmente.</p>
                                     {% endif %}
 
-                                    <h6 class="text-success fw-bold border-bottom pb-1 mb-2">4. Agregar Nuevo Hijo(a)</h6>
+                                    <h6 class="text-success fw-bold border-bottom pb-1 mb-2">5. Agregar Nuevo Hijo(a)</h6>
                                     <div class="row g-2 mb-3 p-2 bg-success bg-opacity-10 rounded border border-success">
                                         <div class="col-md-8">
                                             <label class="form-label fw-semibold">Nombre del Hijo(a)</label>
@@ -262,7 +308,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">5. Fotografía de Perfil</h6>
+                                    <h6 class="text-primary fw-bold border-bottom pb-1 mb-2">6. Fotografía de Perfil</h6>
                                     <div class="mb-2">
                                         <input type="file" class="form-control form-control-sm" name="foto_archivo" accept="image/*">
                                         <div class="form-text">Subir imagen en formato JPG o PNG.</div>
@@ -361,15 +407,28 @@
                             </div>
                         </div>
 
-                        <h6 class="text-success fw-bold border-bottom pb-1 mb-2">3. Cargo Inicial en el Club (Opcional)</h6>
+                        <h6 class="text-success fw-bold border-bottom pb-1 mb-2">3. Cargo Inicial en el Club</h6>
                         <div class="row g-2 mb-3">
                             <div class="col-md-8">
                                 <label class="form-label fw-semibold">Cargo</label>
-                                <input type="text" class="form-control form-control-sm" name="cargo_inicial" placeholder="EJ. SOCIO, TESORERO, ETC.">
+                                <select class="form-select form-select-sm" name="cargo_inicial">
+                                    <option value="SOCIO ACTIVO" selected>SOCIO ACTIVO</option>
+                                    <option value="PRESIDENTE">PRESIDENTE</option>
+                                    <option value="TESORERO">TESORERO</option>
+                                    <option value="MACERO">MACERO</option>
+                                    <option value="PAST PRESIDENT">PAST PRESIDENT</option>
+                                    <option value="SECRETARIO">SECRETARIO</option>
+                                    <option value="PROGRAMAS PARA LÍDERES JÓVENES">PROGRAMAS PARA LÍDERES JÓVENES</option>
+                                    <option value="PROYECTOS DE SERVICIO DEL CLUB">PROYECTOS DE SERVICIO DEL CLUB</option>
+                                    <option value="IMAGEN PÚBLICA DEL CLUB">IMAGEN PÚBLICA DEL CLUB</option>
+                                    <option value="FACILITADOR DE APRENDIZAJE DEL CLUB">FACILITADOR DE APRENDIZAJE DEL CLUB</option>
+                                    <option value="FUNDACION ROTARIA">FUNDACION ROTARIA</option>
+                                    <option value="MEMBRESÍA DEL CLUB">MEMBRESÍA DEL CLUB</option>
+                                </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Periodo</label>
-                                <input type="text" class="form-control form-control-sm" name="periodo_inicial" placeholder="EJ. 2026-2027">
+                                <input type="text" class="form-control form-control-sm" name="periodo_inicial" placeholder="EJ. 2026-2027" value="2026-2027">
                             </div>
                         </div>
 

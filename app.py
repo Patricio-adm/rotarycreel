@@ -16,8 +16,9 @@ def allowed_file(filename):
 # --- REGLA AUTOMÁTICA DE MAYÚSCULAS ---
 def to_upper(val):
     if val and isinstance(val, str):
-        return val.strip().upper()
-    return val
+        cleaned = val.strip().upper()
+        return cleaned if cleaned else None
+    return None
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -105,6 +106,7 @@ with app.app_context():
 
     try:
         db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(50) DEFAULT 'SOCIO';"))
+        db.session.execute(db.text("ALTER TABLE socios DROP CONSTRAINT IF EXISTS socios_numero_socio_key;"))
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -200,7 +202,7 @@ def agregar_socio():
     nuevo = Socio(
         numero_socio=to_upper(request.form.get('numero_socio')),
         nombre_completo=to_upper(request.form.get('nombre_completo')),
-        tipo_socio=to_upper(request.form.get('tipo_socio')) or 'SOCIO',
+        tipo_socio=to_upper(request.form.get('tipo_socio')) or 'ACTIVO',
         telefono=to_upper(request.form.get('telefono')),
         correo=request.form.get('correo'),
         fecha_nacimiento=parse_date(request.form.get('fecha_nacimiento')),
@@ -258,7 +260,7 @@ def editar_socio(id):
     socio.nombre_completo = to_upper(request.form.get('nombre_completo'))
     socio.telefono = to_upper(request.form.get('telefono'))
     socio.correo = request.form.get('correo')
-    socio.tipo_socio = to_upper(request.form.get('tipo_socio'))
+    socio.tipo_socio = to_upper(request.form.get('tipo_socio')) or 'ACTIVO'
     socio.calle_numero = to_upper(request.form.get('calle_numero'))
     socio.colonia = to_upper(request.form.get('colonia'))
     socio.codigo_postal = to_upper(request.form.get('codigo_postal'))
