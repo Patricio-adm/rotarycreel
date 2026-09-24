@@ -9,7 +9,7 @@
         body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-transform: uppercase; }
         .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
         
-        /* Matriz de tamaño compacto y respetado */
+        /* Matriz compacta */
         .table-custom th { background-color: #17458F; color: white; font-size: 10px; text-align: center; vertical-align: middle; padding: 6px 4px; }
         .table-custom td { font-size: 10px; text-align: center; vertical-align: middle; padding: 4px 4px; }
         .table-custom td:first-child { text-align: left; font-weight: bold; padding-left: 8px; }
@@ -358,7 +358,7 @@
         </div>
     </div>
 
-    <!-- Script de filtrado de meses pendientes -->
+    <!-- Script de filtrado y carga automática -->
     <script>
         const sociosPagosData = {
             {% for s in socios %}
@@ -406,6 +406,15 @@
                 contenedor.appendChild(col);
             });
         }
+
+        // Cargar automáticamente los meses del primer socio al abrir el modal o cargar la página
+        document.addEventListener("DOMContentLoaded", function() {
+            const selectSocio = document.getElementById('selectSocioPago');
+            if (selectSocio && selectSocio.options.length > 1) {
+                selectSocio.selectedIndex = 1; // Seleccionar por defecto el primer socio
+                filtrarMesesPendientes();
+            }
+        });
     </script>
 
     <!-- Modal Recibo Automático -->
