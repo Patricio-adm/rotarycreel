@@ -407,7 +407,6 @@ def cuotas_sociales():
     db.session.expire_all()
     socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     
-    # Rango unificado desde JUN 2025 hasta JUN 2027
     meses_control = [
         "JUN 2025", "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
         "ENE 2026", "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
