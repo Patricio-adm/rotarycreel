@@ -72,7 +72,9 @@
                     {% for m in meses %}
                         {% set pagado = false %}
                         {% for p in socio.pagos %}
-                            {% if p.mes_anio == m %}{% set pagado = true %}{% endif %}
+                            {% if p.mes_anio.strip().upper() == m.strip().upper() %}
+                                {% set pagado = true %}
+                            {% endif %}
                         endfor
                         {% if not pagado %}
                             {% set ns.contador = ns.contador + 1 %}
@@ -84,7 +86,7 @@
                                 <td><span class="badge bg-danger">PENDIENTE</span></td>
                             </tr>
                         {% endif %}
-                    {% endfor %}
+                    endfor
 
                     {% if ns.contador == 0 %}
                         <tr>

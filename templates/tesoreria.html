@@ -9,12 +9,12 @@
         body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-transform: uppercase; }
         .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
         
-        /* Ajuste de tamaño compacto para la matriz */
+        /* Matriz de tamaño compacto y respetado */
         .table-custom th { background-color: #17458F; color: white; font-size: 10px; text-align: center; vertical-align: middle; padding: 6px 4px; }
         .table-custom td { font-size: 10px; text-align: center; vertical-align: middle; padding: 4px 4px; }
         .table-custom td:first-child { text-align: left; font-weight: bold; padding-left: 8px; }
 
-        /* Estilos de celdas según estatus de pago */
+        /* Celdas coloreadas */
         .celda-pagado { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; }
         .celda-pendiente { background-color: #f8d7da !important; color: #842029 !important; }
     </style>
@@ -164,7 +164,9 @@
                                 {% for m in meses %}
                                     {% set pagado = false %}
                                     {% for p in socio.pagos %}
-                                        {% if p.mes_anio.strip().upper() == m.strip().upper() %}{% set pagado = true %}{% endif %}
+                                        {% if p.mes_anio.strip().upper() == m.strip().upper() %}
+                                            {% set pagado = true %}
+                                        {% endif %}
                                     {% endfor %}
                                     {% if not pagado %}
                                         {% set tiene_pendientes = true %}
