@@ -91,15 +91,15 @@
                                     </a>
                                 </td>
                                 {% for m in meses %}
-                                    {% set pago_encontrado = None %}
+                                    {% set pagado_mes = false %}
                                     {% for p in socio.pagos %}
                                         {% if p.mes_anio == m %}
-                                            {% set pago_encontrado = p %}
+                                            {% set pagado_mes = true %}
                                         {% endif %}
                                     {% endfor %}
                                     <td>
-                                        {% if pago_encontrado %}
-                                            <span class="badge bg-success" style="font-size: 9px;" title="Método: {{ pago_encontrado.metodo_pago }} | Ref: {{ pago_encontrado.referencia or 'N/D' }}">PAGADO</span>
+                                        {% if pagado_mes %}
+                                            <span class="badge bg-success" style="font-size: 9px;">PAGADO</span>
                                         {% else %}
                                             <span class="badge bg-secondary opacity-50" style="font-size: 9px;">PENDIENTE</span>
                                         {% endif %}
@@ -228,7 +228,7 @@
                             <tbody>
                                 {% for socio in socios %}
                                     {% set ns = namespace(total_socio=0.0, pendientes_count=0) %}
-                                    {% set meses_validos_calc = ["FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026", "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026"] %}
+                                    {% set meses_validos_calc = ["FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026", "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026", "ENE 2027", "FEB 2027", "MAR 2027", "ABR 2027", "MAY 2027", "JUN 2027"] %}
                                     {% for p in socio.pagos %}
                                         {% if p.mes_anio in meses_validos_calc %}
                                             {% set ns.total_socio = ns.total_socio + p.monto %}
@@ -292,7 +292,7 @@
         </div>
     </div>
 
-    <!-- Modal Registrar Pago -->
+    <!-- Modal Registrar Pago Dinámico (Muestra solo los meses pendientes por socio) -->
     <div class="modal fade text-start" id="modalRegistrarPago" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -304,26 +304,26 @@
                     <div class="modal-body small" style="max-height: 70vh; overflow-y: auto;">
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Seleccionar Socio *</label>
-                            <select class="form-select form-select-sm" name="socio_id" required>
+                            <select class="form-select form-select-sm" id="selectSocioPago" name="socio_id" onchange="filtrarMesesPendientes()" required>
                                 <option value="" selected>-- SELECCIONE SOCIO --</option>
                                 {% for s in socios %}
-                                <option value="{{ s.id }}">{{ s.nombre_completo }}</option>
+                                <option value="{{ s.id }}">
+                                    {{ s.nombre_completo }}
+                                    {% set pagados_list = [] %}
+                                    {% for p in s.pagos %}{% set _ = pagados_list.append(p.mes_anio) %}{% endfor %}
+                                    [PAGADOS: {{ pagados_list|join(', ') if pagados_list else 'NINGUNO' }}]
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
+
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Seleccionar Meses a Pagar ($500.00 c/u) *</label>
-                            <div class="row row-cols-3 g-2 p-2 border rounded bg-light">
-                                {% for m in meses %}
-                                <div class="col">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="meses" value="{{ m }}" id="chk_mes_{{ loop.index }}">
-                                        <label class="form-check-label" for="chk_mes_{{ loop.index }}" style="font-size: 11px;">{{ m }}</label>
-                                    </div>
-                                </div>
-                                {% endfor %}
+                            <label class="form-label fw-semibold">Seleccionar Meses Pendientes a Pagar ($500.00 c/u) *</label>
+                            <div id="contenedorMesesPendientes" class="row row-cols-3 g-2 p-2 border rounded bg-light">
+                                <p class="text-muted small mb-0 text-center w-100 py-2">Por favor, seleccione un socio primero para ver sus meses pendientes.</p>
                             </div>
                         </div>
+
                         <div class="row g-2 mb-2">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Método de Pago</label>
@@ -347,6 +347,56 @@
             </div>
         </div>
     </div>
+
+    <!-- Diccionario de pagos de socios para JavaScript -->
+    <script>
+        const sociosPagosData = {
+            {% for s in socios %}
+            "{{ s.id }}": [
+                {% for p in s.pagos %}
+                "{{ p.mes_anio }}"{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]{% if not loop.last %},{% endif %}
+            {% endfor %}
+        };
+
+        const todosLosMeses = [
+            {% for m in meses %}
+            "{{ m }}"{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        function filtrarMesesPendientes() {
+            const socioId = document.getElementById('selectSocioPago').value;
+            const contenedor = document.getElementById('contenedorMesesPendientes');
+            contenedor.innerHTML = '';
+
+            if (!socioId) {
+                contenedor.innerHTML = '<p class="text-muted small mb-0 text-center w-100 py-2">Por favor, seleccione un socio primero para ver sus meses pendientes.</p>';
+                return;
+            }
+
+            const pagosSocio = sociosPagosData[socioId] || [];
+            const mesesPendientes = todosLosMeses.filter(m => !pagosSocio.includes(m));
+
+            if (mesesPendientes.length === 0) {
+                contenedor.innerHTML = '<p class="text-success small fw-bold mb-0 text-center w-100 py-2">¡Este socio se encuentra al corriente en todos sus meses hasta junio de 2027!</p>';
+                return;
+            }
+
+            mesesPendientes.forEach((mes, index) => {
+                const col = document.createElement('div');
+                col.className = 'col';
+                col.innerHTML = `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="meses" value="${mes}" id="chk_mes_${index}">
+                        <label class="form-check-label fw-bold" for="chk_mes_${index}" style="font-size: 11px;">${mes}</label>
+                    </div>
+                `;
+                contenedor.appendChild(col);
+            });
+        }
+    </script>
 
     <!-- Si se acaba de registrar un pago, abrir automáticamente el modal de recibo -->
     {% if ultimo_pago %}
