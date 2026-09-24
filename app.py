@@ -398,7 +398,7 @@ def cuotas_sociales():
         flash('Acceso restringido.', 'danger')
         return redirect(url_for('menu_principal'))
     
-    # Asegurar que se expira el expire_on_commit o se refrescan los datos de pagos directamente de la BD
+    # Forzar recarga fresca de base de datos para evitar caché de ORM
     db.session.expire_all()
     socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     
