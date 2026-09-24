@@ -94,7 +94,6 @@
                                     {% set pago_encontrado = None %}
                                     {% for p in socio.pagos %}
                                         {% if p.mes_anio == m %}
-                                            {% set _ = ns = namespace(pago=p) %}
                                             {% set pago_encontrado = p %}
                                         {% endif %}
                                     {% endfor %}
@@ -155,7 +154,7 @@
                                     {% set pagado = false %}
                                     {% for p in socio.pagos %}
                                         {% if p.mes_anio == m %}{% set pagado = true %}{% endif %}
-                                    {% endfor %}
+                                    endfor
                                     {% if not pagado %}
                                         {% set tiene_pendientes = true %}
                                         <tr>
@@ -175,7 +174,7 @@
                     </div>
                 </div>
                 <div class="modal-footer py-2">
-                    <a href="#" onclick="alert('Funcionalidad de PDF individual conectada');" class="btn btn-danger btn-sm fw-bold">📄 Estado de Cuenta en PDF</a>
+                    <a href="{{ url_for('estado_cuenta_pdf', socio_id=socio.id) }}" target="_blank" class="btn btn-danger btn-sm fw-bold">📄 Estado de Cuenta en PDF</a>
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
@@ -240,7 +239,7 @@
                                         {% set pagado_m = false %}
                                         {% for p in socio.pagos %}
                                             {% if p.mes_anio == m %}{% set pagado_m = true %}{% endif %}
-                                        {% endfor %}
+                                        endfor
                                         {% if not pagado_m %}
                                             {% set ns.pendientes_count = ns.pendientes_count + 1 %}
                                         {% endif %}
