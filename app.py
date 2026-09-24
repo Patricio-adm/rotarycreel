@@ -19,7 +19,14 @@ def to_upper(val):
         return cleaned if cleaned else None
     return None
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
+# Forzar el uso del driver psycopg2 para evitar errores de dependencias en Render
+db_url = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
+if db_url and db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+elif db_url and db_url.startswith("postgresql://"):
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app, engine_options={
@@ -398,7 +405,6 @@ def cuotas_sociales():
         flash('Acceso restringido.', 'danger')
         return redirect(url_for('menu_principal'))
     
-    # Forzar recarga fresca de base de datos para evitar caché de ORM
     db.session.expire_all()
     socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     
