@@ -13,7 +13,6 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# --- REGLA AUTOMÁTICA DE MAYÚSCULAS ---
 def to_upper(val):
     if val and isinstance(val, str):
         cleaned = val.strip().upper()
@@ -63,11 +62,17 @@ class PagoCuota(db.Model):
     __tablename__ = 'pagos_cuotas'
     id = db.Column(db.Integer, primary_key=True)
     socio_id = db.Column(db.Integer, db.ForeignKey('socios.id'), nullable=False)
-    mes_anio = db.Column(db.String(20), nullable=False)
+    mes_anio = db.Column(db.String(20), nullable=False) # Ej: "FEB 2026", "MAR 2026"
     monto = db.Column(db.Float, default=500.0)
     metodo_pago = db.Column(db.String(50))
     fecha_pago = db.Column(db.Date, default=datetime.utcnow)
     referencia = db.Column(db.String(100))
+
+class ConfiguracionTesoreria(db.Model):
+    __tablename__ = 'configuracion_tesoreria'
+    id = db.Column(db.Integer, primary_key=True)
+    saldo_inicial = db.Column(db.Float, default=0.0)
+    fecha_actualizacion = db.Column(db.Date, default=datetime.utcnow)
 
 class Socio(db.Model):
     __tablename__ = 'socios'
@@ -101,8 +106,9 @@ with app.app_context():
     db.create_all()
     try:
         PagoCuota.__table__.create(db.engine, checkfirst=True)
+        ConfiguracionTesoreria.__table__.create(db.engine, checkfirst=True)
     except Exception as e:
-        print(f"Info tabla pagos: {e}")
+        print(f"Info tablas tesorería: {e}")
 
     try:
         db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(50) DEFAULT 'SOCIO';"))
@@ -127,6 +133,11 @@ with app.app_context():
         else:
             u_db.rol = r
     db.session.commit()
+    
+    # Inicializar configuración de tesorería si no existe
+    if not ConfiguracionTesoreria.query.first():
+        db.session.add(ConfiguracionTesoreria(saldo_inicial=0.0))
+        db.session.commit()
 
 @app.route('/')
 def index_publico():
@@ -160,7 +171,6 @@ def gestion_socios():
         return redirect(url_for('login'))
     
     lista_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
-    
     meses_es = {1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO", 9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"}
     mes_actual_num = datetime.now().month
     mes_actual_nombre = meses_es.get(mes_actual_num, "MES")
@@ -179,16 +189,12 @@ def gestion_socios():
                     festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
                     
     festividades = sorted(festividades, key=lambda x: x['dia'])
-
     return render_template('socios.html', socios=lista_socios, mes_actual_nombre=mes_actual_nombre, festividades_mes=festividades)
 
 @app.route('/socios/agregar', methods=['POST'])
 def agregar_socio():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('Acceso denegado: No tiene permisos para agregar nuevos socios.', 'danger')
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('Acceso denegado.', 'danger')
         return redirect(url_for('gestion_socios'))
 
     def parse_date(date_str):
@@ -247,15 +253,11 @@ def agregar_socio():
 
 @app.route('/socios/editar/<int:id>', methods=['POST'])
 def editar_socio(id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('Acceso denegado: El usuario con rol de socio no tiene permisos para realizar modificaciones.', 'danger')
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('Acceso denegado.', 'danger')
         return redirect(url_for('gestion_socios'))
 
     socio = Socio.query.get_or_404(id)
-    
     socio.numero_socio = to_upper(request.form.get('numero_socio'))
     socio.nombre_completo = to_upper(request.form.get('nombre_completo'))
     socio.telefono = to_upper(request.form.get('telefono'))
@@ -285,8 +287,7 @@ def editar_socio(id):
     
     for hijo in socio.hijos:
         prefix = f"hijo_{hijo.id}_"
-        eliminar_hijo = request.form.get(f"{prefix}eliminar") == 'on'
-        if eliminar_hijo:
+        if request.form.get(f"{prefix}eliminar") == 'on':
             db.session.delete(hijo)
         else:
             nuevo_nombre = to_upper(request.form.get(f"{prefix}nombre"))
@@ -298,8 +299,7 @@ def editar_socio(id):
     nombre_nuevo_hijo = to_upper(request.form.get('nombre_hijo_nuevo'))
     fecha_nuevo_hijo = parse_date(request.form.get('fecha_hijo_nuevo'))
     if nombre_nuevo_hijo:
-        nuevo_hijo = Hijo(socio_id=socio.id, nombre=nombre_nuevo_hijo, fecha_nacimiento=fecha_nuevo_hijo)
-        db.session.add(nuevo_hijo)
+        db.session.add(Hijo(socio_id=socio.id, nombre=nombre_nuevo_hijo, fecha_nacimiento=fecha_nuevo_hijo))
 
     try:
         file = request.files.get('foto_archivo')
@@ -321,8 +321,7 @@ def editar_socio(id):
         if es_actual:
             for c in socio.cargos:
                 c.es_actual = False
-        cargo_db = HistorialCargo(socio_id=socio.id, cargo=to_upper(nuevo_cargo), periodo=to_upper(periodo_nuevo), es_actual=es_actual)
-        db.session.add(cargo_db)
+        db.session.add(HistorialCargo(socio_id=socio.id, cargo=to_upper(nuevo_cargo), periodo=to_upper(periodo_nuevo), es_actual=es_actual))
         
     db.session.commit()
     flash('Información actualizada correctamente', 'success')
@@ -347,24 +346,20 @@ def cumpleanos_mes():
                 if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual:
                     festividades.append({'dia': hijo.fecha_nacimiento.day, 'fecha_str': hijo.fecha_nacimiento.strftime('%d/%m/%Y'), 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
     festividades = sorted(festividades, key=lambda x: x['dia'])
-    
     meses_es = {1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO", 9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"}
-    nombre_mes_actual = meses_es.get(mes_actual, "")
-    return render_template('cumpleanos.html', festividades=festividades, mes_actual=nombre_mes_actual)
+    return render_template('cumpleanos.html', festividades=festividades, mes_actual=meses_es.get(mes_actual, ""))
 
 @app.route('/autoridades')
 def gestion_autoridades():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    autoridades = AutoridadRotaria.query.all()
-    return render_template('autoridades.html', autoridades=autoridades)
+    return render_template('autoridades.html', autoridades=AutoridadRotaria.query.all())
 
 @app.route('/autoridades/guardar', methods=['POST'])
 def guardar_autoridad():
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         flash('No autorizado', 'danger')
         return redirect(url_for('gestion_autoridades'))
-    
     auth_id = request.form.get('auth_id')
     nombre = to_upper(request.form.get('nombre'))
     cargo = to_upper(request.form.get('cargo'))
@@ -373,17 +368,11 @@ def guardar_autoridad():
     telefono = to_upper(request.form.get('telefono'))
     if auth_id:
         autoridad = AutoridadRotaria.query.get_or_404(auth_id)
-        autoridad.nombre = nombre
-        autoridad.cargo = cargo
-        autoridad.nivel = nivel
-        autoridad.correo = correo
-        autoridad.telefono = telefono
-        flash('Autoridad actualizada correctamente', 'success')
+        autoridad.nombre, autoridad.cargo, autoridad.nivel, autoridad.correo, autoridad.telefono = nombre, cargo, nivel, correo, telefono
     else:
-        nueva = AutoridadRotaria(nombre=nombre, cargo=cargo, nivel=nivel, correo=correo, telefono=telefono)
-        db.session.add(nueva)
-        flash('Autoridad agregada correctamente', 'success')
+        db.session.add(AutoridadRotaria(nombre=nombre, cargo=cargo, nivel=nivel, correo=correo, telefono=telefono))
     db.session.commit()
+    flash('Autoridad guardada correctamente', 'success')
     return redirect(url_for('gestion_autoridades'))
 
 @app.route('/autoridades/eliminar/<int:id>')
@@ -391,45 +380,76 @@ def eliminar_autoridad(id):
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         flash('No autorizado', 'danger')
         return redirect(url_for('gestion_autoridades'))
-    
-    autoridad = AutoridadRotaria.query.get_or_404(id)
-    db.session.delete(autoridad)
+    db.session.delete(AutoridadRotaria.query.get_or_404(id))
     db.session.commit()
-    flash('Autoridad eliminada correctamente', 'success')
+    flash('Autoridad eliminada', 'success')
     return redirect(url_for('gestion_autoridades'))
 
 # --- MÓDULO DE TESORERÍA ---
 @app.route('/tesoreria')
 def modulo_tesoreria():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    if session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('Acceso restringido: El usuario socio no tiene permisos para ingresar al módulo de Tesorería.', 'danger')
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('Acceso restringido al módulo de Tesorería.', 'danger')
         return redirect(url_for('menu_principal'))
     return render_template('tesoreria_menu.html')
 
 @app.route('/tesoreria/cuotas-sociales')
 def cuotas_sociales():
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('Acceso restringido al módulo de tesorería.', 'danger')
+        flash('Acceso restringido.', 'danger')
         return redirect(url_for('menu_principal'))
     
     socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     meses_control = [
         "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
         "ENE 2026", "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
-        "JUL 2026", "AGO 2026", "SEP 2026"
+        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026"
     ]
     
-    ultimo_pago_id = request.args.get('recibo_id')
-    ultimo_pago = PagoCuota.query.get(ultimo_pago_id) if ultimo_pago_id else None
+    config_teso = ConfiguracionTesoreria.query.first()
+    saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
     
-    return render_template('tesoreria.html', socios=socios, meses=meses_control, ultimo_pago=ultimo_pago)
+    # Calcular ingresos válidos desde el 1 de febrero de 2026 (meses que contengan 2026 a partir de FEB, o filtrados)
+    meses_validos_reporte = [
+        "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
+        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026"
+    ]
+    
+    total_recaudado_valido = PagoCuota.query.filter(PagoCuota.mes_anio.in_(meses_validos_reporte)).with_entities(db.func.sum(PagoCuota.monto)).scalar() or 0.0
+    saldo_total_general = saldo_inicial + total_recaudado_valido
+    
+    ultimo_pago = PagoCuota.query.get(request.args.get('recibo_id')) if request.args.get('recibo_id') else None
+    
+    return render_template('tesoreria.html', socios=socios, meses=meses_control, ultimo_pago=ultimo_pago, saldo_inicial=saldo_inicial, saldo_total_general=saldo_total_general)
+
+@app.route('/tesoreria/actualizar-saldo-inicial', methods=['POST'])
+def actualizar_saldo_inicial():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        flash('No autorizado.', 'danger')
+        return redirect(url_for('menu_principal'))
+    
+    password = request.form.get('password')
+    nuevo_saldo = float(request.form.get('saldo_inicial', 0.0))
+    
+    user = Usuario.query.get(session['user_id'])
+    if user and check_password_hash(user.password_hash, password):
+        config = ConfiguracionTesoreria.query.first()
+        if not config:
+            config = ConfiguracionTesoreria(saldo_inicial=nuevo_saldo)
+            db.session.add(config)
+        else:
+            config.saldo_inicial = nuevo_saldo
+        db.session.commit()
+        flash('¡Saldo inicial actualizado exitosamente con autorización!', 'success')
+    else:
+        flash('Contraseña incorrecta. No se pudo actualizar el saldo inicial.', 'danger')
+        
+    return redirect(url_for('cuotas_sociales'))
 
 @app.route('/tesoreria/registrar-pago', methods=['POST'])
 def registrar_pago_cuota():
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('No autorizado para registrar pagos.', 'danger')
+        flash('No autorizado.', 'danger')
         return redirect(url_for('menu_principal'))
     
     socio_id = request.form.get('socio_id')
@@ -440,21 +460,13 @@ def registrar_pago_cuota():
     ultimo_pago_creado = None
     if socio_id and meses_pagados:
         for m in meses_pagados:
-            existente = PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=m).first()
-            if not existente:
-                nuevo_pago = PagoCuota(
-                    socio_id=socio_id,
-                    mes_anio=m,
-                    monto=500.0,
-                    metodo_pago=metodo,
-                    referencia=referencia
-                )
-                db.session.add(nuevo_pago)
+            if not PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=m).first():
+                pago = PagoCuota(socio_id=socio_id, mes_anio=m, monto=500.0, metodo_pago=metodo, referencia=referencia)
+                db.session.add(pago)
                 db.session.flush()
-                ultimo_pago_creado = nuevo_pago
+                ultimo_pago_creado = pago
         db.session.commit()
         flash('Pago(s) registrado(s) correctamente.', 'success')
-        
         if ultimo_pago_creado:
             return redirect(url_for('cuotas_sociales', recibo_id=ultimo_pago_creado.id))
     else:
@@ -465,23 +477,18 @@ def registrar_pago_cuota():
 @app.route('/tesoreria/editar-pago/<int:pago_id>', methods=['POST'])
 def editar_pago_cuota(pago_id):
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('No autorizado para modificar pagos.', 'danger')
+        flash('No autorizado.', 'danger')
         return redirect(url_for('menu_principal'))
-    
     pago = PagoCuota.query.get_or_404(pago_id)
-    accion = request.form.get('accion')
-    
-    if accion == 'eliminar':
+    if request.form.get('accion') == 'eliminar':
         db.session.delete(pago)
-        db.session.commit()
-        flash('El registro de pago ha sido eliminado (marcado como pendiente).', 'warning')
+        flash('Pago eliminado.', 'warning')
     else:
         pago.monto = float(request.form.get('monto', 500.0))
         pago.metodo_pago = to_upper(request.form.get('metodo_pago'))
         pago.referencia = to_upper(request.form.get('referencia'))
-        db.session.commit()
-        flash('Detalles del pago actualizados correctamente.', 'success')
-        
+        flash('Pago actualizado.', 'success')
+    db.session.commit()
     return redirect(url_for('cuotas_sociales'))
 
 @app.route('/tesoreria/recibo/<int:pago_id>')
@@ -489,15 +496,10 @@ def ver_recibo(pago_id):
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     pago = PagoCuota.query.get_or_404(pago_id)
-    
     meses_es = {"January": "ENERO", "February": "FEBRERO", "March": "MARZO", "April": "ABRIL", "May": "MAYO", "June": "JUNIO", "July": "JULIO", "August": "AGOSTO", "September": "SEPTIEMBRE", "October": "OCTUBRE", "November": "NOVIEMBRE", "December": "DICIEMBRE"}
     dias_es = {"Monday": "LUNES", "Tuesday": "MARTES", "Wednesday": "MIÉRCOLES", "Thursday": "JUEVES", "Friday": "VIERNES", "Saturday": "SÁBADO", "Sunday": "DOMINGO"}
-    
     ahora = datetime.now()
-    dia_sem = dias_es.get(ahora.strftime('%A'), '')
-    mes_str = meses_es.get(ahora.strftime('%B'), '')
-    fecha_recibo = f"{dia_sem}, {ahora.day} DE {mes_str} DE {ahora.year}"
-    
+    fecha_recibo = f"{dias_es.get(ahora.strftime('%A'), '')}, {ahora.day} DE {meses_es.get(ahora.strftime('%B'), '')} DE {ahora.year}"
     return render_template('recibo_pdf.html', pago=pago, fecha_recibo=fecha_recibo)
 
 @app.route('/logout')
