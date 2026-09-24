@@ -62,7 +62,7 @@ class PagoCuota(db.Model):
     __tablename__ = 'pagos_cuotas'
     id = db.Column(db.Integer, primary_key=True)
     socio_id = db.Column(db.Integer, db.ForeignKey('socios.id'), nullable=False)
-    mes_anio = db.Column(db.String(20), nullable=False) # Ej: "FEB 2026", "MAR 2026"
+    mes_anio = db.Column(db.String(20), nullable=False)
     monto = db.Column(db.Float, default=500.0)
     metodo_pago = db.Column(db.String(50))
     fecha_pago = db.Column(db.Date, default=datetime.utcnow)
@@ -134,7 +134,6 @@ with app.app_context():
             u_db.rol = r
     db.session.commit()
     
-    # Inicializar configuración de tesorería si no existe
     if not ConfiguracionTesoreria.query.first():
         db.session.add(ConfiguracionTesoreria(saldo_inicial=0.0))
         db.session.commit()
@@ -409,7 +408,6 @@ def cuotas_sociales():
     config_teso = ConfiguracionTesoreria.query.first()
     saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
     
-    # Calcular ingresos válidos desde el 1 de febrero de 2026 (meses que contengan 2026 a partir de FEB, o filtrados)
     meses_validos_reporte = [
         "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
         "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026"
@@ -501,6 +499,26 @@ def ver_recibo(pago_id):
     ahora = datetime.now()
     fecha_recibo = f"{dias_es.get(ahora.strftime('%A'), '')}, {ahora.day} DE {meses_es.get(ahora.strftime('%B'), '')} DE {ahora.year}"
     return render_template('recibo_pdf.html', pago=pago, fecha_recibo=fecha_recibo)
+
+@app.route('/tesoreria/estado-cuenta-pdf/<int:socio_id>')
+def estado_cuenta_pdf(socio_id):
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    
+    socio = Socio.query.get_or_404(socio_id)
+    meses_control = [
+        "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
+        "ENE 2026", "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
+        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026"
+    ]
+    
+    meses_es = {"January": "ENERO", "February": "FEBRERO", "March": "MARZO", "April": "ABRIL", "May": "MAYO", "June": "JUNIO", "July": "JULIO", "August": "AGOSTO", "September": "SEPTIEMBRE", "October": "OCTUBRE", "November": "NOVIEMBRE", "December": "DICIEMBRE"}
+    dias_es = {"Monday": "LUNES", "Tuesday": "MARTES", "Wednesday": "MIÉRCOLES", "Thursday": "JUEVES", "Friday": "VIERNES", "Saturday": "SÁBADO", "Sunday": "DOMINGO"}
+    
+    ahora = datetime.now()
+    fecha_actual_str = f"{dias_es.get(ahora.strftime('%A'), '')}, {ahora.day} DE {meses_es.get(ahora.strftime('%B'), '')} DE {ahora.year}"
+    
+    return render_template('estado_cuenta_pdf.html', socio=socio, meses=meses_control, fecha_actual_str=fecha_actual_str)
 
 @app.route('/logout')
 def logout():
