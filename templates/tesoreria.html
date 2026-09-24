@@ -179,7 +179,7 @@
                                 {% endfor %}
                                 {% if not tiene_pendientes %}
                                     <tr>
-                                        <td colspan="3" class="text-success fw-bold py-3">¡Excelente! El socio se encuentra al corriente en todas sus cuotas.</td>
+                                        <td colspan="3" class="text-success fw-bold py-3">¡EXCELENTE! EL SOCIO SE ENCUENTRA AL CORRIENTE EN TODAS SUS CUOTAS.</td>
                                     </tr>
                                 {% endif %}
                             </tbody>
@@ -274,7 +274,7 @@
         </div>
     </div>
 
-    <!-- Modal Configurar Saldo Inicial (Protegido con Contraseña de Presidente/Tesorero) -->
+    <!-- Modal Configurar Saldo Inicial -->
     <div class="modal fade text-start" id="modalSaldoInicial" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -358,7 +358,7 @@
         </div>
     </div>
 
-    <!-- Diccionario de pagos de socios para JavaScript -->
+    <!-- Script de filtrado de meses pendientes -->
     <script>
         const sociosPagosData = {
             {% for s in socios %}
@@ -387,7 +387,7 @@
             }
 
             const pagosSocio = sociosPagosData[socioId] || [];
-            const mesesPendientes = todosLosMeses.filter(m => !pagosSocio.includes(m.trim().toUpperCase()));
+            const mesesPendientes = todosLosMeses.filter(m => !pagosSocio.includes(m.strip().toUpperCase()));
 
             if (mesesPendientes.length === 0) {
                 contenedor.innerHTML = '<p class="text-success small fw-bold mb-0 text-center w-100 py-2">¡Este socio se encuentra al corriente en todos sus meses hasta junio de 2027!</p>';
@@ -408,7 +408,7 @@
         }
     </script>
 
-    <!-- Si se acaba de registrar un pago, abrir automáticamente el modal de recibo -->
+    <!-- Modal Recibo Automático -->
     {% if ultimo_pago %}
     <div class="modal fade show" id="modalReciboAutomatico" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-dialog-centered">

@@ -68,8 +68,14 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% set meses_pdf = [
+                        "JUN 2025", "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
+                        "ENE 2026", "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
+                        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026",
+                        "ENE 2027", "FEB 2027", "MAR 2027", "ABR 2027", "MAY 2027", "JUN 2027"
+                    ] %}
                     {% set ns = namespace(contador=0, total_deuda=0.0) %}
-                    {% for m in meses %}
+                    {% for m in meses_pdf %}
                         {% set pagado = false %}
                         {% for p in socio.pagos %}
                             {% if p.mes_anio.strip().upper() == m.strip().upper() %}
@@ -90,7 +96,7 @@
 
                     {% if ns.contador == 0 %}
                         <tr>
-                            <td colspan="4" class="text-success fw-bold py-4">¡FELICIDADES! EL SOCIO SE ENCUENTRA AL CORRIENTE EN TODAS SUS CUOTAS SOCIALES.</td>
+                            <td colspan="4" class="text-success fw-bold py-4">¡EXCELENTE! EL SOCIO SE ENCUENTRA AL CORRIENTE EN TODAS SUS CUOTAS SOCIALES.</td>
                         </tr>
                     {% endif %}
                 </tbody>
