@@ -100,7 +100,7 @@ class Socio(db.Model):
     
     cargos = db.relationship('HistorialCargo', backref='socio', lazy=True, cascade="all, delete-orphan")
     hijos = db.relationship('Hijo', backref='socio', lazy=True, cascade="all, delete-orphan")
-    pagos = db.relationship('PagoCuota', backref='socio', lazy=True, cascade="all, delete-orphan")
+    pagos = db.relationship('PagoCuota', backref='socio', lazy=True, cascade="all, delete-orphan", passive_deletes=True)
 
 with app.app_context():
     db.create_all()
@@ -398,20 +398,24 @@ def cuotas_sociales():
         flash('Acceso restringido.', 'danger')
         return redirect(url_for('menu_principal'))
     
+    # Asegurar que se expira el expire_on_commit o se refrescan los datos de pagos directamente de la BD
+    db.session.expire_all()
     socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
+    
     meses_control = [
         "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
         "ENE 2026", "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
-        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026"
+        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026",
+        "ENE 2027", "FEB 2027", "MAR 2027", "ABR 2027", "MAY 2027", "JUN 2027"
     ]
     
     config_teso = ConfiguracionTesoreria.query.first()
     saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
     
-    # ÚNICAMENTE considerar ingresos válidos desde FEB 2026 en adelante
     meses_validos_reporte = [
         "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
-        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026"
+        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026",
+        "ENE 2027", "FEB 2027", "MAR 2027", "ABR 2027", "MAY 2027", "JUN 2027"
     ]
     
     total_recaudado_valido = PagoCuota.query.filter(PagoCuota.mes_anio.in_(meses_validos_reporte)).with_entities(db.func.sum(PagoCuota.monto)).scalar() or 0.0
@@ -459,8 +463,10 @@ def registrar_pago_cuota():
     ultimo_pago_creado = None
     if socio_id and meses_pagados:
         for m in meses_pagados:
-            if not PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=m).first():
-                pago = PagoCuota(socio_id=socio_id, mes_anio=m, monto=500.0, metodo_pago=metodo, referencia=referencia)
+            mes_limpio = m.strip().upper()
+            existente = PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=mes_limpio).first()
+            if not existente:
+                pago = PagoCuota(socio_id=socio_id, mes_anio=mes_limpio, monto=500.0, metodo_pago=metodo, referencia=referencia)
                 db.session.add(pago)
                 db.session.flush()
                 ultimo_pago_creado = pago
@@ -490,22 +496,6 @@ def editar_pago_cuota(pago_id):
     db.session.commit()
     return redirect(url_for('cuotas_sociales'))
 
-@app.route('/tesoreria/limpiar-pagos-prueba', methods=['GET'])
-def limpiar_pagos_prueba():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        return redirect(url_for('login'))
-    try:
-        db.session.query(PagoCuota).delete()
-        config = ConfiguracionTesoreria.query.first()
-        if config:
-            config.saldo_inicial = 0.0
-        db.session.commit()
-        flash('Se han limpiado todos los pagos de prueba y el saldo inicial ha quedado en $0.00.', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error al limpiar: {e}', 'danger')
-    return redirect(url_for('cuotas_sociales'))
-
 @app.route('/tesoreria/recibo/<int:pago_id>')
 def ver_recibo(pago_id):
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
@@ -526,7 +516,8 @@ def estado_cuenta_pdf(socio_id):
     meses_control = [
         "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
         "ENE 2026", "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
-        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026"
+        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026",
+        "ENE 2027", "FEB 2027", "MAR 2027", "ABR 2027", "MAY 2027", "JUN 2027"
     ]
     
     meses_es = {"January": "ENERO", "February": "FEBRERO", "March": "MARZO", "April": "ABRIL", "May": "MAYO", "June": "JUNIO", "July": "JULIO", "August": "AGOSTO", "September": "SEPTIEMBRE", "October": "OCTUBRE", "November": "NOVIEMBRE", "December": "DICIEMBRE"}
