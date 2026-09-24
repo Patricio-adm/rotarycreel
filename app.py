@@ -408,6 +408,7 @@ def cuotas_sociales():
     config_teso = ConfiguracionTesoreria.query.first()
     saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
     
+    # ÚNICAMENTE considerar ingresos válidos desde FEB 2026 en adelante
     meses_validos_reporte = [
         "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
         "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026"
@@ -487,6 +488,22 @@ def editar_pago_cuota(pago_id):
         pago.referencia = to_upper(request.form.get('referencia'))
         flash('Pago actualizado.', 'success')
     db.session.commit()
+    return redirect(url_for('cuotas_sociales'))
+
+@app.route('/tesoreria/limpiar-pagos-prueba', methods=['GET'])
+def limpiar_pagos_prueba():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    try:
+        db.session.query(PagoCuota).delete()
+        config = ConfiguracionTesoreria.query.first()
+        if config:
+            config.saldo_inicial = 0.0
+        db.session.commit()
+        flash('Se han limpiado todos los pagos de prueba y el saldo inicial ha quedado en $0.00.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al limpiar: {e}', 'danger')
     return redirect(url_for('cuotas_sociales'))
 
 @app.route('/tesoreria/recibo/<int:pago_id>')
