@@ -14,7 +14,7 @@
         .table-custom td { font-size: 10px; text-align: center; vertical-align: middle; padding: 4px 4px; }
         .table-custom td:first-child { text-align: left; font-weight: bold; padding-left: 8px; }
 
-        /* Celdas coloreadas */
+        /* Celdas coloreadas estrictas */
         .celda-pagado { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; }
         .celda-pendiente { background-color: #f8d7da !important; color: #842029 !important; }
     </style>
@@ -99,12 +99,14 @@
                                 {% for m in meses %}
                                     {% set pagado_mes = false %}
                                     {% set pago_obj = None %}
+                                    {% set mes_actual_limpio = m | trim | upper %}
+                                    
                                     {% for p in socio.pagos %}
-                                        {% if p.mes_anio.strip().upper() == m.strip().upper() %}
+                                        {% if p.mes_anio and p.mes_anio | trim | upper == mes_actual_limpio %}
                                             {% set pagado_mes = true %}
                                             {% set pago_obj = p %}
                                         {% endif %}
-                                    {% endfor %}
+                                    endfor
                                     
                                     {% if pagado_mes %}
                                         <td class="celda-pagado" title="PAGADO | Método: {{ pago_obj.metodo_pago }} | Ref: {{ pago_obj.referencia or 'N/D' }}">
@@ -163,11 +165,12 @@
                                 {% set tiene_pendientes = false %}
                                 {% for m in meses %}
                                     {% set pagado = false %}
+                                    {% set mes_limpio = m | trim | upper %}
                                     {% for p in socio.pagos %}
-                                        {% if p.mes_anio.strip().upper() == m.strip().upper() %}
+                                        {% if p.mes_anio and p.mes_anio | trim | upper == mes_limpio %}
                                             {% set pagado = true %}
                                         {% endif %}
-                                    {% endfor %}
+                                    endfor
                                     {% if not pagado %}
                                         {% set tiene_pendientes = true %}
                                         <tr>
@@ -243,20 +246,23 @@
                                     {% set ns = namespace(total_socio=0.0, pendientes_count=0) %}
                                     {% set meses_validos_calc = ["FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026", "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026", "ENE 2027", "FEB 2027", "MAR 2027", "ABR 2027", "MAY 2027", "JUN 2027"] %}
                                     {% for p in socio.pagos %}
-                                        {% if p.mes_anio in meses_validos_calc %}
+                                        {% if p.mes_anio and p.mes_anio | trim | upper in meses_validos_calc %}
                                             {% set ns.total_socio = ns.total_socio + p.monto %}
                                         {% endif %}
-                                    {% endfor %}
+                                    endfor
                                     
                                     {% for m in meses_validos_calc %}
                                         {% set pagado_m = false %}
+                                        {% set m_limpio = m | trim | upper %}
                                         {% for p in socio.pagos %}
-                                            {% if p.mes_anio.strip().upper() == m.strip().upper() %}{% set pagado_m = true %}{% endif %}
-                                        {% endfor %}
+                                            {% if p.mes_anio and p.mes_anio | trim | upper == m_limpio %}
+                                                {% set pagado_m = true %}
+                                            {% endif %}
+                                        endfor
                                         {% if not pagado_m %}
                                             {% set ns.pendientes_count = ns.pendientes_count + 1 %}
                                         {% endif %}
-                                    {% endfor %}
+                                    endfor
                                 <tr>
                                     <td class="text-start fw-bold">{{ socio.nombre_completo }}</td>
                                     <td class="text-success fw-bold">${{ "{:,.2f}".format(ns.total_socio) }}</td>
@@ -364,7 +370,9 @@
             {% for s in socios %}
             "{{ s.id }}": [
                 {% for p in s.pagos %}
+                {% if p.mes_anio %}
                 "{{ p.mes_anio | trim | upper }}"{% if not loop.last %},{% endif %}
+                {% endif %}
                 {% endfor %}
             ]{% if not loop.last %},{% endif %}
             {% endfor %}
