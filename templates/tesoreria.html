@@ -154,7 +154,7 @@
                                     {% set pagado = false %}
                                     {% for p in socio.pagos %}
                                         {% if p.mes_anio == m %}{% set pagado = true %}{% endif %}
-                                    endfor
+                                    {% endfor %}
                                     {% if not pagado %}
                                         {% set tiene_pendientes = true %}
                                         <tr>
@@ -239,7 +239,7 @@
                                         {% set pagado_m = false %}
                                         {% for p in socio.pagos %}
                                             {% if p.mes_anio == m %}{% set pagado_m = true %}{% endif %}
-                                        endfor
+                                        {% endfor %}
                                         {% if not pagado_m %}
                                             {% set ns.pendientes_count = ns.pendientes_count + 1 %}
                                         {% endif %}
