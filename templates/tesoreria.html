@@ -358,13 +358,13 @@
         </div>
     </div>
 
-    <!-- Script de filtrado y carga automática -->
+    <!-- Script de filtrado con sintaxis segura JSON/JS -->
     <script>
         const sociosPagosData = {
             {% for s in socios %}
             "{{ s.id }}": [
                 {% for p in s.pagos %}
-                "{{ p.mes_anio.strip().upper() }}"{% if not loop.last %},{% endif %}
+                "{{ p.mes_anio | trim | upper }}"{% if not loop.last %},{% endif %}
                 {% endfor %}
             ]{% if not loop.last %},{% endif %}
             {% endfor %}
@@ -372,7 +372,7 @@
 
         const todosLosMeses = [
             {% for m in meses %}
-            "{{ m }}"{% if not loop.last %},{% endif %}
+            "{{ m | trim | upper }}"{% if not loop.last %},{% endif %}
             {% endfor %}
         ];
 
@@ -387,7 +387,7 @@
             }
 
             const pagosSocio = sociosPagosData[socioId] || [];
-            const mesesPendientes = todosLosMeses.filter(m => !pagosSocio.includes(m.strip().toUpperCase()));
+            const mesesPendientes = todosLosMeses.filter(m => !pagosSocio.includes(m));
 
             if (mesesPendientes.length === 0) {
                 contenedor.innerHTML = '<p class="text-success small fw-bold mb-0 text-center w-100 py-2">¡Este socio se encuentra al corriente en todos sus meses hasta junio de 2027!</p>';
@@ -406,15 +406,6 @@
                 contenedor.appendChild(col);
             });
         }
-
-        // Cargar automáticamente los meses del primer socio al abrir el modal o cargar la página
-        document.addEventListener("DOMContentLoaded", function() {
-            const selectSocio = document.getElementById('selectSocioPago');
-            if (selectSocio && selectSocio.options.length > 1) {
-                selectSocio.selectedIndex = 1; // Seleccionar por defecto el primer socio
-                filtrarMesesPendientes();
-            }
-        });
     </script>
 
     <!-- Modal Recibo Automático -->
