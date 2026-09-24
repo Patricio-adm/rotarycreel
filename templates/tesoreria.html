@@ -93,7 +93,7 @@
                                 {% for m in meses %}
                                     {% set pagado_mes = false %}
                                     {% for p in socio.pagos %}
-                                        {% if p.mes_anio == m %}
+                                        {% if p.mes_anio.strip().upper() == m.strip().upper() %}
                                             {% set pagado_mes = true %}
                                         {% endif %}
                                     {% endfor %}
@@ -153,7 +153,7 @@
                                 {% for m in meses %}
                                     {% set pagado = false %}
                                     {% for p in socio.pagos %}
-                                        {% if p.mes_anio == m %}{% set pagado = true %}{% endif %}
+                                        {% if p.mes_anio.strip().upper() == m.strip().upper() %}{% set pagado = true %}{% endif %}
                                     {% endfor %}
                                     {% if not pagado %}
                                         {% set tiene_pendientes = true %}
@@ -238,7 +238,7 @@
                                     {% for m in meses_validos_calc %}
                                         {% set pagado_m = false %}
                                         {% for p in socio.pagos %}
-                                            {% if p.mes_anio == m %}{% set pagado_m = true %}{% endif %}
+                                            {% if p.mes_anio.strip().upper() == m.strip().upper() %}{% set pagado_m = true %}{% endif %}
                                         {% endfor %}
                                         {% if not pagado_m %}
                                             {% set ns.pendientes_count = ns.pendientes_count + 1 %}
@@ -292,7 +292,7 @@
         </div>
     </div>
 
-    <!-- Modal Registrar Pago Dinámico (Muestra solo los meses pendientes por socio) -->
+    <!-- Modal Registrar Pago Dinámico (Limpio de texto extra en el nombre) -->
     <div class="modal fade text-start" id="modalRegistrarPago" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -309,9 +309,6 @@
                                 {% for s in socios %}
                                 <option value="{{ s.id }}">
                                     {{ s.nombre_completo }}
-                                    {% set pagados_list = [] %}
-                                    {% for p in s.pagos %}{% set _ = pagados_list.append(p.mes_anio) %}{% endfor %}
-                                    [PAGADOS: {{ pagados_list|join(', ') if pagados_list else 'NINGUNO' }}]
                                 </option>
                                 {% endfor %}
                             </select>
@@ -354,7 +351,7 @@
             {% for s in socios %}
             "{{ s.id }}": [
                 {% for p in s.pagos %}
-                "{{ p.mes_anio }}"{% if not loop.last %},{% endif %}
+                "{{ p.mes_anio.strip().upper() }}"{% if not loop.last %},{% endif %}
                 {% endfor %}
             ]{% if not loop.last %},{% endif %}
             {% endfor %}
@@ -377,7 +374,7 @@
             }
 
             const pagosSocio = sociosPagosData[socioId] || [];
-            const mesesPendientes = todosLosMeses.filter(m => !pagosSocio.includes(m));
+            const mesesPendientes = todosLosMeses.filter(m => !pagosSocio.includes(m.trim().toUpperCase()));
 
             if (mesesPendientes.length === 0) {
                 contenedor.innerHTML = '<p class="text-success small fw-bold mb-0 text-center w-100 py-2">¡Este socio se encuentra al corriente en todos sus meses hasta junio de 2027!</p>';
