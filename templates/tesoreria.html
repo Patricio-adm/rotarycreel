@@ -11,7 +11,6 @@
         .table-fixed th, .table-fixed td { white-space: nowrap; vertical-align: middle; text-align: center; }
         .table-fixed th:nth-child(2), .table-fixed td:nth-child(2) { text-align: left; }
         .receipt-modal-box { background: white; padding: 25px; border: 2px solid #17458F; border-radius: 8px; color: #000; }
-        /* Margen inferior holgado para evitar que la barra de desplazamiento tape el contenido */
         .table-container-wrapper { padding-bottom: 60px; }
         .table-responsive { padding-bottom: 25px; }
     </style>
@@ -43,7 +42,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
                 <h5 class="fw-bold text-dark mb-0">Control de Cuotas Sociales ($500.00 MXN / Mes)</h5>
-                <p class="text-muted small mb-0">Seguimiento de pagos históricos desde Julio 2025 (Orden alfabético)</p>
+                <p class="text-muted small mb-0">Historial activo desde Julio 2025 hasta Junio 2027 (Corte oficial de gestión: 1 de Octubre 2026)</p>
             </div>
             <div>
                 <button class="btn btn-success btn-sm shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago">
@@ -52,7 +51,7 @@
             </div>
         </div>
 
-        <!-- Matriz de Control de Cuotas con espacio cómodo para scroll -->
+        <!-- Matriz de Control de Cuotas -->
         <div class="card shadow-sm border-0 rounded-3 mb-5">
             <div class="card-body p-0 pb-3">
                 <div class="table-responsive">
@@ -71,7 +70,12 @@
                                 {% for socio in socios %}
                                 <tr>
                                     <td class="ps-3 fw-bold text-secondary">{{ socio.numero_socio or loop.index }}</td>
-                                    <td class="fw-bold text-dark text-start">{{ socio.nombre_completo }}</td>
+                                    <!-- Al hacer clic en el nombre se abre el modal individual de cobranza y estado de cuenta -->
+                                    <td class="fw-bold text-dark text-start">
+                                        <a href="#" class="text-decoration-none text-dark" data-bs-toggle="modal" data-bs-target="#modalSocio_{{ socio.id }}">
+                                            {{ socio.nombre_completo }} 🔍
+                                        </a>
+                                    </td>
                                     
                                     {% for m in meses %}
                                         {% set ns = namespace(pago_encontrado=None) %}
@@ -155,20 +159,87 @@
         </div>
     </div>
 
-    <!-- Modal Registrar Pago -->
+    <!-- Modales Individuales de Cobranza / Estado de Cuenta por Socio -->
+    {% for socio in socios %}
+    <div class="modal fade text-start" id="modalSocio_{{ socio.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white py-2">
+                    <h6 class="modal-title fw-bold">Estado de Cuenta y Cobranza: {{ socio.nombre_completo }}</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body small">
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                        <div>
+                            <p class="mb-1"><strong>Número de Socio:</strong> {{ socio.numero_socio or 'N/D' }}</p>
+                            <p class="mb-0"><strong>Tipo de Socio:</strong> {{ socio.tipo_socio or 'ACTIVO' }}</p>
+                        </div>
+                        <div class="text-end">
+                            <p class="mb-0 text-muted"><strong>Fecha de Corte:</strong> <span class="text-dark fw-bold">1 DE OCTUBRE DE 2026</span></p>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-secondary mb-2" style="font-size: 12px;">Resumen de Cuotas Pendientes (Historial Completo):</h6>
+                    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-sm table-bordered text-center" style="font-size: 11px;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Periodo / Mes</th>
+                                    <th>Monto Adeudado</th>
+                                    <th>Estatus</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set tiene_pendientes = false %}
+                                {% for m in meses %}
+                                    {% set pagado = false %}
+                                    {% set mes_limpio = m | trim | upper %}
+                                    {% for p in socio.pagos %}
+                                        {% if p.mes_anio and p.mes_anio | trim | upper == mes_limpio %}
+                                            {% set pagado = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not pagado %}
+                                        {% set tiene_pendientes = true %}
+                                        <tr>
+                                            <td class="fw-bold">{{ m }}</td>
+                                            <td>$500.00 MXN</td>
+                                            <td><span class="badge bg-danger">PENDIENTE</span></td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                                {% if not tiene_pendientes %}
+                                    <tr>
+                                        <td colspan="3" class="text-success fw-bold py-3">¡EXCELENTE! EL SOCIO SE ENCUENTRA AL CORRIENTE EN TODAS SUS CUOTAS.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 justify-content-between">
+                    <a href="{{ url_for('estado_cuenta_pdf', socio_id=socio.id) }}" target="_blank" class="btn btn-danger btn-sm fw-bold">📄 Generar Estado de Cuenta Oficial (PDF)</a>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Modal Registrar Pago (Con Grid de los 24 meses) -->
     <div class="modal fade text-start" id="modalRegistrarPago" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <form action="{{ url_for('registrar_pago_cuota') }}" method="POST">
-                    <div class="modal-header bg-light py-2">
-                        <h6 class="modal-title fw-bold text-primary">Registrar Pago de Cuota Social</h6>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="modal-header bg-success text-white py-2">
+                        <h6 class="modal-title fw-bold">💳 Registrar Pago de Cuotas Sociales</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body small">
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Seleccionar Socio</label>
+                            <label class="form-label fw-semibold">Seleccionar Socio *</label>
                             <select class="form-select form-select-sm" name="socio_id" required>
-                                <option value="">-- SELECCIONE SOCIO --</option>
+                                <option value="" selected>-- SELECCIONE SOCIO --</option>
                                 {% for socio in socios %}
                                     <option value="{{ socio.id }}">{{ socio.nombre_completo }}</option>
                                 {% endfor %}
@@ -176,36 +247,41 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Mes(es) a Pagar ($500 c/u)</label>
-                            <div class="border p-2 rounded bg-light" style="max-height: 150px; overflow-y: auto;">
-                                {% for m in meses %}
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="meses" value="{{ m }}" id="chk_{{ loop.index }}">
-                                        <label class="form-check-label text-dark fw-semibold" for="chk_{{ loop.index }}">
-                                            {{ m }} ($500.00)
-                                        </label>
-                                    </div>
-                                {% endfor %}
+                            <label class="form-label fw-semibold">Seleccionar Mes(es) a Pagar ($500.00 MXN c/u) *</label>
+                            <div class="border p-2 rounded bg-light" style="max-height: 200px; overflow-y: auto;">
+                                <div class="row row-cols-3 g-2">
+                                    {% for m in meses %}
+                                        <div class="col">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="meses" value="{{ m }}" id="chk_grid_{{ loop.index }}">
+                                                <label class="form-check-label text-dark fw-bold" for="chk_grid_{{ loop.index }}" style="font-size: 11px;">
+                                                    {{ m }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col">
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
                                 <label class="form-label fw-semibold">Método de Pago</label>
                                 <select class="form-select form-select-sm" name="metodo_pago" required>
+                                    <option value="TRANSFERENCIA" selected>TRANSFERENCIA BANCARIA</option>
                                     <option value="EFECTIVO">EFECTIVO</option>
-                                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                                    <option value="DEPOSITO">DEPÓSITO BANCARIO</option>
                                 </select>
                             </div>
-                            <div class="col">
-                                <label class="form-label fw-semibold">Referencia / Folio (Opcional)</label>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Referencia / Folio</label>
                                 <input type="text" class="form-control form-control-sm" name="referencia" placeholder="EJ. REF123456">
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer py-1">
+                    <div class="modal-footer py-2">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-success btn-sm fw-bold">Guardar Pago</button>
+                        <button type="submit" class="btn btn-success btn-sm fw-bold">Registrar Pago y Generar Recibo</button>
                     </div>
                 </form>
             </div>
