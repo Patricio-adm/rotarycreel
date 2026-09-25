@@ -1,16 +1,33 @@
-{% extends "base.html" %} <!-- Asumiendo que usas una base, si no, quita esta línea -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesorería - Rotary Club Creel</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .badge-pagado { font-size: 0.75rem; }
+        .checkbox-mes:disabled + .label-mes { cursor: not-allowed; }
+    </style>
+</head>
+<body>
 
-{% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>💰 Cuotas Sociales - Tesorería Rotary Club Creel</h2>
-        <div>
-            <a href="{{ url_for('modulo_tesoreria') }}" class="btn btn-outline-secondary">← Volver a Tesorería</a>
-            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-primary">Menú Principal</a>
-            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">Cerrar Sesión</a>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">💰 Tesorería Rotary Club Creel</a>
+        <div class="d-flex">
+            <a href="{{ url_for('modulo_tesoreria') }}" class="btn btn-outline-light btn-sm me-2">← Volver a Tesorería</a>
+            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2">Menú Principal</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm">Cerrar Sesión</a>
         </div>
     </div>
-        
+</nav>
+
+<div class="container mt-4">
+    
+    <!-- Mensajes Flash -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -22,10 +39,31 @@
       {% endif %}
     {% endwith %}
 
+    <!-- Resumen de Saldos -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Saldo Inicial Configurado</h6>
+                    <h3 class="text-info fw-bold">${{ "{:,.2f}".format(saldo_inicial) }} MXN</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Saldo Total General (Inicial + Recaudado)</h6>
+                    <h3 class="text-success fw-bold">${{ "{:,.2f}".format(saldo_total_general) }} MXN</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Control de Cuotas -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Control de Cuotas Sociales ($500.00 MXN / Mes)</h5>
-            <small>Historial activo desde Julio 2025 hasta Junio 2027</small>
+            <h5 class="mb-0">📊 Control de Cuotas Sociales ($500.00 MXN / Mes)</h5>
+            <small>Historial activo: Jul 2025 - Jun 2027</small>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -35,7 +73,7 @@
                             <th>#</th>
                             <th class="text-start">Nombre del Socio</th>
                             {% for m in meses %}
-                                <th style="font-size: 0.8rem;">{{ m }}</th>
+                                <th style="font-size: 0.75rem; writing-mode: vertical-rl; text-orientation: mixed; min-width: 40px;">{{ m }}</th>
                             {% endfor %}
                         </tr>
                     </thead>
@@ -58,11 +96,9 @@
                                 
                                     <td>
                                         {% if ns.pago_encontrado %}
-                                            <span class="badge bg-success">✓ PAGADO</span>
-                                            <br>
-                                            <a href="{{ url_for('ver_recibo', pago_id=ns.pago_encontrado.id) }}" class="btn btn-sm btn-outline-primary mt-1">🖨️ Recibo</a>
+                                            <span class="badge bg-success">✓</span>
                                         {% else %}
-                                            <span class="badge bg-danger">PENDIENTE</span>
+                                            <span class="badge bg-danger">✗</span>
                                         {% endif %}
                                     </td>
                                 {% endfor %}
@@ -70,7 +106,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="{{ meses|length + 2 }}" class="text-center py-4">No hay socios registrados para mostrar.</td>
+                                <td colspan="{{ meses|length + 2 }}" class="text-center py-4 text-muted">No hay socios registrados.</td>
                             </tr>
                         {% endif %}
                     </tbody>
@@ -79,7 +115,7 @@
         </div>
     </div>
 
-    <!-- FORMULARIO DE REGISTRO DE PAGO ACTUALIZADO -->
+    <!-- FORMULARIO DE REGISTRO DE PAGO -->
     <div class="card mt-4 shadow-sm">
         <div class="card-header bg-success text-white">
             <h5 class="mb-0">💳 Registrar Pago de Cuotas Sociales</h5>
@@ -135,6 +171,7 @@
         </div>
     </div>
 
+    <!-- Modal de Recibo Rápido -->
     {% if ultimo_pago %}
     <div class="modal fade show" id="reciboModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
         <div class="modal-dialog">
@@ -156,14 +193,18 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <a href="{{ url_for('ver_recibo', pago_id=ultimo_pago.id) }}" class="btn btn-primary">🖨️ Ver Recibo Completo</a>
+                    <a href="{{ url_for('ver_recibo', pago_id=ultimo_pago.id) }}" class="btn btn-primary">️ Ver Recibo Completo</a>
                     <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-secondary">Aceptar / Cerrar</a>
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
+
 </div>
+
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- SCRIPT PARA DESHABILITAR MESES PAGADOS -->
 <script>
@@ -219,4 +260,6 @@ document.getElementById('socio_selector').addEventListener('change', actualizarM
 // 4. Ejecutar al cargar la página por si el navegador recuerda una selección previa
 document.addEventListener('DOMContentLoaded', actualizarMesesDisponibles);
 </script>
-{% endblock %}
+
+</body>
+</html>
