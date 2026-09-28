@@ -2,87 +2,32 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recibo de Pago - Rotary Club Creel</title>
+    <title>Recibo - Rotary Club Creel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #555; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-transform: uppercase; }
-        .receipt-sheet { background: white; width: 210mm; min-height: 148mm; margin: 20mm auto; padding: 15mm; box-shadow: 0 0 15px rgba(0,0,0,0.3); position: relative; }
-        .header-rotary { border-bottom: 2px solid #17458F; padding-bottom: 10px; margin-bottom: 30px; }
-        .brand-title { color: #17458F; font-weight: 900; font-size: 24px; letter-spacing: 1px; }
-        .brand-subtitle { font-size: 11px; color: #555; font-weight: bold; }
-        .impact-text { color: #17458F; font-weight: 800; font-style: italic; font-size: 14px; text-align: center; }
-        .receipt-date { font-size: 12px; font-weight: bold; text-align: right; color: #333; }
-        .field-label { font-weight: 700; color: #333; font-size: 13px; width: 180px; }
-        .field-value { font-size: 14px; border-bottom: 1px dotted #999; padding-bottom: 2px; color: #111; }
-        .signature-area { margin-top: 50px; text-align: right; }
-        .signature-line { width: 250px; border-top: 1px solid #000; margin-left: auto; margin-bottom: 5px; }
-        .signature-name { font-weight: bold; font-size: 13px; color: #111; }
-        .signature-title { font-size: 11px; color: #444; line-height: 1.2; }
-        @media print {
-            body { background: white; }
-            .receipt-sheet { box-shadow: none; margin: 0; width: 100%; padding: 10mm; }
-            .no-print { display: none !important; }
-        }
+        body { background:#555; text-transform:uppercase; }
+       .receipt-sheet { background:white; width:210mm; margin:20mm auto; padding:15mm; box-shadow:0 0 15px rgba(0,0,0,0.3); }
+       .header-rotary { border-bottom:2px solid #17458F; padding-bottom:10px; margin-bottom:30px; }
+       .brand-title { color:#17458F; font-weight:900; font-size:24px; }
+        @media print { body{background:white;}.receipt-sheet{box-shadow:none; margin:0; width:100%;}.no-print{display:none!important;} }
     </style>
 </head>
 <body>
-
-    <div class="container text-center no-print my-3">
-        <button onclick="window.print()" class="btn btn-primary fw-bold px-4 shadow">🖨️ Imprimir / Guardar Recibo</button>
-        <button onclick="window.close()" class="btn btn-secondary fw-bold px-4 ms-2 shadow">✖ Cerrar Ventana</button>
+<div class="container text-center no-print my-3">
+    <button onclick="window.print()" class="btn btn-primary fw-bold px-4">🖨️ Imprimir</button>
+    <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-secondary ms-2">⬅️ Volver</a>
+</div>
+<div class="receipt-sheet rounded-2">
+    <div class="row header-rotary">
+        <div class="col-6"><div class="brand-title">Rotary Club Creel - Distrito 4110</div></div>
+        <div class="col-6 text-end fw-bold">{{ fecha_recibo }}</div>
     </div>
-
-    <div class="receipt-sheet rounded-2">
-        <!-- Encabezado -->
-        <div class="row align-items-center header-rotary">
-            <div class="col-5">
-                <div class="brand-title">Rotary</div>
-                <div class="brand-subtitle">Club Creel - Distrito 4110</div>
-            </div>
-            <div class="col-3">
-                <div class="impact-text">GENERA UN<br>IMPACTO<br>DURADERO</div>
-            </div>
-            <div class="col-4 receipt-date">
-                TESORERIA CLUB CREEL<br>
-                {{ fecha_recibo }}
-            </div>
-        </div>
-
-        <!-- Cuerpo del Recibo -->
-        <div class="mb-4 d-flex align-items-end">
-            <span class="field-label">RECIBI DE :</span>
-            <span class="field-value flex-grow-1 fw-bold">{{ pago.socio.nombre_completo }}</span>
-        </div>
-
-        <div class="mb-4 d-flex align-items-end">
-            <span class="field-label">LA CANTIDAD DE :</span>
-            <span class="field-value flex-grow-1 fw-bold">${{ "%.2f" | format(pago.monto) }}</span>
-        </div>
-
-        <div class="mb-4 d-flex align-items-end">
-            <span class="field-label">EN LETRA :</span>
-            <span class="field-value flex-grow-1 fw-semibold">QUINIENTOS PESOS 00/100 M.N.</span>
-        </div>
-
-        <div class="mb-5 d-flex align-items-start">
-            <span class="field-label pt-1">POR CONCEPTO DE :</span>
-            <div class="field-value flex-grow-1 fw-semibold">
-                CUOTA SOCIAL MES DE {{ pago.mes_anio }}<br>
-                <span class="text-muted small" style="text-transform: uppercase;">MÉTODO: {{ pago.metodo_pago }} {% if pago.referencia %}- REF: {{ pago.referencia }}{% endif %}</span>
-            </div>
-        </div>
-
-        <!-- Firma del Tesorero -->
-        <div class="signature-area">
-            <div class="signature-line"></div>
-            <div class="signature-name">PATRICIO ZAMORANO CACERES</div>
-            <div class="signature-title">
-                TESORERO CLUB CREEL 2026-2027<br>
-                DISTRITO 4110
-            </div>
-        </div>
-    </div>
-
+    <p><strong>RECIBÍ DE:</strong> {{ pagos[0].socio.nombre_completo if pagos else pago.socio.nombre_completo }}</p>
+    <p><strong>CANTIDAD:</strong> ${{ "%.2f"|format(total) }} MXN</p>
+    <p><strong>CONCEPTO:</strong> CUOTA SOCIAL MES{% if pagos|length > 1 %}ES{% endif %} DE {% for p in pagos %}{{ p.mes_anio }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    <p><small>MÉTODO: {{ pagos[0].metodo_pago }} {% if pagos[0].referencia %}- REF: {{ pagos[0].referencia }}{% endif %}</small></p>
+    {% if pagos|length > 1 %}<p><small>{{ pagos|length }} meses x $500 = ${{ "%.2f"|format(total) }}</small></p>{% endif %}
+    <div class="text-end mt-5"><div style="width:250px; border-top:1px solid #000; margin-left:auto;"></div><strong>PATRICIO ZAMORANO CACERES</strong><br><small>TESORERO 2026-2027</small></div>
+</div>
 </body>
 </html>
