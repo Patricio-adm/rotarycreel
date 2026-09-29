@@ -9,163 +9,162 @@
     <style>
         body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 13px; }
         .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
-        .table-socios th { background-color: #17458F; color: white; font-size: 11px; white-space: nowrap; padding: 8px 6px; }
-        .table-socios td { font-size: 12px; vertical-align: middle; padding: 6px; }
-        .foto-socio { width: 50px; height: 50px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; }
-        .foto-placeholder { width: 50px; height: 50px; background: #e8eef9; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size:20px; }
-        .modal-content { background-color: #ffffff !important; border-radius: 12px; }
+        .table-socios th { background-color: #17458F; color: white; font-size: 11px; white-space: nowrap; padding: 7px 5px; }
+        .table-socios td { font-size: 11px; vertical-align: middle; padding: 5px; }
+        .foto-socio { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #17458F; }
+        .foto-placeholder { width: 45px; height: 45px; background: #e8eef9; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size:18px; }
+        .modal-content { background-color: #ffffff !important; border-radius: 10px; }
         .modal-body { background-color: #ffffff !important; }
-        .modal-xl { max-width: 90% !important; width: 90% !important; }
-        @media (min-width: 1200px) { .modal-xl { max-width: 1100px !important; } }
-        .modal-header-rotary { background-color: #17458F; color: white; border-radius: 12px 12px 0 0; }
-        .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
+        .modal-xl { max-width: 92% !important; width: 92% !important; }
+        .modal-header-rotary { background-color: #17458F; color: white; border-radius: 10px 10px 0 0; padding: 8px 15px !important; }
+        .btn-rotary { background-color: #17458F; color: white; font-weight: 600; font-size: 11px; }
         .btn-rotary:hover { background-color: #0f326b; color: white; }
-        .info-label { font-weight: 700; color: #17458F; font-size: 9px; letter-spacing: 0.5px; display:block; line-height:1; margin-bottom:2px; }
-        .info-value { font-size: 12px; color: #212529; font-weight: 600; line-height:1.2; }
-        .section-title { color: #fff; background: #17458F; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 4px; margin-top: 10px; margin-bottom: 6px; }
-        .hijo-badge { font-size: 10px; padding: 4px 6px; }
-        .ver-grid { display: grid; grid-template-columns: 160px 1fr; gap: 12px; }
+        .info-label { font-weight: 700; color: #17458F; font-size: 8px; letter-spacing: 0.3px; display:block; line-height:1; margin-bottom:1px; }
+        .info-value { font-size: 11px; color: #212529; font-weight: 600; line-height:1.2; }
+        .section-title { color: #fff; background: #17458F; font-weight: 700; font-size: 10px; padding: 2px 7px; border-radius: 3px; margin-top: 8px; margin-bottom: 4px; }
+        .form-control-sm, .form-select-sm { font-size: 11px !important; padding: 2px 6px !important; height: 26px !important; background-color: #fff !important; }
+        .form-label { font-size: 9px !important; font-weight: 700 !important; color: #17458F !important; margin-bottom: 1px !important; }
+        .hijo-compact { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 4px 6px; margin-bottom: 4px; }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-dark navbar-rotary px-4 mb-3 shadow-sm py-2">
+<nav class="navbar navbar-dark navbar-rotary px-3 mb-2 shadow-sm py-2">
     <a class="navbar-brand fw-bold fs-6" href="/menu">Rotary Club Creel - Distrito 4110</a>
     <div class="d-flex align-items-center">
         <span class="text-white me-2 small d-none d-md-block">{{ session.get('username') }} ({{ session.get('rol') }})</span>
-        <button class="btn btn-warning btn-sm fw-bold text-dark me-2 py-1 px-3" data-bs-toggle="modal" data-bs-target="#modalFestividades">🎉 CUMPLEAÑOS: {{ mes_actual_nombre }}</button>
-        <a href="/menu" class="btn btn-outline-light btn-sm me-2">Menú</a>
-        <a href="/logout" class="btn btn-light btn-sm">Salir</a>
+        <button class="btn btn-warning btn-sm fw-bold text-dark me-2 py-1 px-2" style="font-size:11px;" data-bs-toggle="modal" data-bs-target="#modalFestividades">🎉 {{ mes_actual_nombre }}</button>
+        <a href="/menu" class="btn btn-outline-light btn-sm me-1" style="font-size:11px;">Menú</a>
+        <a href="/logout" class="btn btn-light btn-sm" style="font-size:11px;">Salir</a>
     </div>
 </nav>
-<div class="container-fluid px-4">
-    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} alert-dismissible fade show py-2 small">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}{% endwith %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold mb-0" style="color:#17458F;">Directorio de Socios ({{ socios|length }})</h4>
+<div class="container-fluid px-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} alert-dismissible fade show py-1 small" style="font-size:11px;">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" style="padding:8px;"></button></div>{% endfor %}{% endif %}{% endwith %}
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="fw-bold mb-0" style="color:#17458F; font-size:14px;">Directorio de Socios ({{ socios|length }})</h5>
         {% if session.get('rol') in ['ADMIN','PRESIDENTE','TESORERO'] %}
-        <button class="btn btn-rotary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgregarSocio"><i class="bi bi-person-plus"></i> Agregar Socio</button>
+        <button class="btn btn-rotary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgregarSocio" style="font-size:11px;"><i class="bi bi-person-plus"></i> Agregar Socio</button>
         {% endif %}
     </div>
     <div class="card shadow-sm"><div class="card-body p-0"><div class="table-responsive">
         <table class="table table-hover table-striped table-socios mb-0">
-            <thead><tr><th>#</th><th>Foto</th><th>Nombre Completo</th><th>Tipo</th><th>Teléfono</th><th>Correo</th><th>Ciudad</th><th>Fecha Nac.</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>#</th><th>Foto</th><th>Nombre</th><th>Tipo</th><th>Tel</th><th>Correo</th><th>Ciudad</th><th>F.Nac</th><th>Acción</th></tr></thead>
             <tbody>
                 {% for socio in socios %}
                 <tr>
                     <td>{{ socio.numero_socio or socio.id }}</td>
                     <td>{% if socio.foto_url %}<img src="{{ socio.foto_url }}" class="foto-socio">{% else %}<div class="foto-placeholder">👤</div>{% endif %}</td>
                     <td class="fw-bold">{{ socio.nombre_completo }}</td>
-                    <td><span class="badge bg-info text-dark" style="font-size:10px;">{{ socio.tipo_socio or 'ACTIVO' }}</span></td>
+                    <td><span class="badge bg-info text-dark" style="font-size:9px;">{{ socio.tipo_socio or 'ACTIVO' }}</span></td>
                     <td>{{ socio.telefono or '-' }}</td>
-                    <td style="text-transform: lowercase; font-size:11px;">{{ socio.correo or '-' }}</td>
+                    <td style="text-transform: lowercase; font-size:10px;">{{ socio.correo or '-' }}</td>
                     <td>{{ socio.ciudad or 'CREEL' }}</td>
                     <td>{{ socio.fecha_nacimiento.strftime('%d/%m/%Y') if socio.fecha_nacimiento else '-' }}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}"><i class="bi bi-eye"></i> Ver</button>
+                            <button class="btn btn-outline-primary" style="font-size:10px; padding:2px 6px;" data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}"><i class="bi bi-eye"></i></button>
                             {% if session.get('rol') in ['ADMIN','PRESIDENTE','TESORERO'] %}
-                            <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-outline-warning" style="font-size:10px; padding:2px 6px;" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}"><i class="bi bi-pencil"></i></button>
                             {% endif %}
                         </div>
                     </td>
                 </tr>
 
-                <!-- MODAL VER - COMPACTO EN UNA SOLA PANTALLA SIN CUOTAS -->
+                <!-- MODAL VER - UNA SOLA PANTALLA SIN CUOTAS -->
                 <div class="modal fade" id="modalVer{{ socio.id }}" tabindex="-1">
                     <div class="modal-dialog modal-xl modal-dialog-centered">
                         <div class="modal-content">
-                            <div class="modal-header modal-header-rotary py-2">
-                                <h6 class="modal-title"><i class="bi bi-person-badge-fill"></i> {{ socio.nombre_completo }} - #{{ socio.numero_socio or socio.id }} - {{ socio.tipo_socio or 'ACTIVO' }}</h6>
+                            <div class="modal-header modal-header-rotary">
+                                <h6 class="modal-title" style="font-size:12px;"><i class="bi bi-person-badge-fill"></i> {{ socio.nombre_completo }} - #{{ socio.numero_socio or socio.id }}</h6>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
-                            <div class="modal-body bg-white p-3">
+                            <div class="modal-body bg-white p-2">
                                 <div class="row g-2">
-                                    <!-- FOTO + BASICOS -->
                                     <div class="col-md-2 text-center">
-                                        {% if socio.foto_url %}<img src="{{ socio.foto_url }}" class="img-fluid rounded shadow-sm mb-2" style="height:130px; width:130px; object-fit:cover; border:2px solid #17458F;">{% else %}<div class="foto-placeholder mx-auto mb-2" style="width:110px; height:110px; font-size:50px;">👤</div>{% endif %}
+                                        {% if socio.foto_url %}<img src="{{ socio.foto_url }}" class="img-fluid rounded shadow-sm mb-1" style="height:110px; width:110px; object-fit:cover; border:2px solid #17458F;">{% else %}<div class="foto-placeholder mx-auto mb-1" style="width:90px; height:90px; font-size:40px;">👤</div>{% endif %}
                                         <div><span class="info-label">No. Socio</span><span class="info-value">{{ socio.numero_socio or socio.id }}</span></div>
-                                        <div class="mt-1"><span class="badge {% if socio.es_activo %}bg-success{% else %}bg-danger{% endif %}" style="font-size:9px;">{{ 'ACTIVO' if socio.es_activo else 'INACTIVO' }}</span></div>
+                                        <div><span class="badge {% if socio.es_activo %}bg-success{% else %}bg-danger{% endif %}" style="font-size:8px;">{{ 'ACTIVO' if socio.es_activo else 'INACTIVO' }}</span> <span class="badge bg-primary" style="font-size:8px;">{{ socio.tipo_socio or 'ACTIVO' }}</span></div>
                                     </div>
-                                    <!-- RESTO EN 2 COLUMNAS -->
                                     <div class="col-md-10">
-                                        <div class="row g-2">
+                                        <div class="row g-1">
                                             <div class="col-12"><div class="section-title"><i class="bi bi-person-fill"></i> Datos Personales</div></div>
                                             <div class="col-md-3"><span class="info-label">Nombre Completo</span><span class="info-value">{{ socio.nombre_completo }}</span></div>
-                                            <div class="col-md-2"><span class="info-label">Fecha Nacimiento</span><span class="info-value">{{ socio.fecha_nacimiento.strftime('%d/%m/%Y') if socio.fecha_nacimiento else '-' }}</span></div>
+                                            <div class="col-md-2"><span class="info-label">Fecha Nac</span><span class="info-value">{{ socio.fecha_nacimiento.strftime('%d/%m/%Y') if socio.fecha_nacimiento else '-' }}</span></div>
                                             <div class="col-md-2"><span class="info-label">Estado Civil</span><span class="info-value">{{ socio.estado_civil or '-' }}</span></div>
-                                            <div class="col-md-2"><span class="info-label">Teléfono</span><span class="info-value">{{ socio.telefono or '-' }}</span></div>
+                                            <div class="col-md-2"><span class="info-label">Tel</span><span class="info-value">{{ socio.telefono or '-' }}</span></div>
                                             <div class="col-md-3"><span class="info-label">Correo</span><span class="info-value" style="text-transform: lowercase;">{{ socio.correo or '-' }}</span></div>
-
                                             <div class="col-12"><div class="section-title"><i class="bi bi-geo-alt-fill"></i> Domicilio</div></div>
-                                            <div class="col-md-4"><span class="info-label">Calle y Número</span><span class="info-value">{{ socio.calle_numero or '-' }}</span></div>
-                                            <div class="col-md-3"><span class="info-label">Colonia</span><span class="info-value">{{ socio.colonia or '-' }}</span></div>
+                                            <div class="col-md-4"><span class="info-label">Calle y No</span><span class="info-value">{{ socio.calle_numero or '-' }}</span></div>
+                                            <div class="col-md-2"><span class="info-label">Colonia</span><span class="info-value">{{ socio.colonia or '-' }}</span></div>
                                             <div class="col-md-1"><span class="info-label">CP</span><span class="info-value">{{ socio.codigo_postal or '-' }}</span></div>
                                             <div class="col-md-2"><span class="info-label">Ciudad</span><span class="info-value">{{ socio.ciudad or 'CREEL' }}</span></div>
-                                            <div class="col-md-2"><span class="info-label">Estado</span><span class="info-value">{{ socio.estado or 'CHIH' }}</span></div>
-
+                                            <div class="col-md-1"><span class="info-label">Edo</span><span class="info-value">{{ socio.estado or 'CHIH' }}</span></div>
+                                            <div class="col-md-2"><span class="info-label">Emergencia</span><span class="info-value">{{ socio.telefono_emergencia or '-' }}</span></div>
                                             <div class="col-12"><div class="section-title"><i class="bi bi-heart-fill"></i> Familia</div></div>
                                             <div class="col-md-3"><span class="info-label">Nombre Esposa</span><span class="info-value">{{ socio.nombre_esposa or '-' }}</span></div>
                                             <div class="col-md-2"><span class="info-label">Tel Esposa</span><span class="info-value">{{ socio.telefono_esposa or '-' }}</span></div>
-                                            <div class="col-md-2"><span class="info-label">Fecha Nac Esposa</span><span class="info-value">{{ socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y') if socio.fecha_nacimiento_esposa else '-' }}</span></div>
+                                            <div class="col-md-2"><span class="info-label">F.Nac Esposa</span><span class="info-value">{{ socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y') if socio.fecha_nacimiento_esposa else '-' }}</span></div>
                                             <div class="col-md-2"><span class="info-label">Aniversario</span><span class="info-value">{{ socio.aniversario_matrimonio.strftime('%d/%m/%Y') if socio.aniversario_matrimonio else '-' }}</span></div>
-                                            <div class="col-md-3"><span class="info-label">Tel Emergencia</span><span class="info-value">{{ socio.telefono_emergencia or '-' }}</span></div>
-
-                                            <div class="col-md-6">
-                                                <span class="info-label">Hijos ({{ socio.hijos|length }})</span>
-                                                {% if socio.hijos %}{% for hijo in socio.hijos %}<span class="badge bg-light text-dark border hijo-badge me-1 mb-1"><i class="bi bi-person"></i> {{ hijo.nombre }} {% if hijo.fecha_nacimiento %}{{ hijo.fecha_nacimiento.strftime('%d/%m/%Y') }}{% endif %}</span>{% endfor %}{% else %}<span class="info-value text-muted" style="font-size:11px;">Sin hijos</span>{% endif %}
-                                            </div>
-                                            <div class="col-md-6">
-                                                <span class="info-label">Cargos Rotarios</span><br>
-                                                {% if socio.cargos %}{% for cargo in socio.cargos %}<span class="badge {% if cargo.es_actual %}bg-success{% else %}bg-secondary{% endif %} hijo-badge me-1 mb-1">{{ cargo.cargo }} {{ cargo.periodo }}</span>{% endfor %}{% else %}<span class="info-value text-muted" style="font-size:11px;">Sin cargos</span>{% endif %}
-                                            </div>
+                                            <div class="col-md-3"><span class="info-label">Hijos ({{ socio.hijos|length }})</span>{% if socio.hijos %}{% for hijo in socio.hijos %}<span class="badge bg-light text-dark border" style="font-size:9px; margin:1px;">{{ hijo.nombre }} {{ hijo.fecha_nacimiento.strftime('%d/%m') if hijo.fecha_nacimiento else '' }}</span>{% endfor %}{% else %}<span class="info-value text-muted" style="font-size:10px;">Sin hijos</span>{% endif %}</div>
+                                            <div class="col-12"><span class="info-label">Cargos</span>{% if socio.cargos %}{% for cargo in socio.cargos %}<span class="badge {% if cargo.es_actual %}bg-success{% else %}bg-secondary{% endif %}" style="font-size:9px; margin:1px;">{{ cargo.cargo }} {{ cargo.periodo }}</span>{% endfor %}{% else %}<span class="text-muted" style="font-size:10px;">Sin cargos</span>{% endif %}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="modal-footer py-2 bg-white"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button><button type="button" class="btn btn-rotary btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}" data-bs-dismiss="modal">Editar</button></div>
+                            <div class="modal-footer py-1 bg-white" style="padding:5px 10px !important;"><button type="button" class="btn btn-secondary btn-sm" style="font-size:11px;" data-bs-dismiss="modal">Cerrar</button><button type="button" class="btn btn-rotary btn-sm" style="font-size:11px;" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}" data-bs-dismiss="modal">Editar</button></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- MODAL EDITAR - MAS GRANDE -->
+                <!-- MODAL EDITAR - AHORA TAMBIEN EN UNA SOLA PANTALLA -->
                 <div class="modal fade" id="modalEditar{{ socio.id }}" tabindex="-1">
-                    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width:95%;">
+                    <div class="modal-dialog modal-xl modal-dialog-centered">
                         <form action="{{ url_for('editar_socio', socio_id=socio.id) }}" method="POST" enctype="multipart/form-data" class="modal-content" style="background:#fff;">
-                            <div class="modal-header modal-header-rotary py-2"><h6 class="modal-title">EDITAR: {{ socio.nombre_completo }}</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-                            <div class="modal-body bg-white small" style="background:#fff !important; max-height:85vh; overflow-y:auto;">
-                                <div class="row g-3">
+                            <div class="modal-header modal-header-rotary">
+                                <h6 class="modal-title" style="font-size:12px;"><i class="bi bi-pencil-square"></i> EDITAR: {{ socio.nombre_completo }}</h6>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body bg-white p-2" style="background:#fff !important;">
+                                <div class="row g-1">
                                     <div class="col-12"><div class="section-title">Datos Principales</div></div>
-                                    <div class="col-md-2"><label class="form-label fw-bold">No. Socio</label><input type="text" name="numero_socio" class="form-control form-control-sm bg-white" value="{{ socio.numero_socio or '' }}"></div>
-                                    <div class="col-md-6"><label class="form-label fw-bold">Nombre Completo *</label><input type="text" name="nombre_completo" class="form-control form-control-sm bg-white" value="{{ socio.nombre_completo }}" required></div>
-                                    <div class="col-md-2"><label class="form-label fw-bold">Tipo Socio</label><select name="tipo_socio" class="form-select form-select-sm bg-white"><option value="ACTIVO" {% if socio.tipo_socio=='ACTIVO' %}selected{% endif %}>ACTIVO</option><option value="HONORARIO" {% if socio.tipo_socio=='HONORARIO' %}selected{% endif %}>HONORARIO</option><option value="PAST-PRESIDENTE" {% if socio.tipo_socio=='PAST-PRESIDENTE' %}selected{% endif %}>PAST-PRESIDENTE</option></select></div>
-                                    <div class="col-md-2"><label class="form-label fw-bold">Foto</label><input type="file" name="foto_archivo" class="form-control form-control-sm bg-white" accept="image/*"></div>
-                                    <div class="col-md-3"><label class="form-label fw-bold">Teléfono</label><input type="text" name="telefono" class="form-control form-control-sm bg-white" value="{{ socio.telefono or '' }}"></div>
-                                    <div class="col-md-3"><label class="form-label fw-bold">Correo</label><input type="email" name="correo" class="form-control form-control-sm bg-white" value="{{ socio.correo or '' }}"></div>
-                                    <div class="col-md-3"><label class="form-label fw-bold">Fecha Nac</label><input type="date" name="fecha_nacimiento" class="form-control form-control-sm bg-white" value="{{ socio.fecha_nacimiento or '' }}"></div>
-                                    <div class="col-md-3"><label class="form-label fw-bold">Estado Civil</label><input type="text" name="estado_civil" class="form-control form-control-sm bg-white" value="{{ socio.estado_civil or '' }}"></div>
+                                    <div class="col-md-2"><label class="form-label">No. Socio</label><input type="text" name="numero_socio" class="form-control form-control-sm bg-white" value="{{ socio.numero_socio or '' }}"></div>
+                                    <div class="col-md-5"><label class="form-label">Nombre Completo *</label><input type="text" name="nombre_completo" class="form-control form-control-sm bg-white" value="{{ socio.nombre_completo }}" required></div>
+                                    <div class="col-md-2"><label class="form-label">Tipo Socio</label><select name="tipo_socio" class="form-select form-select-sm bg-white"><option value="ACTIVO" {% if socio.tipo_socio=='ACTIVO' %}selected{% endif %}>ACTIVO</option><option value="HONORARIO" {% if socio.tipo_socio=='HONORARIO' %}selected{% endif %}>HONORARIO</option><option value="PAST-PRESIDENTE" {% if socio.tipo_socio=='PAST-PRESIDENTE' %}selected{% endif %}>PAST-PRESIDENTE</option></select></div>
+                                    <div class="col-md-3"><label class="form-label">Foto</label><input type="file" name="foto_archivo" class="form-control form-control-sm bg-white" accept="image/*"></div>
+
+                                    <div class="col-md-2"><label class="form-label">Teléfono</label><input type="text" name="telefono" class="form-control form-control-sm bg-white" value="{{ socio.telefono or '' }}"></div>
+                                    <div class="col-md-3"><label class="form-label">Correo</label><input type="email" name="correo" class="form-control form-control-sm bg-white" value="{{ socio.correo or '' }}"></div>
+                                    <div class="col-md-2"><label class="form-label">Fecha Nac</label><input type="date" name="fecha_nacimiento" class="form-control form-control-sm bg-white" value="{{ socio.fecha_nacimiento or '' }}"></div>
+                                    <div class="col-md-2"><label class="form-label">Estado Civil</label><input type="text" name="estado_civil" class="form-control form-control-sm bg-white" value="{{ socio.estado_civil or '' }}"></div>
+                                    <div class="col-md-3"><label class="form-label">Tel Emergencia</label><input type="text" name="telefono_emergencia" class="form-control form-control-sm bg-white" value="{{ socio.telefono_emergencia or '' }}"></div>
+
                                     <div class="col-12"><div class="section-title">Domicilio</div></div>
-                                    <div class="col-md-4"><label class="form-label fw-bold">Calle y No</label><input type="text" name="calle_numero" class="form-control form-control-sm bg-white" value="{{ socio.calle_numero or '' }}"></div>
-                                    <div class="col-md-3"><label class="form-label fw-bold">Colonia</label><input type="text" name="colonia" class="form-control form-control-sm bg-white" value="{{ socio.colonia or '' }}"></div>
-                                    <div class="col-md-2"><label class="form-label fw-bold">CP</label><input type="text" name="codigo_postal" class="form-control form-control-sm bg-white" value="{{ socio.codigo_postal or '' }}"></div>
-                                    <div class="col-md-2"><label class="form-label fw-bold">Ciudad</label><input type="text" name="ciudad" class="form-control form-control-sm bg-white" value="{{ socio.ciudad or '' }}"></div>
-                                    <div class="col-md-1"><label class="form-label fw-bold">Estado</label><input type="text" name="estado" class="form-control form-control-sm bg-white" value="{{ socio.estado or '' }}"></div>
-                                    <div class="col-12"><div class="section-title">Familia</div></div>
-                                    <div class="col-md-3"><label class="form-label fw-bold">Nombre Esposa</label><input type="text" name="nombre_esposa" class="form-control form-control-sm bg-white" value="{{ socio.nombre_esposa or '' }}"></div>
-                                    <div class="col-md-3"><label class="form-label fw-bold">Tel Esposa</label><input type="text" name="telefono_esposa" class="form-control form-control-sm bg-white" value="{{ socio.telefono_esposa or '' }}"></div>
-                                    <div class="col-md-3"><label class="form-label fw-bold">Fecha Nac Esposa</label><input type="date" name="fecha_nacimiento_esposa" class="form-control form-control-sm bg-white" value="{{ socio.fecha_nacimiento_esposa or '' }}"></div>
-                                    <div class="col-md-3"><label class="form-label fw-bold">Aniversario</label><input type="date" name="aniversario_matrimonio" class="form-control form-control-sm bg-white" value="{{ socio.aniversario_matrimonio or '' }}"></div>
-                                    <div class="col-md-3"><label class="form-label fw-bold">Tel Emergencia</label><input type="text" name="telefono_emergencia" class="form-control form-control-sm bg-white" value="{{ socio.telefono_emergencia or '' }}"></div>
-                                    <div class="col-12"><div class="section-title"><i class="bi bi-people-fill"></i> Hijos ({{ socio.hijos|length }}) - Editar / Eliminar</div></div>
-                                    {% if socio.hijos %}{% for hijo in socio.hijos %}<div class="col-12" style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:8px; margin-bottom:6px;"><div class="row g-2 align-items-end"><div class="col-md-6"><label class="form-label fw-bold">Nombre Hijo #{{ loop.index }}</label><input type="text" name="hijo_nombre_{{ hijo.id }}" class="form-control form-control-sm bg-white" value="{{ hijo.nombre }}"></div><div class="col-md-4"><label class="form-label fw-bold">Fecha Nac</label><input type="date" name="hijo_fecha_{{ hijo.id }}" class="form-control form-control-sm bg-white" value="{{ hijo.fecha_nacimiento or '' }}"></div><div class="col-md-2"><div class="form-check"><input class="form-check-input" type="checkbox" name="hijo_eliminar_{{ hijo.id }}" value="1" id="del{{ hijo.id }}"><label class="form-check-label small text-danger fw-bold" for="del{{ hijo.id }}">ELIMINAR</label></div></div></div></div>{% endfor %}{% else %}<div class="col-12"><p class="text-muted small">Sin hijos registrados.</p></div>{% endif %}
-                                    <div class="col-12"><div class="section-title">Agregar Nuevos Hijos</div></div>
-                                    <div class="col-md-4"><label class="form-label fw-bold">Nombre Hijo 1</label><input type="text" name="nuevo_hijo_nombre_1" class="form-control form-control-sm bg-white" placeholder="Nombre"></div>
-                                    <div class="col-md-2"><label class="form-label fw-bold">Fecha Nac 1</label><input type="date" name="nuevo_hijo_fecha_1" class="form-control form-control-sm bg-white"></div>
-                                    <div class="col-md-4"><label class="form-label fw-bold">Nombre Hijo 2</label><input type="text" name="nuevo_hijo_nombre_2" class="form-control form-control-sm bg-white" placeholder="Nombre"></div>
-                                    <div class="col-md-2"><label class="form-label fw-bold">Fecha Nac 2</label><input type="date" name="nuevo_hijo_fecha_2" class="form-control form-control-sm bg-white"></div>
-                                    <div class="col-md-4"><label class="form-label fw-bold">Nombre Hijo 3</label><input type="text" name="nuevo_hijo_nombre_3" class="form-control form-control-sm bg-white"></div>
-                                    <div class="col-md-2"><label class="form-label fw-bold">Fecha Nac 3</label><input type="date" name="nuevo_hijo_fecha_3" class="form-control form-control-sm bg-white"></div>
+                                    <div class="col-md-3"><label class="form-label">Calle y No</label><input type="text" name="calle_numero" class="form-control form-control-sm bg-white" value="{{ socio.calle_numero or '' }}"></div>
+                                    <div class="col-md-2"><label class="form-label">Colonia</label><input type="text" name="colonia" class="form-control form-control-sm bg-white" value="{{ socio.colonia or '' }}"></div>
+                                    <div class="col-md-1"><label class="form-label">CP</label><input type="text" name="codigo_postal" class="form-control form-control-sm bg-white" value="{{ socio.codigo_postal or '' }}"></div>
+                                    <div class="col-md-3"><label class="form-label">Ciudad</label><input type="text" name="ciudad" class="form-control form-control-sm bg-white" value="{{ socio.ciudad or '' }}"></div>
+                                    <div class="col-md-3"><label class="form-label">Estado</label><input type="text" name="estado" class="form-control form-control-sm bg-white" value="{{ socio.estado or '' }}"></div>
+
+                                    <div class="col-12"><div class="section-title">Familia y Esposa</div></div>
+                                    <div class="col-md-3"><label class="form-label">Nombre Esposa</label><input type="text" name="nombre_esposa" class="form-control form-control-sm bg-white" value="{{ socio.nombre_esposa or '' }}"></div>
+                                    <div class="col-md-2"><label class="form-label">Tel Esposa</label><input type="text" name="telefono_esposa" class="form-control form-control-sm bg-white" value="{{ socio.telefono_esposa or '' }}"></div>
+                                    <div class="col-md-2"><label class="form-label">F.Nac Esposa</label><input type="date" name="fecha_nacimiento_esposa" class="form-control form-control-sm bg-white" value="{{ socio.fecha_nacimiento_esposa or '' }}"></div>
+                                    <div class="col-md-2"><label class="form-label">Aniversario</label><input type="date" name="aniversario_matrimonio" class="form-control form-control-sm bg-white" value="{{ socio.aniversario_matrimonio or '' }}"></div>
+                                    <div class="col-md-3"><label class="form-label">Agregar Hijo 1</label><input type="text" name="nuevo_hijo_nombre_1" class="form-control form-control-sm bg-white" placeholder="Nombre"></div>
+
+                                    <div class="col-12"><div class="section-title"><i class="bi bi-people-fill"></i> Hijos Existentes ({{ socio.hijos|length }}) - Editar / Eliminar + Agregar</div></div>
+                                    {% if socio.hijos %}
+                                        {% for hijo in socio.hijos %}
+                                        <div class="col-md-4 hijo-compact"><div class="row g-1 align-items-end"><div class="col-6"><label class="form-label">Nombre #{{ loop.index }}</label><input type="text" name="hijo_nombre_{{ hijo.id }}" class="form-control form-control-sm bg-white" value="{{ hijo.nombre }}"></div><div class="col-4"><label class="form-label">F.Nac</label><input type="date" name="hijo_fecha_{{ hijo.id }}" class="form-control form-control-sm bg-white" value="{{ hijo.fecha_nacimiento or '' }}"></div><div class="col-2"><div class="form-check"><input class="form-check-input" type="checkbox" name="hijo_eliminar_{{ hijo.id }}" value="1" id="del{{ hijo.id }}"><label class="form-check-label" style="font-size:8px; color:red; font-weight:bold;" for="del{{ hijo.id }}">X</label></div></div></div></div>
+                                        {% endfor %}
+                                    {% endif %}
+                                    <div class="col-md-2"><label class="form-label">F.Nac H1</label><input type="date" name="nuevo_hijo_fecha_1" class="form-control form-control-sm bg-white"></div>
+                                    <div class="col-md-3"><label class="form-label">Agregar Hijo 2</label><input type="text" name="nuevo_hijo_nombre_2" class="form-control form-control-sm bg-white" placeholder="Nombre"></div>
+                                    <div class="col-md-2"><label class="form-label">F.Nac H2</label><input type="date" name="nuevo_hijo_fecha_2" class="form-control form-control-sm bg-white"></div>
+                                    <div class="col-md-3"><label class="form-label">Agregar Hijo 3</label><input type="text" name="nuevo_hijo_nombre_3" class="form-control form-control-sm bg-white" placeholder="Nombre"></div>
+                                    <div class="col-md-2"><label class="form-label">F.Nac H3</label><input type="date" name="nuevo_hijo_fecha_3" class="form-control form-control-sm bg-white"></div>
                                 </div>
                             </div>
-                            <div class="modal-footer py-2 bg-white"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-rotary btn-sm"><i class="bi bi-save"></i> Guardar Cambios</button></div>
+                            <div class="modal-footer py-1 bg-white" style="padding:6px 10px !important;"><button type="button" class="btn btn-secondary btn-sm" style="font-size:11px;" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-rotary btn-sm" style="font-size:11px;"><i class="bi bi-save"></i> Guardar</button></div>
                         </form>
                     </div>
                 </div>
