@@ -5,141 +5,313 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tesorería - Rotary Club Creel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body { background-color: #f8f9fa; }
-       .badge-pagado { font-size: 0.70rem; }
-       .checkbox-mes:disabled +.label-mes { cursor: not-allowed; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; }
+        .navbar-rotary { background-color: #17458F; border-bottom: 4px solid #F7A81B; }
+        .badge-pagado { font-size: 0.65rem; }
+        .checkbox-mes:disabled + .label-mes { cursor: not-allowed; }
+        .modal-content { background-color: #ffffff !important; }
+        .modal-body { background-color: #ffffff !important; }
+        .btn-rotary { background-color: #17458F; color: white; font-weight: 600; }
+        .btn-rotary:hover { background-color: #0f326b; color: white; }
+        .card-header-rotary { background-color: #17458F; color: white; }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="#">💰 Tesorería Rotary Club Creel</a>
+
+<nav class="navbar navbar-expand-lg navbar-dark navbar-rotary">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold" href="#" style="font-size:14px;">💰 Tesorería Rotary Club Creel</a>
         <div class="d-flex">
-            <a href="{{ url_for('modulo_tesoreria') }}" class="btn btn-outline-light btn-sm me-2">← Volver</a>
-            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2">Menú Principal</a>
-            <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm">Cerrar Sesión</a>
+            <a href="{{ url_for('modulo_tesoreria') }}" class="btn btn-outline-light btn-sm me-2" style="font-size:11px;">← Tesorería</a>
+            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2" style="font-size:11px;">Menú</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm" style="font-size:11px;">Salir</a>
         </div>
     </div>
 </nav>
-<div class="container mt-4">
+
+<div class="container-fluid px-4 mt-3">
+    
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}{% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-      {% endfor %}{% endif %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show py-2" style="font-size:12px;">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
     {% endwith %}
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card shadow-sm border-info">
-                <div class="card-body d-flex justify-content-between align-items-center">
+
+    <!-- Resumen de Saldos + Boton Registrar Pago Arriba -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-info h-100">
+                <div class="card-body d-flex justify-content-between align-items-center py-2">
                     <div>
-                        <h6 class="text-muted mb-1">Saldo Inicial Configurado</h6>
-                        <h3 class="text-info fw-bold mb-0">${{ "{:,.2f}".format(saldo_inicial) }} MXN</h3>
+                        <h6 class="card-title text-muted mb-1" style="font-size:10px;">Saldo Inicial</h6>
+                        <h5 class="text-info fw-bold mb-0" style="font-size:14px;">${{ "{:,.2f}".format(saldo_inicial) }} MXN</h5>
                     </div>
-                    <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalSaldo">⚙️ Configurar</button>
+                    <button class="btn btn-outline-info btn-sm" style="font-size:10px;" data-bs-toggle="modal" data-bs-target="#modalSaldo">⚙️</button>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card shadow-sm border-success">
-                <div class="card-body">
-                    <h6 class="text-muted">Saldo Total General (Inicial + Recaudado)</h6>
-                    <h3 class="text-success fw-bold">${{ "{:,.2f}".format(saldo_total_general) }} MXN</h3>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-success h-100">
+                <div class="card-body py-2">
+                    <h6 class="card-title text-muted" style="font-size:10px;">Saldo Total General</h6>
+                    <h5 class="text-success fw-bold mb-0" style="font-size:14px;">${{ "{:,.2f}".format(saldo_total_general) }} MXN</h5>
                 </div>
             </div>
+        </div>
+        <div class="col-md-6 d-flex align-items-center justify-content-end">
+            <button class="btn btn-rotary btn-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago" style="font-size:13px; padding:10px 25px;">
+                <i class="bi bi-plus-circle"></i> REGISTRAR PAGO
+            </button>
         </div>
     </div>
-    <!-- Modal Saldo -->
-    <div class="modal fade" id="modalSaldo" tabindex="-1">
+
+    <!-- Modal Config Saldo -->
+    <div class="modal fade" id="modalSaldo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <form action="{{ url_for('actualizar_saldo_inicial') }}" method="POST" class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Configurar Saldo Inicial</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <div class="mb-3"><label class="form-label">Nuevo Saldo Inicial</label><input type="number" step="0.01" name="saldo_inicial" class="form-control" value="{{ saldo_inicial }}" required></div>
-                    <div class="mb-3"><label class="form-label">Confirma tu contraseña</label><input type="password" name="password" class="form-control" required></div>
+            <form action="{{ url_for('actualizar_saldo_inicial') }}" method="POST" class="modal-content bg-white">
+                <div class="modal-header" style="background:#17458F; color:white;">
+                    <h6 class="modal-title" style="font-size:12px;">Configurar Saldo Inicial</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-info">Guardar</button></div>
+                <div class="modal-body bg-white">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="font-size:11px;">Nuevo Saldo Inicial</label>
+                        <input type="number" step="0.01" name="saldo_inicial" class="form-control form-control-sm bg-white" value="{{ saldo_inicial }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="font-size:11px;">Confirma tu contraseña</label>
+                        <input type="password" name="password" class="form-control form-control-sm bg-white" placeholder="Tu contraseña" required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info btn-sm">Guardar</button>
+                </div>
             </form>
         </div>
     </div>
-    <!-- Tabla -->
+
+    <!-- Tabla de Control de Cuotas -->
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">📊 Control de Cuotas Sociales ($500.00 MXN / Mes)</h5>
-            <small>Jun 2025 - Jun 2027</small>
+        <div class="card-header card-header-rotary d-flex justify-content-between align-items-center py-2">
+            <h6 class="mb-0" style="font-size:13px;">📊 Control de Cuotas Sociales ($500.00 MXN / Mes) - Jun 2025 a Jun 2027</h6>
+            <button class="btn btn-warning btn-sm fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago" style="font-size:11px;"><i class="bi bi-plus"></i> Registrar Pago</button>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-bordered table-hover text-center align-middle">
-                    <thead class="table-light"><tr><th>#</th><th class="text-start">Nombre</th><th>📄</th>{% for m in meses %}<th style="font-size:0.72rem; writing-mode:vertical-rl; min-width:38px;">{{ m }}</th>{% endfor %}</tr></thead>
+                <table class="table table-bordered table-hover text-center align-middle mb-0" style="font-size:11px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="font-size:10px;">#</th>
+                            <th class="text-start" style="font-size:10px; min-width:160px;">Nombre del Socio</th>
+                            <th style="font-size:10px;">Recibo</th>
+                            {% for m in meses %}
+                                <th style="font-size: 9px; writing-mode: vertical-rl; text-orientation: mixed; min-width: 32px; padding:4px;">{{ m }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
                     <tbody>
-                    {% for socio in socios %}
-                    <tr>
-                        <td>{{ socio.numero_socio or loop.index }}</td>
-                        <td class="text-start fw-bold">{{ socio.nombre_completo }}</td>
-                        <td><a href="{{ url_for('estado_cuenta_pdf', socio_id=socio.id) }}" class="btn btn-outline-primary btn-sm py-0">📄</a></td>
-                        {% for m in meses %}
-                            {% set ns = namespace(pago_encontrado=None) %}
-                            {% for p in socio.pagos %}{% if p.mes_anio and p.mes_anio|trim|upper == m|trim|upper %}{% set ns.pago_encontrado = p %}{% endif %}{% endfor %}
-                            <td>{% if ns.pago_encontrado %}<span class="badge bg-success">✓</span>{% else %}<span class="badge bg-danger">✗</span>{% endif %}</td>
-                        {% endfor %}
-                    </tr>
-                    {% endfor %}
+                        {% if socios %}
+                            {% for socio in socios %}
+                            <tr>
+                                <td>{{ socio.numero_socio or loop.index }}</td>
+                                <td class="text-start fw-bold" style="min-width:160px; font-size:11px;">{{ socio.nombre_completo }}</td>
+                                <td>
+                                    <a href="{{ url_for('estado_cuenta_pdf', socio_id=socio.id) }}" class="btn btn-outline-primary btn-sm py-0" style="font-size:10px;" title="Ver estado de cuenta">📄</a>
+                                </td>
+                                {% for m in meses %}
+                                    {% set ns = namespace(pago_encontrado=None) %}
+                                    {% set mes_limpio = m | trim | upper %}
+                                    {% for p in socio.pagos %}
+                                        {% if p.mes_anio and p.mes_anio | trim | upper == mes_limpio %}
+                                            {% set ns.pago_encontrado = p %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    <td style="padding:2px;">
+                                        {% if ns.pago_encontrado %}
+                                            <span class="badge bg-success" style="font-size:8px;" title="${{ ns.pago_encontrado.monto }} - {{ ns.pago_encontrado.metodo_pago }}">✓</span>
+                                        {% else %}
+                                            <span class="text-muted" style="font-size:9px;">-</span>
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="30" class="text-muted">No hay socios registrados</td></tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-    <!-- Formulario Pago -->
-    <div class="card mt-4 shadow-sm">
-        <div class="card-header bg-success text-white"><h5 class="mb-0">💳 Registrar Pago</h5></div>
-        <div class="card-body">
-            <form action="{{ url_for('registrar_pago_cuota') }}" method="POST" id="formPago">
-                <div class="mb-3"><label class="form-label fw-bold">Socio *</label><select class="form-select" name="socio_id" id="socio_selector" required><option value="">-- SELECCIONE SOCIO --</option>{% for socio in socios %}<option value="{{ socio.id }}">{{ socio.nombre_completo }}</option>{% endfor %}</select></div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Mes(es) a Pagar ($500 c/u) *</label>
-                    <div class="row" id="contenedor_meses">{% for m in meses %}<div class="col-md-2 col-sm-4 col-6 mb-2"><div class="form-check border p-2 rounded"><input class="form-check-input checkbox-mes" type="checkbox" name="meses" value="{{ m }}" id="mes_{{ loop.index }}"><label class="form-check-label label-mes w-100" for="mes_{{ loop.index }}" style="font-size:0.85rem;">{{ m }}</label></div></div>{% endfor %}</div>
-                    <div class="mt-2"><span class="fw-bold">Total: </span><span id="totalPagar" class="badge bg-dark fs-6">$0.00</span></div>
-                </div>
-                <div class="row"><div class="col-md-6 mb-3"><label class="form-label fw-bold">Método</label><select class="form-select" name="metodo_pago" required><option value="TRANSFERENCIA">TRANSFERENCIA</option><option value="EFECTIVO">EFECTIVO</option><option value="DEPOSITO">DEPÓSITO</option></select></div><div class="col-md-6 mb-3"><label class="form-label fw-bold">Referencia</label><input type="text" class="form-control" name="referencia" placeholder="Ej: REF-12345"></div></div>
-                <div class="d-grid d-md-flex justify-content-md-end"><button type="reset" class="btn btn-secondary me-md-2">Limpiar</button><button type="submit" class="btn btn-success">Registrar y Generar Recibo</button></div>
-            </form>
+
+    <!-- MODAL REGISTRAR PAGO - NUEVO CON BOTON ARRIBA -->
+    <div class="modal fade" id="modalRegistrarPago" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content bg-white">
+                <form id="formPago" action="{{ url_for('registrar_pago_cuota') }}" method="POST" class="bg-white">
+                    <div class="modal-header py-2" style="background:#17458F; color:white;">
+                        <h6 class="modal-title" style="font-size:13px;"><i class="bi bi-cash-coin"></i> REGISTRAR PAGO DE CUOTA SOCIAL</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body bg-white" style="max-height:75vh; overflow-y:auto;">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold" style="font-size:11px;">Seleccionar Socio *</label>
+                                <select class="form-select form-select-sm bg-white" id="socio_selector" name="socio_id" required>
+                                    <option value="">-- SELECCIONA SOCIO --</option>
+                                    {% for socio in socios %}
+                                        <option value="{{ socio.id }}">{{ socio.numero_socio or socio.id }} - {{ socio.nombre_completo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="w-100">
+                                    <span class="fw-bold" style="font-size:11px;">Total a pagar: </span><span id="totalPagar" class="badge bg-dark fs-6">$0.00 MXN</span>
+                                    <small class="text-muted d-block" style="font-size:9px;">$500 por mes seleccionado</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label fw-bold" style="font-size:11px;">Selecciona los meses a pagar (solo meses no pagados):</label>
+                            <div class="border rounded p-2 bg-light" style="max-height:250px; overflow-y:auto;">
+                                <div class="row g-1">
+                                    {% for m in meses %}
+                                    <div class="col-md-3 col-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input checkbox-mes" type="checkbox" name="meses" value="{{ m }}" id="mes_{{ loop.index }}">
+                                            <label class="form-check-label label-mes" for="mes_{{ loop.index }}" style="font-size:10px;">
+                                                {{ m }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold" style="font-size:11px;">Método de Pago *</label>
+                                <select class="form-select form-select-sm bg-white" name="metodo_pago" required>
+                                    <option value="TRANSFERENCIA">TRANSFERENCIA BANCARIA</option>
+                                    <option value="EFECTIVO">EFECTIVO</option>
+                                    <option value="DEPOSITO">DEPÓSITO BANCARIO</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold" style="font-size:11px;">Referencia / Folio</label>
+                                <input type="text" class="form-control form-control-sm bg-white" name="referencia" placeholder="Ej: REF-12345">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-white py-2">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="reset" class="btn btn-outline-secondary btn-sm">Limpiar</button>
+                        <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="bi bi-receipt"></i> Registrar Pago y Generar Recibo</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
+
+    <!-- Modal de Recibo Rapido -->
     {% if pagos_recibo %}
-    <div class="modal fade show" id="reciboModal" tabindex="-1" style="display:block; background:rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg"><div class="modal-content">
-            <div class="modal-header bg-success text-white"><h5 class="modal-title">¡Pago Registrado! ({{ pagos_recibo|length }} mes(es))</h5></div>
-            <div class="modal-body"><div class="border p-3 bg-light rounded"><h6 class="text-center fw-bold">ROTARY CLUB CREEL - DISTRITO 4110</h6><hr>
-            <p><strong>RECIBÍ DE:</strong> {{ pagos_recibo[0].socio.nombre_completo }}</p>
-            <p><strong>CANTIDAD:</strong> ${{ "%.2f"|format(pagos_recibo|sum(attribute='monto')) }} MXN</p>
-            <p><strong>CONCEPTO:</strong> {% for p in pagos_recibo %}{{ p.mes_anio }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
-            <p><strong>MÉTODO:</strong> {{ pagos_recibo[0].metodo_pago }} {% if pagos_recibo[0].referencia %}- REF: {{ pagos_recibo[0].referencia }}{% endif %}</p><hr><p class="text-center small">PATRICIO ZAMORANO - TESORERO 2026-2027</p></div></div>
-            <div class="modal-footer">
-                {% if pagos_recibo|length == 1 %}<a href="{{ url_for('ver_recibo', pago_id=pagos_recibo[0].id) }}" class="btn btn-primary">Ver Recibo</a>
-                {% else %}<a href="{{ url_for('ver_recibo', pago_id=pagos_recibo[0].id, ids=pagos_recibo|map(attribute='id')|join(',')) }}" class="btn btn-primary">Ver Recibo Completo</a>{% endif %}
-                <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-secondary">Cerrar</a>
+    <div class="modal fade show" id="reciboModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-white">
+                <div class="modal-header bg-success text-white py-2">
+                    <h6 class="modal-title" style="font-size:12px;">¡Pago Registrado! ({{ pagos_recibo|length }} mes(es))</h6>
+                </div>
+                <div class="modal-body bg-white">
+                    <p class="text-muted small" style="font-size:11px;">Puede tomar captura para enviar por WhatsApp al socio:</p>
+                    <div class="border p-3 bg-light rounded">
+                        <h6 class="text-center fw-bold" style="font-size:12px;">ROTARY CLUB CREEL - DISTRITO 4110</h6>
+                        <hr class="my-2">
+                        <p class="mb-1" style="font-size:11px;"><strong>RECIBÍ DE:</strong> {{ pagos_recibo[0].socio.nombre_completo }}</p>
+                        <p class="mb-1" style="font-size:11px;"><strong>CANTIDAD:</strong> ${{ "%.2f"|format(pagos_recibo|sum(attribute='monto')) }} MXN</p>
+                        <p class="mb-1" style="font-size:11px;"><strong>CONCEPTO:</strong> CUOTA SOCIAL MESES DE {% for p in pagos_recibo %}{{ p.mes_anio }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+                        <p class="mb-1" style="font-size:11px;"><strong>MÉTODO:</strong> {{ pagos_recibo[0].metodo_pago }} {% if pagos_recibo[0].referencia %}- REF: {{ pagos_recibo[0].referencia }}{% endif %}</p>
+                        <hr class="my-2">
+                        <p class="text-center small mb-0" style="font-size:10px;">PATRICIO ZAMORANO CACERES<br>TESORERO CLUB CREEL 2026-2027</p>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white py-2">
+                    {% if pagos_recibo|length == 1 %}
+                    <a href="{{ url_for('ver_recibo', pago_id=pagos_recibo[0].id) }}" class="btn btn-primary btn-sm">Ver Recibo Completo</a>
+                    {% else %}
+                    <a href="{{ url_for('ver_recibo', pago_id=pagos_recibo[0].id, ids=pagos_recibo|map(attribute='id')|join(',')) }}" class="btn btn-primary btn-sm">Ver Recibo ({{ pagos_recibo|length }} meses)</a>
+                    {% endif %}
+                    <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-secondary btn-sm">Cerrar</a>
+                </div>
             </div>
-        </div></div>
+        </div>
     </div>
     {% endif %}
+
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-const mesesPagadosPorSocio = { {% for socio in socios %}"{{ socio.id }}": [{% for p in socio.pagos %}"{{ p.mes_anio|trim|upper }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% if not loop.last %}, {% endif %}{% endfor %} };
-function actualizarMesesDisponibles(){
-    const socioId=document.getElementById('socio_selector').value;
-    const mesesPagados=socioId?(mesesPagadosPorSocio[socioId]||[]):[];
-    document.querySelectorAll('.checkbox-mes').forEach(cb=>{
-        const mes=cb.value.trim().toUpperCase(); const label=cb.nextElementSibling;
-        if(mesesPagados.includes(mes)){cb.disabled=true; cb.checked=false; label.classList.add('text-decoration-line-through','text-muted'); if(!label.querySelector('.badge-pagado')){const b=document.createElement('span'); b.className='badge bg-success ms-2 badge-pagado'; b.innerText='✓ PAGADO'; label.appendChild(b);}}
-        else{cb.disabled=false; label.classList.remove('text-decoration-line-through','text-muted'); const badge=label.querySelector('.badge-pagado'); if(badge)badge.remove();}
-    }); calcularTotal();
+const mesesPagadosPorSocio = {
+    {% for socio in socios %}
+        "{{ socio.id }}": [
+            {% for p in socio.pagos %}"{{ p.mes_anio | trim | upper }}"{% if not loop.last %}, {% endif %}{% endfor %}
+        ]{% if not loop.last %}, {% endif %}
+    {% endfor %}
+};
+
+function actualizarMesesDisponibles() {
+    const socioId = document.getElementById('socio_selector').value;
+    const checkboxes = document.querySelectorAll('.checkbox-mes');
+    const mesesPagados = socioId ? (mesesPagadosPorSocio[socioId] || []) : [];
+
+    checkboxes.forEach(checkbox => {
+        const mes = checkbox.value.trim().toUpperCase();
+        const label = checkbox.nextElementSibling;
+        if (mesesPagados.includes(mes)) {
+            checkbox.disabled = true;
+            checkbox.checked = false; 
+            label.classList.add('text-decoration-line-through', 'text-muted');
+            label.style.backgroundColor = '#f8f9fa';
+            if (!label.querySelector('.badge-pagado')) {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-success ms-2 badge-pagado';
+                badge.innerText = '✓';
+                label.appendChild(badge);
+            }
+        } else {
+            checkbox.disabled = false;
+            label.classList.remove('text-decoration-line-through', 'text-muted');
+            label.style.backgroundColor = 'transparent';
+            const badge = label.querySelector('.badge-pagado');
+            if (badge) badge.remove();
+        }
+    });
+    calcularTotal();
 }
-function calcularTotal(){const checks=document.querySelectorAll('.checkbox-mes:checked:not(:disabled)'); const total=checks.length*500; document.getElementById('totalPagar').innerText='$'+total.toLocaleString('es-MX',{minimumFractionDigits:2})+' MXN';}
-document.getElementById('socio_selector').addEventListener('change',actualizarMesesDisponibles);
-document.addEventListener('DOMContentLoaded',actualizarMesesDisponibles);
-document.querySelectorAll('.checkbox-mes').forEach(c=>c.addEventListener('change',calcularTotal));
+
+function calcularTotal(){
+    const checks = document.querySelectorAll('.checkbox-mes:checked:not(:disabled)');
+    const total = checks.length * 500;
+    document.getElementById('totalPagar').innerText = '$' + total.toLocaleString('es-MX', {minimumFractionDigits:2}) + ' MXN';
+}
+
+document.getElementById('socio_selector').addEventListener('change', actualizarMesesDisponibles);
+document.addEventListener('DOMContentLoaded', actualizarMesesDisponibles);
+document.querySelectorAll('.checkbox-mes').forEach(c => c.addEventListener('change', calcularTotal));
+document.getElementById('formPago').addEventListener('reset', ()=> setTimeout(()=>{actualizarMesesDisponibles();},100));
 </script>
+
 </body>
 </html>
