@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 import os
@@ -564,6 +565,55 @@ def estado_cuenta_pdf(socio_id):
 def logout():
     session.clear()
     return redirect(url_for('index_publico'))
+
+
+@app.route('/tesoreria/recaudacion-mensual')
+def recaudacion_mensual():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    total_socios = Socio.query.filter_by(es_activo=True).count()
+    if total_socios == 0:
+        total_socios = 12
+    cuota_mensual = 500
+    esperado_por_mes = total_socios * cuota_mensual
+    MESES_2025_LIST = [m for m in MESES_CONTROL if "2025" in m] if 'MESES_CONTROL' in globals() else ["JUN 2025","JUL 2025","AGO 2025","SEP 2025","OCT 2025","NOV 2025","DIC 2025"]
+    MESES_2026_LIST = [m for m in MESES_CONTROL if "2026" in m] if 'MESES_CONTROL' in globals() else ["ENE 2026","FEB 2026","MAR 2026","ABR 2026","MAY 2026","JUN 2026","JUL 2026","AGO 2026","SEP 2026","OCT 2026","NOV 2026","DIC 2026"]
+    def calcular_meses(lista_meses):
+        resultado = []
+        total_recibido = 0
+        for mes in lista_meses:
+            pagos_mes = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes.strip().upper()).all()
+            recibido = sum([p.monto for p in pagos_mes]) if pagos_mes else 0
+            esperado = esperado_por_mes
+            diferencia = esperado - recibido
+            porcentaje = (recibido / esperado * 100) if esperado > 0 else 0
+            resultado.append({
+                'mes': mes,
+                'recibido': recibido,
+                'esperado': esperado,
+                'diferencia': diferencia,
+                'porcentaje': porcentaje,
+                'num_pagos': len(pagos_mes)
+            })
+            total_recibido += recibido
+        return resultado, total_recibido
+    meses_2025, total_2025 = calcular_meses(MESES_2025_LIST)
+    meses_2026, total_2026 = calcular_meses(MESES_2026_LIST)
+    esperado_2025 = len(MESES_2025_LIST) * esperado_por_mes
+    esperado_2026 = len(MESES_2026_LIST) * esperado_por_mes
+    porc_2025 = (total_2025 / esperado_2025 * 100) if esperado_2025 else 0
+    porc_2026 = (total_2026 / esperado_2026 * 100) if esperado_2026 else 0
+    return render_template('recaudacion_mensual.html',
+                           total_socios=total_socios,
+                           meses_2025=meses_2025,
+                           meses_2026=meses_2026,
+                           total_2025=total_2025,
+                           total_2026=total_2026,
+                           esperado_2025=esperado_2025,
+                           esperado_2026=esperado_2026,
+                           porc_2025=porc_2025,
+                           porc_2026=porc_2026)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

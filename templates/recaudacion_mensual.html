@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recaudación Mensual - Rotary Club Creel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body { background:#f8f9fa; font-family:'Segoe UI', sans-serif; text-transform:uppercase; font-size:12px; }
+        .navbar-rotary { background:#17458F; border-bottom:4px solid #F7A81B; }
+        .card-header-rotary { background:#17458F; color:white; }
+        .table-recaudacion th { background:#17458F; color:white; font-size:10px; padding:6px 4px; text-align:center; }
+        .table-recaudacion td { font-size:11px; padding:5px 4px; text-align:center; vertical-align:middle; }
+        .badge-porc-bajo { background:#dc3545; }
+        .badge-porc-medio { background:#ffc107; color:#000; }
+        .badge-porc-alto { background:#28a745; }
+        @media print { .no-print { display:none; } .card { border:1px solid #000 !important; } }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark navbar-rotary px-3 py-2">
+    <div class="container-fluid">
+        <span class="navbar-brand fw-bold" style="font-size:14px;">💰 RECAUDACIÓN MENSUAL - ROTARY CLUB CREEL</span>
+        <div class="d-flex">
+            <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-outline-light btn-sm me-2" style="font-size:11px;">← Cuotas Sociales</a>
+            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2" style="font-size:11px;">Menú</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-4 mt-3">
+    <!-- Resumen Superior -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-primary">
+                <div class="card-body py-2 text-center">
+                    <small class="text-muted" style="font-size:9px;">TOTAL SOCIOS ACTIVOS</small>
+                    <h4 class="fw-bold text-primary mb-0">{{ total_socios }}</h4>
+                    <small class="text-muted" style="font-size:9px;">Cuota $500 c/u</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-info">
+                <div class="card-body py-2 text-center">
+                    <small class="text-muted" style="font-size:9px;">ESPERADO MENSUAL (12 SOCIOS)</small>
+                    <h4 class="fw-bold text-info mb-0">${{ "{:,.0f}".format(total_socios * 500) }} MXN</h4>
+                    <small class="text-muted" style="font-size:9px;">{{ total_socios }} x $500</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-success">
+                <div class="card-body py-2 text-center">
+                    <small class="text-muted" style="font-size:9px;">RECAUDADO 2025</small>
+                    <h4 class="fw-bold text-success mb-0">${{ "{:,.0f}".format(total_2025) }} MXN</h4>
+                    <small class="text-muted" style="font-size:9px;">{{ porc_2025|round(1) }}% cumplimiento</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-warning">
+                <div class="card-body py-2 text-center">
+                    <small class="text-muted" style="font-size:9px;">RECAUDADO 2026</small>
+                    <h4 class="fw-bold text-dark mb-0">${{ "{:,.0f}".format(total_2026) }} MXN</h4>
+                    <small class="text-muted" style="font-size:9px;">{{ porc_2026|round(1) }}% cumplimiento</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla Mes a Mes 2025 y 2026 -->
+    <div class="row">
+        <!-- 2025 -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header card-header-rotary py-2 d-flex justify-content-between">
+                    <span style="font-size:12px;"><i class="bi bi-calendar"></i> RECAUDACIÓN 2025 - MES POR MES</span>
+                    <span class="badge bg-warning text-dark">{{ meses_2025|length }} meses</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered table-hover table-recaudacion mb-0">
+                        <thead>
+                            <tr>
+                                <th>MES</th>
+                                <th>RECIBIDO</th>
+                                <th>ESPERADO</th>
+                                <th>DIFERENCIA</th>
+                                <th>%</th>
+                                <th>ESTADO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in meses_2025 %}
+                            <tr>
+                                <td class="text-start fw-bold" style="font-size:11px;">{{ d.mes }}</td>
+                                <td class="fw-bold text-success">${{ "{:,.0f}".format(d.recibido) }}</td>
+                                <td>${{ "{:,.0f}".format(d.esperado) }}</td>
+                                <td class="{% if d.diferencia>0 %}text-danger{% else %}text-success{% endif %}">
+                                    {% if d.diferencia>0 %}-{% endif %}${{ "{:,.0f}".format(d.diferencia|abs) }}
+                                </td>
+                                <td>
+                                    {% if d.porcentaje >= 80 %}
+                                        <span class="badge badge-porc-alto">{{ d.porcentaje|round(0) }}%</span>
+                                    {% elif d.porcentaje >= 50 %}
+                                        <span class="badge badge-porc-medio">{{ d.porcentaje|round(0) }}%</span>
+                                    {% else %}
+                                        <span class="badge badge-porc-bajo">{{ d.porcentaje|round(0) }}%</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size:9px;">
+                                    {% if d.porcentaje == 100 %}✅ COMPLETO{% elif d.porcentaje >= 80 %}🟡 {{ d.porcentaje|round(0) }}%{% else %}🔴 {{ d.porcentaje|round(0) }}%{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot style="background:#e8eef9; font-weight:bold;">
+                            <tr>
+                                <td>TOTAL 2025</td>
+                                <td class="text-success">${{ "{:,.0f}".format(total_2025) }}</td>
+                                <td>${{ "{:,.0f}".format(esperado_2025) }}</td>
+                                <td>${{ "{:,.0f}".format(esperado_2025 - total_2025) }}</td>
+                                <td>{{ porc_2025|round(1) }}%</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2026 -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header card-header-rotary py-2 d-flex justify-content-between">
+                    <span style="font-size:12px;"><i class="bi bi-calendar"></i> RECAUDACIÓN 2026 - MES POR MES</span>
+                    <span class="badge bg-warning text-dark">{{ meses_2026|length }} meses</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered table-hover table-recaudacion mb-0">
+                        <thead>
+                            <tr>
+                                <th>MES</th>
+                                <th>RECIBIDO</th>
+                                <th>ESPERADO</th>
+                                <th>DIFERENCIA</th>
+                                <th>%</th>
+                                <th>ESTADO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in meses_2026 %}
+                            <tr>
+                                <td class="text-start fw-bold" style="font-size:11px;">{{ d.mes }}</td>
+                                <td class="fw-bold text-success">${{ "{:,.0f}".format(d.recibido) }}</td>
+                                <td>${{ "{:,.0f}".format(d.esperado) }}</td>
+                                <td class="{% if d.diferencia>0 %}text-danger{% else %}text-success{% endif %}">
+                                    {% if d.diferencia>0 %}-{% endif %}${{ "{:,.0f}".format(d.diferencia|abs) }}
+                                </td>
+                                <td>
+                                    {% if d.porcentaje >= 80 %}
+                                        <span class="badge badge-porc-alto">{{ d.porcentaje|round(0) }}%</span>
+                                    {% elif d.porcentaje >= 50 %}
+                                        <span class="badge badge-porc-medio">{{ d.porcentaje|round(0) }}%</span>
+                                    {% else %}
+                                        <span class="badge badge-porc-bajo">{{ d.porcentaje|round(0) }}%</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size:9px;">
+                                    {% if d.porcentaje == 100 %}✅ COMPLETO{% elif d.porcentaje >= 80 %}🟡 {{ d.porcentaje|round(0) }}%{% else %}🔴 {{ d.porcentaje|round(0) }}%{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot style="background:#e8eef9; font-weight:bold;">
+                            <tr>
+                                <td>TOTAL 2026</td>
+                                <td class="text-success">${{ "{:,.0f}".format(total_2026) }}</td>
+                                <td>${{ "{:,.0f}".format(esperado_2026) }}</td>
+                                <td>${{ "{:,.0f}".format(esperado_2026 - total_2026) }}</td>
+                                <td>{{ porc_2026|round(1) }}%</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparativa Anual -->
+    <div class="card shadow-sm mt-2">
+        <div class="card-header card-header-rotary py-2">
+            <h6 class="mb-0" style="font-size:12px;"><i class="bi bi-graph-up"></i> COMPARATIVA ANUAL - SIN NOMBRES DE SOCIOS (SOLO IMPORTES)</h6>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-6 border-end">
+                    <h6 style="font-size:11px; color:#17458F;">EJEMPLO QUE PEDISTE:</h6>
+                    <p style="font-size:11px;" class="mb-1">Si somos <strong>12 socios</strong> x $500 = <strong>$6,000 esperado</strong></p>
+                    <p style="font-size:11px;" class="mb-1">En Junio se recibió <strong>$5,000</strong> = <strong>83.3%</strong> de recaudación</p>
+                    <p style="font-size:11px;" class="mb-0">Faltante: <strong class="text-danger">$1,000 (16.7%)</strong></p>
+                </div>
+                <div class="col-md-6">
+                    <h6 style="font-size:11px; color:#17458F;">RESUMEN GENERAL</h6>
+                    <p style="font-size:11px;" class="mb-1">2025: Recibido ${{ "{:,.0f}".format(total_2025) }} / Esperado ${{ "{:,.0f}".format(esperado_2025) }} = {{ porc_2025|round(1) }}%</p>
+                    <p style="font-size:11px;" class="mb-0">2026: Recibido ${{ "{:,.0f}".format(total_2026) }} / Esperado ${{ "{:,.0f}".format(esperado_2026) }} = {{ porc_2026|round(1) }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-3 mb-4 no-print">
+        <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="bi bi-printer"></i> Imprimir Estado por Mes</button>
+        <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-secondary btn-sm">Volver a Cuotas</a>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
