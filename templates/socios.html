@@ -109,7 +109,18 @@
                             <div class="col-md-2"><span class="info-label">Tel Esposa</span><span class="info-value">{{ socio.telefono_esposa or '-' }}</span></div>
                             <div class="col-md-2"><span class="info-label">F.Nac Esposa</span><span class="info-value">{{ socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y') if socio.fecha_nacimiento_esposa else '-' }}</span></div>
                             <div class="col-md-2"><span class="info-label">Aniversario</span><span class="info-value">{{ socio.aniversario_matrimonio.strftime('%d/%m/%Y') if socio.aniversario_matrimonio else '-' }}</span></div>
-                            <div class="col-md-3"><span class="info-label">Hijos ({{ socio.hijos|length }})</span>{% if socio.hijos %}{% for hijo in socio.hijos %}<span class="badge bg-light text-dark border" style="font-size:9px;">{{ hijo.nombre }}</span>{% endfor %}{% else %}<span class="info-value text-muted" style="font-size:10px;">Sin hijos</span>{% endif %}</div>
+                            <div class="col-md-3"><span class="info-label">Hijos ({{ socio.hijos|length }})</span>
+                                {% if socio.hijos %}
+                                    {% for hijo in socio.hijos %}
+                                        <span class="badge bg-light text-dark border" style="font-size:9px; line-height:1.2; padding:3px 6px; margin:1px; display:inline-block;">
+                                            <i class="bi bi-person"></i> {{ hijo.nombre }}<br>
+                                            <small style="font-size:8px; color:#17458F;">{{ hijo.fecha_nacimiento.strftime('%d/%m/%Y') if hijo.fecha_nacimiento else 'S/F' }}</small>
+                                        </span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="info-value text-muted" style="font-size:10px;">Sin hijos</span>
+                                {% endif %}
+                            </div>
                             <div class="col-12"><span class="info-label">Cargos</span>{% if socio.cargos %}{% for cargo in socio.cargos %}<span class="badge {% if cargo.es_actual %}bg-success{% else %}bg-secondary{% endif %}" style="font-size:9px;">{{ cargo.cargo }} {{ cargo.periodo }}</span>{% endfor %}{% else %}<span class="text-muted" style="font-size:10px;">Sin cargos</span>{% endif %}</div>
                         </div>
                     </div>
