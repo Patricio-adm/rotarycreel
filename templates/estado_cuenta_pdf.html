@@ -2,128 +2,145 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estado de Cuenta - {{ socio.nombre_completo }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-transform: uppercase; color: #333; }
-        .header-rotary { border-bottom: 3px solid #17458F; padding-bottom: 15px; margin-bottom: 20px; }
-        .badge-rotary { background-color: #17458F; color: white; }
-        @media print {
-            .no-print { display: none !important; }
-            body { padding: 0; margin: 0; }
-            .card { border: none !important; box-shadow: none !important; }
-        }
+        body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; background: white; }
+        .header-rotary { background: #17458F; color: white; padding: 15px; border-bottom: 4px solid #F7A81B; }
+        .table-cuotas th { background: #17458F; color: white; font-size: 10px; padding: 5px; }
+        .table-cuotas td { font-size: 11px; padding: 4px; }
+        .badge-pagado { background: #28a745; color: white; font-size: 9px; padding: 3px 6px; }
+        .badge-pendiente { background: #dc3545; color: white; font-size: 9px; padding: 3px 6px; }
+        @media print { .no-print { display: none; } }
     </style>
 </head>
 <body>
-
-    <div class="container my-4" style="max-width: 800px;">
-        
-        <!-- Botones de Acción (No salen en PDF/Impresión) -->
-        <div class="d-flex justify-content-between mb-4 no-print">
-            <button onclick="window.print();" class="btn btn-primary btn-sm fw-bold shadow-sm">
-                🖨️ Imprimir / Guardar como PDF
-            </button>
-            <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-secondary btn-sm shadow-sm">
-                ⬅️ Volver a Tesorería
-            </a>
-        </div>
-
-        <!-- Encabezado Institucional -->
-        <div class="header-rotary d-flex justify-content-between align-items-center">
+    <div class="header-rotary">
+        <div class="d-flex justify-content-between align-items-center">
             <div>
-                <h4 class="fw-bold text-primary mb-1">ROTARY CLUB CREEL</h4>
-                <p class="text-muted small mb-0">Distrito 4110 • Chihuahua, México</p>
+                <h5 class="mb-0 fw-bold" style="font-size:16px;">ROTARY CLUB CREEL - DISTRITO 4110</h5>
+                <small style="font-size:11px;">ESTADO DE CUENTA DE CUOTAS SOCIALES</small>
             </div>
             <div class="text-end">
-                <span class="badge badge-rotary fs-6 p-2">ESTADO DE CUENTA</span>
-                <p class="text-muted small mt-1 mb-0">CUOTAS SOCIALES</p>
+                <small style="font-size:10px;">{{ fecha_actual_str }}</small><br>
+                <small style="font-size:10px;">SOCIO #{{ socio.numero_socio or socio.id }}</small>
             </div>
         </div>
+    </div>
 
-        <!-- Información del Socio y Fecha -->
-        <div class="row mb-4 p-3 bg-light rounded border g-2">
-            <div class="col-md-7">
-                <p class="mb-1" style="font-size: 13px;"><strong>Nombre del Socio:</strong> <span class="text-dark">{{ socio.nombre_completo }}</span></p>
-                <p class="mb-1" style="font-size: 13px;"><strong>Número de Socio:</strong> {{ socio.numero_socio or 'N/D' }}</p>
-                <p class="mb-0" style="font-size: 13px;"><strong>Tipo de Socio:</strong> {{ socio.tipo_socio or 'ACTIVO' }}</p>
+    <div class="container-fluid p-4">
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <h6 class="fw-bold" style="color:#17458F; font-size:13px;">DATOS DEL SOCIO</h6>
+                <p class="mb-1" style="font-size:12px;"><strong>Nombre:</strong> {{ socio.nombre_completo }}</p>
+                <p class="mb-1" style="font-size:12px;"><strong>No. Socio:</strong> {{ socio.numero_socio or socio.id }} | <strong>Tipo:</strong> {{ socio.tipo_socio or 'ACTIVO' }}</p>
+                <p class="mb-1" style="font-size:12px;"><strong>Tel:</strong> {{ socio.telefono or '-' }} | <strong>Correo:</strong> <span style="text-transform: lowercase;">{{ socio.correo or '-' }}</span></p>
             </div>
-            <div class="col-md-5 text-md-end d-flex flex-column justify-content-center">
-                <span class="text-muted" style="font-size: 11px;">FECHA DE SOLICITUD:</span>
-                <strong class="text-dark" style="font-size: 12px;">{{ fecha_actual_str }}</strong>
-            </div>
-        </div>
-
-        <!-- Tabla de Cuotas Pendientes -->
-        <h6 class="fw-bold text-secondary mb-2" style="font-size: 13px;">Detalle de Cuotas Pendientes de Pago ($500.00 MXN c/u):</h6>
-        <div class="table-responsive mb-4">
-            <table class="table table-bordered table-striped text-center" style="font-size: 12px;">
-                <thead class="table-dark">
-                    <tr>
-                        <th>N°</th>
-                        <th>Periodo / Mes</th>
-                        <th>Monto Adeudado</th>
-                        <th>Estatus</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% set meses_pdf = [
-                        "JUN 2025", "JUL 2025", "AGO 2025", "SEP 2025", "OCT 2025", "NOV 2025", "DIC 2025",
-                        "ENE 2026", "FEB 2026", "MAR 2026", "ABR 2026", "MAY 2026", "JUN 2026",
-                        "JUL 2026", "AGO 2026", "SEP 2026", "OCT 2026", "NOV 2026", "DIC 2026",
-                        "ENE 2027", "FEB 2027", "MAR 2027", "ABR 2027", "MAY 2027", "JUN 2027"
-                    ] %}
-                    {% set ns = namespace(contador=0, total_deuda=0.0) %}
-                    {% for m in meses_pdf %}
-                        {% set pagado = false %}
-                        {% for p in socio.pagos %}
-                            {% if p.mes_anio.strip().upper() == m.strip().upper() %}
-                                {% set pagado = true %}
-                            {% endif %}
-                        endfor
-                        {% if not pagado %}
-                            {% set ns.contador = ns.contador + 1 %}
-                            {% set ns.total_deuda = ns.total_deuda + 500.0 %}
-                            <tr>
-                                <td>{{ ns.contador }}</td>
-                                <td class="fw-bold">{{ m }}</td>
-                                <td>$500.00 MXN</td>
-                                <td><span class="badge bg-danger">PENDIENTE</span></td>
-                            </tr>
-                        {% endif %}
-                    endfor
-
-                    {% if ns.contador == 0 %}
-                        <tr>
-                            <td colspan="4" class="text-success fw-bold py-4">¡EXCELENTE! EL SOCIO SE ENCUENTRA AL CORRIENTE EN TODAS SUS CUOTAS SOCIALES.</td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Resumen de Adeudo -->
-        {% if ns.contador > 0 %}
-        <div class="row justify-content-end mb-5">
-            <div class="col-md-5">
-                <div class="p-3 border rounded bg-light text-end">
-                    <span class="text-muted d-block" style="font-size: 11px;">TOTAL DE MESES PENDIENTES: <strong>{{ ns.contador }}</strong></span>
-                    <h5 class="fw-bold text-danger mb-0 mt-1">ADEUDO TOTAL: ${{ "{:,.2f}".format(ns.total_deuda) }} MXN</h5>
+            <div class="col-md-4 text-end">
+                <div class="card border-primary">
+                    <div class="card-body py-2 text-center">
+                        <small class="text-muted d-block" style="font-size:9px;">TOTAL PAGADO</small>
+                        <h5 class="text-success mb-0 fw-bold">${{ "%.2f"|format(socio.pagos|sum(attribute='monto')) }} MXN</h5>
+                        <small class="text-muted" style="font-size:9px;">{{ socio.pagos|length }} meses x $500</small>
+                    </div>
                 </div>
             </div>
         </div>
-        {% endif %}
 
-        <!-- Firma y Pie -->
-        <div class="row mt-5 pt-4 text-center border-top">
+        <h6 class="fw-bold mt-3" style="color:#17458F; font-size:12px; border-bottom:2px solid #F7A81B; padding-bottom:4px;">HISTORIAL DE CUOTAS - JUN 2025 A JUN 2027 (25 MESES)</h6>
+        
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-cuotas">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">#</th>
+                        <th>MES / AÑO</th>
+                        <th>ESTADO</th>
+                        <th>FECHA PAGO</th>
+                        <th>MONTO</th>
+                        <th>METODO</th>
+                        <th>REFERENCIA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mes in meses %}
+                        {% set ns = namespace(pago=None) %}
+                        {% set mes_limpio = mes | trim | upper %}
+                        {% for p in socio.pagos %}
+                            {% if p.mes_anio and p.mes_anio | trim | upper == mes_limpio %}
+                                {% set ns.pago = p %}
+                            {% endif %}
+                        {% endfor %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td class="fw-bold">{{ mes }}</td>
+                            <td>
+                                {% if ns.pago %}
+                                    <span class="badge badge-pagado">✓ PAGADO</span>
+                                {% else %}
+                                    <span class="badge badge-pendiente">PENDIENTE</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ns.pago %}
+                                    {{ ns.pago.fecha_pago.strftime('%d/%m/%Y') if ns.pago.fecha_pago else '-' }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ns.pago %}
+                                    ${{ "%.2f"|format(ns.pago.monto) }}
+                                {% else %}
+                                    $500.00
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ns.pago %}
+                                    {{ ns.pago.metodo_pago or '-' }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td style="font-size:10px;">
+                                {% if ns.pago %}
+                                    {{ ns.pago.referencia or '-' }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background:#f8f9fa; font-weight:bold;">
+                        <td colspan="4" class="text-end">TOTALES:</td>
+                        <td>${{ "%.2f"|format(socio.pagos|sum(attribute='monto')) }} MXN</td>
+                        <td colspan="2">{{ socio.pagos|length }} de {{ meses|length }} meses pagados ({{ (meses|length - socio.pagos|length) }} pendientes)</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="row mt-4">
             <div class="col-12">
-                <p class="text-muted" style="font-size: 11px; text-transform: none;">Este documento es un estado de cuenta interno generado por el sistema de tesorería de Rotary Club Creel.</p>
-                <p class="fw-bold text-dark mt-3 mb-0" style="font-size: 12px;">TESORERÍA - ROTARY CLUB CREEL</p>
+                <div class="card border-0">
+                    <div class="card-body text-center">
+                        <p class="mb-0" style="font-size:11px;">ESTE DOCUMENTO ES UN ESTADO DE CUENTA INFORMATIVO</p>
+                        <p class="mb-0" style="font-size:11px;">ROTARY CLUB CREEL - DISTRITO 4110</p>
+                        <p class="mb-0 fw-bold" style="font-size:11px;">PATRICIO ZAMORANO CACERES - TESORERO 2026-2027</p>
+                        <p class="text-muted mt-2" style="font-size:9px;">Generado el {{ fecha_actual_str }} - Sistema Rotary Creel</p>
+                    </div>
+                </div>
             </div>
         </div>
 
+        <div class="text-center mt-4 no-print">
+            <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="bi bi-printer"></i> Imprimir / Guardar PDF</button>
+            <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-secondary btn-sm">Volver a Cuotas</a>
+        </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
