@@ -298,6 +298,70 @@ def editar_socio(socio_id):
             socio.foto_url = f"data:{mime};base64,{b64}"
         except Exception as e:
             flash(f'Error al procesar foto: {e}', 'warning')
+
+    # --- MANEJO DE HIJOS ---
+    # Editar o eliminar hijos existentes
+    for hijo in list(socio.hijos):
+        del_key = f'hijo_eliminar_{hijo.id}'
+        if request.form.get(del_key) == '1':
+            db.session.delete(hijo)
+        else:
+            nombre_key = f'hijo_nombre_{hijo.id}'
+            fecha_key = f'hijo_fecha_{hijo.id}'
+            nuevo_nombre = request.form.get(nombre_key)
+            if nuevo_nombre:
+                hijo.nombre = to_upper(nuevo_nombre)
+                hijo.fecha_nacimiento = parse_date(request.form.get(fecha_key)) or hijo.fecha_nacimiento
+
+    # Agregar nuevos hijos (hasta 3 por edición)
+    for i in range(1, 4):
+        n_nombre = request.form.get(f'nuevo_hijo_nombre_{i}')
+        n_fecha = request.form.get(f'nuevo_hijo_fecha_{i}')
+        if n_nombre and n_nombre.strip():
+            nuevo_hijo = Hijo(
+                socio_id=socio.id,
+                nombre=to_upper(n_nombre),
+                fecha_nacimiento=parse_date(n_fecha)
+            )
+            db.session.add(nuevo_hijo)
+
+    db.session.commit()
+    flash('Socio actualizado correctamente (incluyendo hijos).', 'success')
+    return redirect(url_for('gestion_socios'))
+    socio = Socio.query.get_or_404(socio_id)
+    def parse_date(date_str):
+        if date_str:
+            try:
+                return datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return None
+        return None
+    socio.numero_socio = to_upper(request.form.get('numero_socio')) or socio.numero_socio
+    socio.nombre_completo = to_upper(request.form.get('nombre_completo')) or socio.nombre_completo
+    socio.tipo_socio = to_upper(request.form.get('tipo_socio')) or socio.tipo_socio
+    socio.telefono = to_upper(request.form.get('telefono')) or socio.telefono
+    socio.correo = request.form.get('correo') or socio.correo
+    socio.fecha_nacimiento = parse_date(request.form.get('fecha_nacimiento')) or socio.fecha_nacimiento
+    socio.calle_numero = to_upper(request.form.get('calle_numero')) or socio.calle_numero
+    socio.colonia = to_upper(request.form.get('colonia')) or socio.colonia
+    socio.codigo_postal = to_upper(request.form.get('codigo_postal')) or socio.codigo_postal
+    socio.ciudad = to_upper(request.form.get('ciudad')) or socio.ciudad
+    socio.estado = to_upper(request.form.get('estado')) or socio.estado
+    socio.estado_civil = to_upper(request.form.get('estado_civil')) or socio.estado_civil
+    socio.nombre_esposa = to_upper(request.form.get('nombre_esposa')) or socio.nombre_esposa
+    socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa')) or socio.fecha_nacimiento_esposa
+    socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio')) or socio.aniversario_matrimonio
+    socio.telefono_esposa = to_upper(request.form.get('telefono_esposa')) or socio.telefono_esposa
+    socio.telefono_emergencia = to_upper(request.form.get('telefono_emergencia')) or socio.telefono_emergencia
+    foto_archivo = request.files.get('foto_archivo')
+    if foto_archivo and foto_archivo.filename and allowed_file(foto_archivo.filename):
+        try:
+            contenido = foto_archivo.read()
+            mime = foto_archivo.mimetype or 'image/jpeg'
+            b64 = base64.b64encode(contenido).decode('utf-8')
+            socio.foto_url = f"data:{mime};base64,{b64}"
+        except Exception as e:
+            flash(f'Error al procesar foto: {e}', 'warning')
     db.session.commit()
     flash('Socio actualizado.', 'success')
     return redirect(url_for('gestion_socios'))
