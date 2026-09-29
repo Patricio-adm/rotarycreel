@@ -16,148 +16,19 @@
         .modal-header-rotary { background-color: #17458F; color: white; }
         .btn-rotary { background-color: #17458F; color: white; }
         .btn-rotary:hover { background-color: #0f326b; color: white; }
+        .info-label { font-weight: 700; color: #17458F; font-size: 11px; }
+        .info-value { font-size: 12px; color: #000; }
     </style>
 </head>
 <body>
-
 <nav class="navbar navbar-dark navbar-rotary px-4 mb-3 shadow-sm py-2">
     <a class="navbar-brand fw-bold fs-6" href="/menu">Rotary Club Creel - Distrito 4110</a>
     <div class="d-flex align-items-center">
         <span class="text-white me-2 small d-none d-md-block">{{ session.get('username') }} ({{ session.get('rol') }})</span>
-        <button class="btn btn-warning btn-sm shadow-sm fw-bold text-dark me-2 py-1 px-3" data-bs-toggle="modal" data-bs-target="#modalFestividades">
-            🎉 CUMPLEAÑOS: {{ mes_actual_nombre }}
-        </button>
+        <button class="btn btn-warning btn-sm shadow-sm fw-bold text-dark me-2 py-1 px-3" data-bs-toggle="modal" data-bs-target="#modalFestividades">🎉 CUMPLEAÑOS: {{ mes_actual_nombre }}</button>
         <a href="/menu" class="btn btn-outline-light btn-sm me-2">Menú</a>
         <a href="/logout" class="btn btn-light btn-sm">Salir</a>
     </div>
 </nav>
-
 <div class="container-fluid px-4">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show py-2 small">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold mb-0" style="color:#17458F;">Directorio de Socios ({{ socios|length }})</h4>
-        {% if session.get('rol') in ['ADMIN','PRESIDENTE','TESORERO'] %}
-        <button class="btn btn-rotary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgregarSocio">
-            <i class="bi bi-person-plus"></i> Agregar Socio
-        </button>
-        {% endif %}
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-striped table-socios mb-0">
-                    <thead><tr><th>#</th><th>Foto</th><th>Nombre Completo</th><th>Tipo</th><th>Teléfono</th><th>Correo</th><th>Ciudad</th><th>Fecha Nac.</th><th>Acciones</th></tr></thead>
-                    <tbody>
-                        {% for socio in socios %}
-                        <tr>
-                            <td>{{ socio.numero_socio or socio.id }}</td>
-                            <td>{% if socio.foto_url %}<img src="{{ socio.foto_url }}" class="foto-socio">{% else %}<div class="foto-placeholder">👤</div>{% endif %}</td>
-                            <td class="fw-bold">{{ socio.nombre_completo }}</td>
-                            <td><span class="badge bg-info text-dark" style="font-size:10px;">{{ socio.tipo_socio or 'ACTIVO' }}</span></td>
-                            <td>{{ socio.telefono or '-' }}</td>
-                            <td style="text-transform: lowercase; font-size:11px;">{{ socio.correo or '-' }}</td>
-                            <td>{{ socio.ciudad or 'CREEL' }}</td>
-                            <td>{{ socio.fecha_nacimiento.strftime('%d/%m/%Y') if socio.fecha_nacimiento else '-' }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}"><i class="bi bi-eye"></i></button>
-                                    {% if session.get('rol') in ['ADMIN','PRESIDENTE','TESORERO'] %}
-                                    <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}"><i class="bi bi-pencil"></i></button>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- MODAL VER -->
-                        <div class="modal fade" id="modalVer{{ socio.id }}" tabindex="-1">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                    <div class="modal-header modal-header-rotary py-2"><h6 class="modal-title">{{ socio.nombre_completo }}</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-                                    <div class="modal-body small">
-                                        <div class="row">
-                                            <div class="col-md-4 text-center">
-                                                {% if socio.foto_url %}<img src="{{ socio.foto_url }}" class="img-fluid rounded mb-2" style="max-height:200px;">{% else %}<div class="foto-placeholder mx-auto" style="width:100px; height:100px; font-size:50px;">👤</div>{% endif %}
-                                            </div>
-                                            <div class="col-md-8">
-                                                <p><strong>Tel:</strong> {{ socio.telefono }} | <strong>Emerg:</strong> {{ socio.telefono_emergencia or '-' }}</p>
-                                                <p><strong>Correo:</strong> <span style="text-transform: lowercase;">{{ socio.correo }}</span></p>
-                                                <p><strong>Dirección:</strong> {{ socio.calle_numero or '' }} {{ socio.colonia or '' }} {{ socio.ciudad or '' }} {{ socio.estado or '' }}</p>
-                                                <p><strong>Esposa:</strong> {{ socio.nombre_esposa or '-' }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MODAL EDITAR CORREGIDO - socio_id -->
-                        <div class="modal fade" id="modalEditar{{ socio.id }}" tabindex="-1">
-                            <div class="modal-dialog modal-lg">
-                                <form action="{{ url_for('editar_socio', socio_id=socio.id) }}" method="POST" enctype="multipart/form-data" class="modal-content">
-                                    <div class="modal-header modal-header-rotary py-2"><h6 class="modal-title">Editar: {{ socio.nombre_completo }}</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-                                    <div class="modal-body small" style="max-height:70vh; overflow-y:auto;">
-                                        <div class="row g-2">
-                                            <div class="col-md-3"><label class="form-label">No. Socio</label><input type="text" name="numero_socio" class="form-control form-control-sm" value="{{ socio.numero_socio }}"></div>
-                                            <div class="col-md-9"><label class="form-label">Nombre Completo *</label><input type="text" name="nombre_completo" class="form-control form-control-sm" value="{{ socio.nombre_completo }}" required></div>
-                                            <div class="col-md-4"><label class="form-label">Teléfono</label><input type="text" name="telefono" class="form-control form-control-sm" value="{{ socio.telefono }}"></div>
-                                            <div class="col-md-4"><label class="form-label">Correo</label><input type="email" name="correo" class="form-control form-control-sm" value="{{ socio.correo }}"></div>
-                                            <div class="col-md-4"><label class="form-label">Fecha Nacimiento</label><input type="date" name="fecha_nacimiento" class="form-control form-control-sm" value="{{ socio.fecha_nacimiento }}"></div>
-                                            <div class="col-md-4"><label class="form-label">Ciudad</label><input type="text" name="ciudad" class="form-control form-control-sm" value="{{ socio.ciudad }}"></div>
-                                            <div class="col-md-4"><label class="form-label">Estado</label><input type="text" name="estado" class="form-control form-control-sm" value="{{ socio.estado }}"></div>
-                                            <div class="col-md-4"><label class="form-label">Foto</label><input type="file" name="foto_archivo" class="form-control form-control-sm" accept="image/*"></div>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer py-1">
-                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                                        <button type="submit" class="btn btn-rotary btn-sm">Guardar Cambios</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL AGREGAR -->
-<div class="modal fade" id="modalAgregarSocio" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <form action="{{ url_for('agregar_socio') }}" method="POST" enctype="multipart/form-data" class="modal-content">
-            <div class="modal-header modal-header-rotary py-2"><h6 class="modal-title">Agregar Nuevo Socio</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body small">
-                <div class="row g-2">
-                    <div class="col-md-3"><label class="form-label">No. Socio</label><input type="text" name="numero_socio" class="form-control form-control-sm"></div>
-                    <div class="col-md-9"><label class="form-label">Nombre Completo *</label><input type="text" name="nombre_completo" class="form-control form-control-sm" required></div>
-                    <div class="col-md-6"><label class="form-label">Teléfono</label><input type="text" name="telefono" class="form-control form-control-sm"></div>
-                    <div class="col-md-6"><label class="form-label">Correo</label><input type="email" name="correo" class="form-control form-control-sm"></div>
-                </div>
-            </div>
-            <div class="modal-footer py-1"><button type="submit" class="btn btn-rotary btn-sm">Agregar</button></div>
-        </form>
-    </div>
-</div>
-
-<!-- MODAL CUMPLEAÑOS -->
-<div class="modal fade" id="modalFestividades" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header bg-warning py-2"><h6 class="modal-title">🎉 Cumpleaños de {{ mes_actual_nombre }}</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body small">
-            {% for f in festividades_mes %}<div class="d-flex justify-content-between border-bottom py-2"><div><span class="badge bg-primary">DÍA {{ f.dia }}</span> <strong>{{ f.persona }}</strong></div><span class="badge bg-success">{{ f.tipo }}</span></div>{% else %}<p class="text-center text-muted">No hay festividades</p>{% endfor %}
-        </div>
-    </div></div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{
