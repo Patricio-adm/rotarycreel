@@ -7,214 +7,287 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body { background:#f8f9fa; font-family:'Segoe UI', sans-serif; text-transform:uppercase; font-size:12px; }
+        body { background:#f8f9fa; font-family:'Segoe UI', sans-serif; text-transform:uppercase; font-size:13px; }
         .navbar-rotary { background:#17458F; border-bottom:4px solid #F7A81B; }
         .card-header-rotary { background:#17458F; color:white; }
         .table-recaudacion th { background:#17458F; color:white; font-size:10px; padding:6px 4px; text-align:center; }
-        .table-recaudacion td { font-size:11px; padding:5px 4px; text-align:center; vertical-align:middle; }
-        .badge-porc-bajo { background:#dc3545; }
-        .badge-porc-medio { background:#ffc107; color:#000; }
-        .badge-porc-alto { background:#28a745; }
-        @media print { .no-print { display:none; } .card { border:1px solid #000 !important; } }
+        .table-recaudacion td { font-size:11px; padding:6px 4px; text-align:center; vertical-align:middle; }
+        .badge-estadistico { background:#6c757d; font-size:9px; }
+        .badge-caja { background:#28a745; font-size:9px; }
+        .modal-content { background:#fff !important; }
+        .modal-body { background:#fff !important; }
+        @media print { .no-print { display:none; } }
     </style>
 </head>
 <body>
 <nav class="navbar navbar-dark navbar-rotary px-3 py-2">
     <div class="container-fluid">
-        <span class="navbar-brand fw-bold" style="font-size:14px;">💰 RECAUDACIÓN MENSUAL - ROTARY CLUB CREEL</span>
+        <span class="navbar-brand fw-bold" style="font-size:15px;">💰 RECAUDACIÓN MENSUAL - ESTADÍSTICO Y CAJA</span>
         <div class="d-flex">
-            <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-outline-light btn-sm me-2" style="font-size:11px;">← Cuotas Sociales</a>
-            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm me-2" style="font-size:11px;">Menú</a>
+            <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-outline-light btn-sm me-2" style="font-size:11px;">← Cuotas</a>
+            <a href="{{ url_for('menu_principal') }}" class="btn btn-outline-light btn-sm" style="font-size:11px;">Menú</a>
         </div>
     </div>
 </nav>
 
 <div class="container-fluid px-4 mt-3">
-    <!-- Resumen Superior -->
+    
+    <!-- BOTONES DE AÑO 2025, 2026, 2027 AUTOMATICO -->
     <div class="row mb-3">
-        <div class="col-md-3">
-            <div class="card shadow-sm border-primary">
+        <div class="col-md-8">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('recaudacion_mensual') }}" class="btn {% if anio_filtro=='TODOS' %}btn-primary{% else %}btn-outline-primary{% endif %} btn-sm fw-bold" style="font-size:12px;"><i class="bi bi-calendar3"></i> TODOS</a>
+                {% for anio in anios_disponibles %}
+                    <a href="{{ url_for('recaudacion_mensual') }}?anio={{ anio }}" class="btn {% if anio_filtro==anio %}btn-primary{% else %}btn-outline-primary{% endif %} btn-sm fw-bold" style="font-size:12px;">
+                        {% if anio=='2025' %}📊 2025 ESTADISTICO{% elif anio=='2026' %}💰 2026 CAJA{% else %}📅 {{ anio }}{% endif %}
+                    </a>
+                {% endfor %}
+            </div>
+            <small class="text-muted ms-2" style="font-size:10px;">Botón 2027 aparece automático cuando agregues meses de 2027 en MESES_CONTROL</small>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-warning btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalComparacion" style="font-size:12px;">
+                <i class="bi bi-bar-chart-line"></i> COMPARACION AÑOS PASADOS
+            </button>
+            <button onclick="window.print()" class="btn btn-secondary btn-sm ms-1" style="font-size:11px;"><i class="bi bi-printer"></i></button>
+        </div>
+    </div>
+
+    <!-- RESUMEN SUPERIOR CON DISTINCION ESTADISTICO VS CAJA -->
+    <div class="row mb-3">
+        <div class="col-md-2">
+            <div class="card shadow-sm border-dark">
                 <div class="card-body py-2 text-center">
-                    <small class="text-muted" style="font-size:9px;">TOTAL SOCIOS ACTIVOS</small>
-                    <h4 class="fw-bold text-primary mb-0">{{ total_socios }}</h4>
-                    <small class="text-muted" style="font-size:9px;">Cuota $500 c/u</small>
+                    <small class="text-muted" style="font-size:9px;">SOCIOS ACTIVOS</small>
+                    <h4 class="fw-bold mb-0">{{ total_socios }}</h4>
+                    <small style="font-size:9px;">$500 C/U = ${{ total_socios * 500 }} ESPERADO MES</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card shadow-sm border-info">
-                <div class="card-body py-2 text-center">
-                    <small class="text-muted" style="font-size:9px;">ESPERADO MENSUAL (12 SOCIOS)</small>
-                    <h4 class="fw-bold text-info mb-0">${{ "{:,.0f}".format(total_socios * 500) }} MXN</h4>
-                    <small class="text-muted" style="font-size:9px;">{{ total_socios }} x $500</small>
+            <div class="card shadow-sm border-secondary">
+                <div class="card-body py-2 text-center" style="background:#f8f9fa;">
+                    <small class="text-muted" style="font-size:9px;"><span class="badge badge-estadistico">2025 ESTADISTICO - NO VA A CAJA</span></small>
+                    <h5 class="fw-bold text-secondary mb-0">${{ "{:,.0f}".format(total_2025) }} MXN</h5>
+                    <small style="font-size:9px;">{{ porc_2025|round(1) }}% - Solo informativo en dinero</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card shadow-sm border-success">
-                <div class="card-body py-2 text-center">
-                    <small class="text-muted" style="font-size:9px;">RECAUDADO 2025</small>
-                    <h4 class="fw-bold text-success mb-0">${{ "{:,.0f}".format(total_2025) }} MXN</h4>
-                    <small class="text-muted" style="font-size:9px;">{{ porc_2025|round(1) }}% cumplimiento</small>
+                <div class="card-body py-2 text-center" style="background:#e8f5e9;">
+                    <small class="text-muted" style="font-size:9px;"><span class="badge badge-caja">2026 DINERO EN CAJA</span></small>
+                    <h5 class="fw-bold text-success mb-0">${{ "{:,.0f}".format(total_2026) }} MXN</h5>
+                    <small style="font-size:9px;">{{ porc_2026|round(1) }}% - Sí cuenta en caja + saldo inicial</small>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm border-warning">
+        <div class="col-md-2">
+            <div class="card shadow-sm border-info">
                 <div class="card-body py-2 text-center">
-                    <small class="text-muted" style="font-size:9px;">RECAUDADO 2026</small>
-                    <h4 class="fw-bold text-dark mb-0">${{ "{:,.0f}".format(total_2026) }} MXN</h4>
-                    <small class="text-muted" style="font-size:9px;">{{ porc_2026|round(1) }}% cumplimiento</small>
+                    <small class="text-muted" style="font-size:9px;">SALDO TOTAL CAJA (2026 + Inicial)</small>
+                    <h6 class="fw-bold text-info mb-0" style="font-size:12px;">Se calcula en tesorería</h6>
+                    <small style="font-size:8px;">2025 no suma a caja</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm border-primary">
+                <div class="card-body py-2 text-center">
+                    <small class="text-muted" style="font-size:9px;">EJEMPLO QUE PEDISTE</small>
+                    <p class="mb-0" style="font-size:10px; line-height:1.2;">12 socios = $6,000 esperado<br>Recibido $5,000 = 83.3%</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tabla Mes a Mes 2025 y 2026 -->
-    <div class="row">
-        <!-- 2025 -->
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-3">
-                <div class="card-header card-header-rotary py-2 d-flex justify-content-between">
-                    <span style="font-size:12px;"><i class="bi bi-calendar"></i> RECAUDACIÓN 2025 - MES POR MES</span>
-                    <span class="badge bg-warning text-dark">{{ meses_2025|length }} meses</span>
+    <!-- TABLAS POR AÑO FILTRADO -->
+    {% if anio_filtro == 'TODOS' or anio_filtro == '2025' %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-header card-header-rotary py-2 d-flex justify-content-between">
+            <span style="font-size:12px;">📊 AÑO 2025 - SOLO ESTADÍSTICO EN DINERO (NO VA A CAJA) - MES POR MES</span>
+            <span class="badge bg-secondary">ESTADISTICO</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-bordered table-hover table-recaudacion mb-0">
+                <thead>
+                    <tr>
+                        <th>MES</th>
+                        <th>RECIBIDO (SOLO $)</th>
+                        <th>ESPERADO (12 SOCIOS)</th>
+                        <th>FALTANTE</th>
+                        <th>% RECAUDACIÓN</th>
+                        <th>TIPO</th>
+                        <th>DETALLE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in meses_2025 %}
+                    <tr style="background:{% if d.porcentaje < 80 %}#fff3cd{% else %}#fff{% endif %};">
+                        <td class="text-start fw-bold">{{ d.mes }}</td>
+                        <td class="fw-bold text-secondary">${{ "{:,.0f}".format(d.recibido) }}</td>
+                        <td>${{ "{:,.0f}".format(d.esperado) }}</td>
+                        <td class="text-danger">${{ "{:,.0f}".format(d.diferencia) }}</td>
+                        <td>
+                            <span class="badge {% if d.porcentaje>=80 %}bg-success{% elif d.porcentaje>=50 %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size:10px;">{{ d.porcentaje|round(1) }}%</span>
+                        </td>
+                        <td><span class="badge badge-estadistico">ESTADISTICO</span></td>
+                        <td style="font-size:9px;">{{ d.num_pagos }} pagos - Sin nombre - Solo importe</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot style="background:#e9ecef; font-weight:bold;">
+                    <tr>
+                        <td>TOTAL 2025 ESTADISTICO</td>
+                        <td class="text-secondary">${{ "{:,.0f}".format(total_2025) }}</td>
+                        <td>${{ "{:,.0f}".format(esperado_2025) }}</td>
+                        <td>${{ "{:,.0f}".format(esperado_2025 - total_2025) }}</td>
+                        <td>{{ porc_2025|round(1) }}%</td>
+                        <td colspan="2">No va a caja - Solo informativo</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if anio_filtro == 'TODOS' or anio_filtro == '2026' %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-header py-2 d-flex justify-content-between" style="background:#28a745; color:white;">
+            <span style="font-size:12px;">💰 AÑO 2026 - DINERO EN CAJA REAL - MES POR MES</span>
+            <span class="badge bg-warning text-dark">DINERO EN CAJA</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-bordered table-hover table-recaudacion mb-0">
+                <thead>
+                    <tr>
+                        <th>MES</th>
+                        <th>RECIBIDO EN CAJA</th>
+                        <th>ESPERADO (12 SOCIOS)</th>
+                        <th>FALTANTE</th>
+                        <th>% RECAUDACIÓN</th>
+                        <th>TIPO</th>
+                        <th>DETALLE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in meses_2026 %}
+                    <tr style="background:{% if d.porcentaje < 80 %}#f8d7da{% else %}#d4edda{% endif %};">
+                        <td class="text-start fw-bold">{{ d.mes }}</td>
+                        <td class="fw-bold text-success">${{ "{:,.0f}".format(d.recibido) }}</td>
+                        <td>${{ "{:,.0f}".format(d.esperado) }}</td>
+                        <td class="{% if d.diferencia>0 %}text-danger{% else %}text-success{% endif %}">${{ "{:,.0f}".format(d.diferencia) }}</td>
+                        <td>
+                            <span class="badge {% if d.porcentaje>=80 %}bg-success{% elif d.porcentaje>=50 %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size:10px;">{{ d.porcentaje|round(1) }}%</span>
+                        </td>
+                        <td><span class="badge badge-caja">CAJA</span></td>
+                        <td style="font-size:9px;">{{ d.num_pagos }} pagos - Informativo por mes</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot style="background:#c3e6cb; font-weight:bold;">
+                    <tr>
+                        <td>TOTAL 2026 EN CAJA</td>
+                        <td class="text-success">${{ "{:,.0f}".format(total_2026) }}</td>
+                        <td>${{ "{:,.0f}".format(esperado_2026) }}</td>
+                        <td>${{ "{:,.0f}".format(esperado_2026 - total_2026) }}</td>
+                        <td>{{ porc_2026|round(1) }}%</td>
+                        <td colspan="2">Sí cuenta + saldo inicial = Total caja</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if meses_2027 %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-header py-2 d-flex justify-content-between" style="background:#17458F; color:white;">
+            <span style="font-size:12px;">📅 AÑO 2027 - NUEVO AÑO AUTOMÁTICO</span>
+            <span class="badge bg-warning text-dark">NUEVO</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-bordered table-hover table-recaudacion mb-0">
+                <thead><tr><th>MES</th><th>RECIBIDO</th><th>ESPERADO</th><th>FALTANTE</th><th>%</th><th>TIPO</th><th>DETALLE</th></tr></thead>
+                <tbody>
+                    {% for d in meses_2027 %}
+                    <tr><td class="text-start fw-bold">{{ d.mes }}</td><td class="fw-bold">${{ "{:,.0f}".format(d.recibido) }}</td><td>${{ "{:,.0f}".format(d.esperado) }}</td><td>${{ "{:,.0f}".format(d.diferencia) }}</td><td>{{ d.porcentaje|round(1) }}%</td><td>CAJA</td><td>{{ d.num_pagos }} pagos</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- MODAL COMPARACION AÑOS PASADOS -->
+    <div class="modal fade" id="modalComparacion" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content bg-white">
+                <div class="modal-header py-2" style="background:#17458F; color:white;">
+                    <h6 class="modal-title" style="font-size:13px;"><i class="bi bi-bar-chart-line"></i> COMPARACION AÑOS PASADOS - ESTADISTICO VS CAJA</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="card-body p-0">
-                    <table class="table table-bordered table-hover table-recaudacion mb-0">
+                <div class="modal-body bg-white">
+                    <div class="alert alert-info py-2" style="font-size:11px;">
+                        <strong>ACLARACIÓN:</strong> 2025 solo estadístico en dinero, no va a caja. 2026 sí es dinero en caja real + saldo inicial. Algunos meses de 2026 pueden marcarse como informativos después según acuerdes con el presidente.
+                    </div>
+                    <table class="table table-bordered table-recaudacion">
                         <thead>
                             <tr>
-                                <th>MES</th>
+                                <th>AÑO</th>
+                                <th>MESES</th>
                                 <th>RECIBIDO</th>
                                 <th>ESPERADO</th>
                                 <th>DIFERENCIA</th>
-                                <th>%</th>
-                                <th>ESTADO</th>
+                                <th>% CUMPLIMIENTO</th>
+                                <th>TIPO</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for d in meses_2025 %}
-                            <tr>
-                                <td class="text-start fw-bold" style="font-size:11px;">{{ d.mes }}</td>
-                                <td class="fw-bold text-success">${{ "{:,.0f}".format(d.recibido) }}</td>
-                                <td>${{ "{:,.0f}".format(d.esperado) }}</td>
-                                <td class="{% if d.diferencia>0 %}text-danger{% else %}text-success{% endif %}">
-                                    {% if d.diferencia>0 %}-{% endif %}${{ "{:,.0f}".format(d.diferencia|abs) }}
-                                </td>
+                            {% for c in comparacion_anual %}
+                            <tr style="background:{% if c.anio=='2025' %}#f8f9fa{% elif c.anio=='2026' %}#d4edda{% else %}#fff{% endif %};">
+                                <td class="fw-bold" style="font-size:13px;">{{ c.anio }}</td>
+                                <td>{{ c.meses }} meses</td>
+                                <td class="fw-bold {% if c.anio=='2025' %}text-secondary{% else %}text-success{% endif %}">${{ "{:,.0f}".format(c.total_recibido) }}</td>
+                                <td>${{ "{:,.0f}".format(c.esperado) }}</td>
+                                <td class="text-danger">${{ "{:,.0f}".format(c.esperado - c.total_recibido) }}</td>
                                 <td>
-                                    {% if d.porcentaje >= 80 %}
-                                        <span class="badge badge-porc-alto">{{ d.porcentaje|round(0) }}%</span>
-                                    {% elif d.porcentaje >= 50 %}
-                                        <span class="badge badge-porc-medio">{{ d.porcentaje|round(0) }}%</span>
-                                    {% else %}
-                                        <span class="badge badge-porc-bajo">{{ d.porcentaje|round(0) }}%</span>
-                                    {% endif %}
+                                    <div class="progress" style="height:20px;">
+                                        <div class="progress-bar {% if c.porcentaje>=80 %}bg-success{% elif c.porcentaje>=50 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ c.porcentaje if c.porcentaje<=100 else 100 }}%;">{{ c.porcentaje|round(1) }}%</div>
+                                    </div>
                                 </td>
-                                <td style="font-size:9px;">
-                                    {% if d.porcentaje == 100 %}✅ COMPLETO{% elif d.porcentaje >= 80 %}🟡 {{ d.porcentaje|round(0) }}%{% else %}🔴 {{ d.porcentaje|round(0) }}%{% endif %}
-                                </td>
+                                <td style="font-size:9px;">{{ c.tipo }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
-                        <tfoot style="background:#e8eef9; font-weight:bold;">
-                            <tr>
-                                <td>TOTAL 2025</td>
-                                <td class="text-success">${{ "{:,.0f}".format(total_2025) }}</td>
-                                <td>${{ "{:,.0f}".format(esperado_2025) }}</td>
-                                <td>${{ "{:,.0f}".format(esperado_2025 - total_2025) }}</td>
-                                <td>{{ porc_2025|round(1) }}%</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
                     </table>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="card border-secondary">
+                                <div class="card-body py-2">
+                                    <h6 style="font-size:11px;" class="fw-bold">2025 - EJEMPLO JUNIO</h6>
+                                    <p style="font-size:11px;" class="mb-0">12 socios x $500 = $6,000 esperado<br>Recibido $5,000 = 83.3% recaudación<br><span class="badge bg-secondary">SOLO ESTADISTICO, NO VA A CAJA</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-body py-2">
+                                    <h6 style="font-size:11px;" class="fw-bold">2026 - DINERO EN CAJA</h6>
+                                    <p style="font-size:11px;" class="mb-0">12 socios x $500 = $6,000 esperado<br>Recibido + saldo inicial = Total caja<br><span class="badge bg-success">SI CUENTA EN CAJA REAL</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- 2026 -->
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-3">
-                <div class="card-header card-header-rotary py-2 d-flex justify-content-between">
-                    <span style="font-size:12px;"><i class="bi bi-calendar"></i> RECAUDACIÓN 2026 - MES POR MES</span>
-                    <span class="badge bg-warning text-dark">{{ meses_2026|length }} meses</span>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-bordered table-hover table-recaudacion mb-0">
-                        <thead>
-                            <tr>
-                                <th>MES</th>
-                                <th>RECIBIDO</th>
-                                <th>ESPERADO</th>
-                                <th>DIFERENCIA</th>
-                                <th>%</th>
-                                <th>ESTADO</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for d in meses_2026 %}
-                            <tr>
-                                <td class="text-start fw-bold" style="font-size:11px;">{{ d.mes }}</td>
-                                <td class="fw-bold text-success">${{ "{:,.0f}".format(d.recibido) }}</td>
-                                <td>${{ "{:,.0f}".format(d.esperado) }}</td>
-                                <td class="{% if d.diferencia>0 %}text-danger{% else %}text-success{% endif %}">
-                                    {% if d.diferencia>0 %}-{% endif %}${{ "{:,.0f}".format(d.diferencia|abs) }}
-                                </td>
-                                <td>
-                                    {% if d.porcentaje >= 80 %}
-                                        <span class="badge badge-porc-alto">{{ d.porcentaje|round(0) }}%</span>
-                                    {% elif d.porcentaje >= 50 %}
-                                        <span class="badge badge-porc-medio">{{ d.porcentaje|round(0) }}%</span>
-                                    {% else %}
-                                        <span class="badge badge-porc-bajo">{{ d.porcentaje|round(0) }}%</span>
-                                    {% endif %}
-                                </td>
-                                <td style="font-size:9px;">
-                                    {% if d.porcentaje == 100 %}✅ COMPLETO{% elif d.porcentaje >= 80 %}🟡 {{ d.porcentaje|round(0) }}%{% else %}🔴 {{ d.porcentaje|round(0) }}%{% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                        <tfoot style="background:#e8eef9; font-weight:bold;">
-                            <tr>
-                                <td>TOTAL 2026</td>
-                                <td class="text-success">${{ "{:,.0f}".format(total_2026) }}</td>
-                                <td>${{ "{:,.0f}".format(esperado_2026) }}</td>
-                                <td>${{ "{:,.0f}".format(esperado_2026 - total_2026) }}</td>
-                                <td>{{ porc_2026|round(1) }}%</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                <div class="modal-footer bg-white py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Imprimir Comparación</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Comparativa Anual -->
-    <div class="card shadow-sm mt-2">
-        <div class="card-header card-header-rotary py-2">
-            <h6 class="mb-0" style="font-size:12px;"><i class="bi bi-graph-up"></i> COMPARATIVA ANUAL - SIN NOMBRES DE SOCIOS (SOLO IMPORTES)</h6>
-        </div>
-        <div class="card-body">
-            <div class="row text-center">
-                <div class="col-md-6 border-end">
-                    <h6 style="font-size:11px; color:#17458F;">EJEMPLO QUE PEDISTE:</h6>
-                    <p style="font-size:11px;" class="mb-1">Si somos <strong>12 socios</strong> x $500 = <strong>$6,000 esperado</strong></p>
-                    <p style="font-size:11px;" class="mb-1">En Junio se recibió <strong>$5,000</strong> = <strong>83.3%</strong> de recaudación</p>
-                    <p style="font-size:11px;" class="mb-0">Faltante: <strong class="text-danger">$1,000 (16.7%)</strong></p>
-                </div>
-                <div class="col-md-6">
-                    <h6 style="font-size:11px; color:#17458F;">RESUMEN GENERAL</h6>
-                    <p style="font-size:11px;" class="mb-1">2025: Recibido ${{ "{:,.0f}".format(total_2025) }} / Esperado ${{ "{:,.0f}".format(esperado_2025) }} = {{ porc_2025|round(1) }}%</p>
-                    <p style="font-size:11px;" class="mb-0">2026: Recibido ${{ "{:,.0f}".format(total_2026) }} / Esperado ${{ "{:,.0f}".format(esperado_2026) }} = {{ porc_2026|round(1) }}%</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="text-center mt-3 mb-4 no-print">
-        <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="bi bi-printer"></i> Imprimir Estado por Mes</button>
-        <a href="{{ url_for('cuotas_sociales') }}" class="btn btn-secondary btn-sm">Volver a Cuotas</a>
-    </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

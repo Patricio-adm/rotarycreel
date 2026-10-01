@@ -430,30 +430,35 @@ def modulo_tesoreria():
         return redirect(url_for('login'))
     return render_template('tesoreria_menu.html')
 
+
 @app.route('/tesoreria/cuotas-sociales')
 def cuotas_sociales():
-    if 'user_id' not in session:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
-    socios = Socio.query.filter_by(es_activo=True).order_by(Socio.nombre_completo.asc()).all()
-    config_teso = ConfiguracionTesoreria.query.first()
-    saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
-    total_recaudado = PagoCuota.query.filter(PagoCuota.mes_anio.in_(MESES_CONTROL)).with_entities(db.func.sum(PagoCuota.monto)).scalar() or 0.0
-    saldo_total_general = saldo_inicial + total_recaudado
-    recibo_ids = request.args.get('recibo_ids')
-    pagos_recibo = []
-    if recibo_ids:
-        try:
-            ids = [int(x) for x in recibo_ids.split(',') if x]
+    socios = Socio.query.filter_by(es_activo=True).all()
+    # Saldo inicial
+    config = Configuracion.query.first()
+    saldo_inicial = config.saldo_inicial if config else 0
+    
+    # SOLO 2026 COMO DINERO EN CAJA - 2025 SOLO ESTADISTICO
+    pagos_2026 = PagoCuota.query.filter(PagoCuota.mes_anio.contains('2026')).all()
+    total_2026_caja = sum([p.monto for p in pagos_2026]) if pagos_2026 else 0
+    saldo_total_general = saldo_inicial + total_2026_caja
+    
+    # Para estadistica 2025
+    pagos_2025 = PagoCuota.query.filter(PagoCuota.mes_anio.contains('2025')).all()
+    total_2025_estadistico = sum([p.monto for p in pagos_2025]) if pagos_2025 else 0
+    
+    ultimo_pago = PagoCuota.query.order_by(PagoCuota.id.desc()).first()
+    pagos_recibo = None
+    if 'pagos_recibo_ids' in session:
+        ids = session.pop('pagos_recibo_ids', [])
+        if ids:
             pagos_recibo = PagoCuota.query.filter(PagoCuota.id.in_(ids)).all()
-        except:
-            pagos_recibo = []
-    recibo_id = request.args.get('recibo_id')
-    if recibo_id and not pagos_recibo:
-        p = PagoCuota.query.get(recibo_id)
-        if p:
-            pagos_recibo = [p]
-    ultimo_pago = pagos_recibo[-1] if pagos_recibo else None
-    return render_template('tesoreria.html', socios=socios, meses=MESES_CONTROL, ultimo_pago=ultimo_pago, pagos_recibo=pagos_recibo, saldo_inicial=saldo_inicial, saldo_total_general=saldo_total_general)
+    
+    return render_template('tesoreria.html', socios=socios, meses=MESES_CONTROL, ultimo_pago=ultimo_pago, pagos_recibo=pagos_recibo, saldo_inicial=saldo_inicial, saldo_total_general=saldo_total_general, total_2026_caja=total_2026_caja, total_2025_estadistico=total_2025_estadistico)
+
+
 
 @app.route('/tesoreria/actualizar-saldo-inicial', methods=['POST'])
 def actualizar_saldo_inicial():
@@ -567,6 +572,7 @@ def logout():
     return redirect(url_for('index_publico'))
 
 
+
 @app.route('/tesoreria/recaudacion-mensual')
 def recaudacion_mensual():
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
@@ -576,8 +582,14 @@ def recaudacion_mensual():
         total_socios = 12
     cuota_mensual = 500
     esperado_por_mes = total_socios * cuota_mensual
-    MESES_2025_LIST = [m for m in MESES_CONTROL if "2025" in m] if 'MESES_CONTROL' in globals() else ["JUN 2025","JUL 2025","AGO 2025","SEP 2025","OCT 2025","NOV 2025","DIC 2025"]
-    MESES_2026_LIST = [m for m in MESES_CONTROL if "2026" in m] if 'MESES_CONTROL' in globals() else ["ENE 2026","FEB 2026","MAR 2026","ABR 2026","MAY 2026","JUN 2026","JUL 2026","AGO 2026","SEP 2026","OCT 2026","NOV 2026","DIC 2026"]
+    
+    # Años disponibles dinamicos de MESES_CONTROL
+    anios_disponibles = sorted(list(set([m.split()[-1] for m in MESES_CONTROL if m.split()[-1].isdigit()])))
+    if not anios_disponibles:
+        anios_disponibles = ["2025", "2026"]
+    
+    anio_filtro = request.args.get('anio', None)  # Si viene ?anio=2025
+    
     def calcular_meses(lista_meses):
         resultado = []
         total_recibido = 0
@@ -587,32 +599,95 @@ def recaudacion_mensual():
             esperado = esperado_por_mes
             diferencia = esperado - recibido
             porcentaje = (recibido / esperado * 100) if esperado > 0 else 0
+            # Tipo: 2025 estadistico, 2026 caja
+            tipo = "ESTADISTICO" if "2025" in mes else "CAJA"
             resultado.append({
                 'mes': mes,
                 'recibido': recibido,
                 'esperado': esperado,
                 'diferencia': diferencia,
                 'porcentaje': porcentaje,
-                'num_pagos': len(pagos_mes)
+                'num_pagos': len(pagos_mes),
+                'tipo': tipo
             })
             total_recibido += recibido
         return resultado, total_recibido
-    meses_2025, total_2025 = calcular_meses(MESES_2025_LIST)
-    meses_2026, total_2026 = calcular_meses(MESES_2026_LIST)
-    esperado_2025 = len(MESES_2025_LIST) * esperado_por_mes
-    esperado_2026 = len(MESES_2026_LIST) * esperado_por_mes
-    porc_2025 = (total_2025 / esperado_2025 * 100) if esperado_2025 else 0
-    porc_2026 = (total_2026 / esperado_2026 * 100) if esperado_2026 else 0
+
+    # Si hay filtro de año, solo ese año
+    if anio_filtro and anio_filtro in anios_disponibles:
+        meses_filtrados = [m for m in MESES_CONTROL if anio_filtro in m]
+        meses_data, total_filtrado = calcular_meses(meses_filtrados)
+        meses_2025 = []
+        meses_2026 = []
+        meses_2027 = []
+        if anio_filtro == "2025":
+            meses_2025 = meses_data
+        elif anio_filtro == "2026":
+            meses_2026 = meses_data
+        else:
+            meses_2027 = meses_data
+        # Para comparacion igual calculamos todos
+        meses_2025_all, total_2025_all = calcular_meses([m for m in MESES_CONTROL if "2025" in m])
+        meses_2026_all, total_2026_all = calcular_meses([m for m in MESES_CONTROL if "2026" in m])
+        meses_2027_all, total_2027_all = calcular_meses([m for m in MESES_CONTROL if "2027" in m])
+    else:
+        meses_2025, total_2025 = calcular_meses([m for m in MESES_CONTROL if "2025" in m])
+        meses_2026, total_2026 = calcular_meses([m for m in MESES_CONTROL if "2026" in m])
+        meses_2027, total_2027 = calcular_meses([m for m in MESES_CONTROL if "2027" in m])
+        meses_2025_all = meses_2025
+        meses_2026_all = meses_2026
+        meses_2027_all = meses_2027
+        total_2025_all = total_2025
+        total_2026_all = total_2026
+        total_2027_all = total_2027
+        anio_filtro = "TODOS"
+
+    # Calculos para comparacion
+    esperado_2025 = len([m for m in MESES_CONTROL if "2025" in m]) * esperado_por_mes
+    esperado_2026 = len([m for m in MESES_CONTROL if "2026" in m]) * esperado_por_mes
+    esperado_2027 = len([m for m in MESES_CONTROL if "2027" in m]) * esperado_por_mes if any("2027" in m for m in MESES_CONTROL) else 0
+
+    porc_2025 = (total_2025_all / esperado_2025 * 100) if esperado_2025 else 0
+    porc_2026 = (total_2026_all / esperado_2026 * 100) if esperado_2026 else 0
+    porc_2027 = (total_2027_all / esperado_2027 * 100) if esperado_2027 else 0
+
+    # Datos para modal comparacion
+    comparacion_anual = []
+    for anio in anios_disponibles:
+        lista = [m for m in MESES_CONTROL if anio in m]
+        datos, total = calcular_meses(lista)
+        esperado = len(lista) * esperado_por_mes
+        porc = (total / esperado * 100) if esperado else 0
+        tipo = "ESTADISTICO - NO VA A CAJA" if anio == "2025" else "DINERO EN CAJA"
+        comparacion_anual.append({
+            'anio': anio,
+            'total_recibido': total,
+            'esperado': esperado,
+            'porcentaje': porc,
+            'meses': len(lista),
+            'tipo': tipo
+        })
+
     return render_template('recaudacion_mensual.html',
                            total_socios=total_socios,
                            meses_2025=meses_2025,
                            meses_2026=meses_2026,
-                           total_2025=total_2025,
-                           total_2026=total_2026,
+                           meses_2027=meses_2027,
+                           total_2025=total_2025_all,
+                           total_2026=total_2026_all,
+                           total_2027=total_2027_all,
                            esperado_2025=esperado_2025,
                            esperado_2026=esperado_2026,
+                           esperado_2027=esperado_2027,
                            porc_2025=porc_2025,
-                           porc_2026=porc_2026)
+                           porc_2026=porc_2026,
+                           porc_2027=porc_2027,
+                           anios_disponibles=anios_disponibles,
+                           anio_filtro=anio_filtro,
+                           comparacion_anual=comparacion_anual,
+                           cuota_mensual=cuota_mensual)
+
+
 
 
 if __name__ == '__main__':
