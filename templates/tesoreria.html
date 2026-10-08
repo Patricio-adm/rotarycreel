@@ -50,7 +50,7 @@
             <div class="card shadow-sm border-info h-100">
                 <div class="card-body d-flex justify-content-between align-items-center py-2">
                     <div>
-                        <h6 class="card-title text-muted mb-1" style="font-size:10px;">Saldo Inicial</h6>
+                        <h6 class="card-title text-muted mb-1" style="font-size:10px;">Saldo Inicial (Presidente)</h6>
                         <h5 class="text-info fw-bold mb-0" style="font-size:14px;">${{ "{:,.2f}".format(saldo_inicial) }} MXN</h5>
                     </div>
                     <button class="btn btn-outline-info btn-sm" style="font-size:10px;" data-bs-toggle="modal" data-bs-target="#modalSaldo">⚙️</button>
@@ -78,12 +78,12 @@
         <div class="modal-dialog">
             <form action="{{ url_for('actualizar_saldo_inicial') }}" method="POST" class="modal-content bg-white">
                 <div class="modal-header" style="background:#17458F; color:white;">
-                    <h6 class="modal-title" style="font-size:12px;">Configurar Saldo Inicial</h6>
+                    <h6 class="modal-title" style="font-size:12px;">Configurar Saldo Inicial (Presidente)</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body bg-white">
                     <div class="mb-3">
-                        <label class="form-label fw-bold" style="font-size:11px;">Nuevo Saldo Inicial</label>
+                        <label class="form-label fw-bold" style="font-size:11px;">Nuevo Saldo Inicial (Presidente)</label>
                         <input type="number" step="0.01" name="saldo_inicial" class="form-control form-control-sm bg-white" value="{{ saldo_inicial }}" required>
                     </div>
                     <div class="mb-3">
@@ -103,7 +103,6 @@
     <div class="card shadow-sm mb-4">
         <div class="card-header card-header-rotary d-flex justify-content-between align-items-center py-2">
             <h6 class="mb-0" style="font-size:13px;">📊 Control de Cuotas Sociales ($500.00 MXN / Mes) - Jun 2025 a Jun 2027</h6>
-            <button class="btn btn-warning btn-sm fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago" style="font-size:11px;"><i class="bi bi-plus"></i> Registrar Pago</button>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
