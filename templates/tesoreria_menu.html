@@ -4,148 +4,68 @@
 <meta charset="UTF-8">
 <title>Tesorería - Rotary Creel</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
-.card-modulo { border:none; border-radius:12px; transition:0.2s; border-top:4px solid #17458F; height:100%; }
+.card-modulo { border:none; border-radius:12px; border-top:5px solid #17458F; height:130px; display:flex; flex-direction:column; justify-content:center; align-items:center; transition:0.2s; }
 .card-modulo:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.15); }
 .card-gastos { border-top-color:#F7A81B; }
 .card-proyectos { border-top-color:#28a745; }
 .card-recaudacion { border-top-color:#6f42c1; }
-.icono { font-size:36px; margin-bottom:10px; }
-.resumen-card { font-size:11px; }
-.monto-verde { color:#28a745; font-weight:900; }
-.monto-rojo { color:#dc3545; font-weight:900; }
+.icono { font-size:38px; margin-bottom:8px; }
 </style>
 </head>
 <body>
 <div class="header-rotary d-flex justify-content-between align-items-center">
-<div class="d-flex align-items-center">
 <h6 class="mb-0 fw-bold" style="font-size:14px;">TESORERÍA</h6>
-</div>
 <a href="/menu" class="btn btn-outline-light btn-sm fw-bold" style="font-size:11px;">MENÚ PRINCIPAL</a>
 </div>
 
-<div class="container py-4">
+<div class="container py-5">
 
-<div class="text-center mb-4">
+<div class="text-center mb-5">
 <h4 class="fw-bold" style="color:#17458F; font-size:22px;">GESTIÓN DE TESORERÍA</h4>
 <p class="text-muted" style="font-size:11px;">SELECCIONE EL MÓDULO O CONCEPTO QUE DESEA ADMINISTRAR</p>
 </div>
 
-<!-- RESUMEN FINANCIERO RAPIDO -->
-<div class="row mb-4">
-<div class="col-md-3 mb-2">
-<div class="card resumen-card border-success">
-<div class="card-body py-2 text-center">
-<small class="text-muted d-block" style="font-size:8px;">CUOTAS SOCIALES TOTAL</small>
-<strong class="monto-verde" style="font-size:14px;">${{ "%.2f"|format(total_cuotas) }}</strong>
-<small class="d-block" style="font-size:8px;">RECAUDADO HISTÓRICO</small>
-</div>
-</div>
-</div>
-<div class="col-md-3 mb-2">
-<div class="card resumen-card border-danger">
-<div class="card-body py-2 text-center">
-<small class="text-muted d-block" style="font-size:8px;">GASTOS ADMIN</small>
-<strong class="monto-rojo" style="font-size:14px;">- ${{ "%.2f"|format(total_gastos_admin) }}</strong>
-<small class="d-block" style="font-size:8px;">DE CUOTAS | BAL: ${{ "%.2f"|format(balance_cuotas) }}</small>
-</div>
-</div>
-</div>
-<div class="col-md-3 mb-2">
-<div class="card resumen-card border-primary">
-<div class="card-body py-2 text-center">
-<small class="text-muted d-block" style="font-size:8px;">INGRESOS PROYECTOS</small>
-<strong class="text-primary" style="font-size:14px;">${{ "%.2f"|format(total_proyectos_ing) }}</strong>
-<small class="d-block" style="font-size:8px;">{{ proyectos|length }} PROYECTOS ACTIVOS</small>
-</div>
-</div>
-</div>
-<div class="col-md-3 mb-2">
-<div class="card resumen-card border-dark">
-<div class="card-body py-2 text-center">
-<small class="text-muted d-block" style="font-size:8px;">BALANCE PROYECTOS</small>
-<strong class="{% if balance_proyectos>=0 %}monto-verde{% else %}monto-rojo{% endif %}" style="font-size:14px;">${{ "%.2f"|format(balance_proyectos) }}</strong>
-<small class="d-block" style="font-size:8px;">INGRESOS - GASTOS PROY</small>
-</div>
-</div>
-</div>
-</div>
+<div class="row g-4 justify-content-center">
 
-<!-- MODULOS -->
-<div class="row g-3">
-
-<!-- 1 CUOTAS SOCIALES -->
 <div class="col-md-6 col-lg-3">
 <a href="/tesoreria/cuotas-sociales" class="text-decoration-none">
 <div class="card card-modulo shadow-sm text-center p-3">
 <div class="icono">💵</div>
-<h6 class="fw-bold" style="font-size:13px; color:#000;">CUOTAS SOCIALES</h6>
-<p class="text-muted" style="font-size:9px; text-transform:none;">Control mensual de pagos de socios ($500.00 MXN), adeudos e historial desde Julio 2025. Estado cuenta individual con botón PAGADO para reimprimir recibo media carta.</p>
-<div class="mt-2">
-<span class="badge bg-primary" style="font-size:8px;">${{ "%.0f"|format(total_cuotas) }} RECAUDADO</span>
-</div>
+<h6 class="fw-bold mb-0" style="font-size:14px; color:#000;">CUOTAS SOCIALES</h6>
 </div>
 </a>
 </div>
 
-<!-- 2 GASTOS - NUEVO -->
 <div class="col-md-6 col-lg-3">
 <a href="/tesoreria/gastos" class="text-decoration-none">
 <div class="card card-modulo card-gastos shadow-sm text-center p-3">
 <div class="icono">💸</div>
-<h6 class="fw-bold" style="font-size:13px; color:#000;">GASTOS</h6>
-<p class="text-muted" style="font-size:9px; text-transform:none;">Registro mes a mes de gastos del club. <strong>2 centros de costo:</strong><br>
-<span class="badge bg-danger" style="font-size:7px;">ADMINISTRATIVO</span> Se descuenta de cuotas sociales<br>
-<span class="badge bg-primary" style="font-size:7px;">PROYECTO</span> Se descuenta de ingresos del proyecto</p>
-<div class="mt-2">
-<span class="badge bg-danger" style="font-size:8px;">ADMIN ${{ "%.0f"|format(total_gastos_admin) }}</span>
-<span class="badge bg-primary" style="font-size:8px;">PROY ${{ "%.0f"|format(total_gastos_proy) }}</span>
-</div>
+<h6 class="fw-bold mb-0" style="font-size:14px; color:#000;">GASTOS</h6>
 </div>
 </a>
 </div>
 
-<!-- 3 PROYECTOS - NUEVO - BOMBERA -->
 <div class="col-md-6 col-lg-3">
 <a href="/tesoreria/proyectos" class="text-decoration-none">
 <div class="card card-modulo card-proyectos shadow-sm text-center p-3">
-<div class="icono">🚒</div>
-<h6 class="fw-bold" style="font-size:13px; color:#000;">PROYECTOS</h6>
-<p class="text-muted" style="font-size:9px; text-transform:none;">Gestión de proyectos activos.<br><strong>Actualmente: PROYECTO BOMBERA</strong><br>Eventos recaudatorios múltiples, meta, detalle numérico, % avance, balance.</p>
-<div class="mt-2">
-{% for p in proyectos[:2] %}
-<span class="badge bg-success" style="font-size:8px;">{{ p.nombre }}</span>
-{% endfor %}
-{% if not proyectos %}
-<span class="badge bg-success" style="font-size:8px;">PROYECTO BOMBERA</span>
-{% endif %}
-</div>
+<div class="icono">💡</div>
+<h6 class="fw-bold mb-0" style="font-size:14px; color:#000;">PROYECTOS</h6>
 </div>
 </a>
 </div>
 
-<!-- 4 RECAUDACION MENSUAL -->
 <div class="col-md-6 col-lg-3">
 <a href="/tesoreria/recaudacion-mensual" class="text-decoration-none">
 <div class="card card-modulo card-recaudacion shadow-sm text-center p-3">
 <div class="icono">📊</div>
-<h6 class="fw-bold" style="font-size:13px; color:#000;">RECAUDACIÓN MENSUAL</h6>
-<p class="text-muted" style="font-size:9px; text-transform:none;">Estadísticas mes a mes, esperado vs recibido, % cumplimiento, comparativa anual 2025-2027. Gráficas y balance de caja.</p>
-<div class="mt-2">
-<span class="badge bg-dark" style="font-size:8px;">BALANCE CUOTAS ${{ "%.0f"|format(balance_cuotas) }}</span>
-</div>
+<h6 class="fw-bold mb-0" style="font-size:14px; color:#000;">RECAUDACIÓN MENSUAL</h6>
 </div>
 </a>
 </div>
 
-</div>
-
-<!-- OTROS INGRESOS / EVENTOS YA INTEGRADO EN PROYECTOS -->
-<div class="alert alert-info mt-4 py-2 text-center" style="font-size:10px; text-transform:none;">
-<strong>💡 NUEVO FLUJO:</strong> <span class="badge bg-danger">GASTOS ADMINISTRATIVOS</span> se descuentan de Cuotas Sociales. <span class="badge bg-primary">GASTOS DE PROYECTO</span> se descuentan de los ingresos de cada proyecto (ej. BOMBERA). Cada proyecto tiene eventos con meta, monto recaudado y detalle numérico para ver si se llegó a meta. Ve a <strong>PROYECTOS → PROYECTO BOMBERA → + NUEVO EVENTO</strong> para registrar Cena, Rifa, Boteo, etc.
 </div>
 
 </div>
