@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Gastos - Rotary Creel</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; background:#f4f6f9; }
+.header-rotary { background:#17458F; color:white; padding:12px 20px; border-bottom:4px solid #F7A81B; }
+.card-header-rotary { background:#17458F; color:white; font-weight:700; font-size:12px; }
+.btn-rotary { background:#17458F; color:white; }
+.btn-rotary:hover { background:#0f2f61; color:white; }
+.badge-admin { background:#dc3545; }
+.badge-proyecto { background:#0d6efd; }
+.monto-negativo { color:#dc3545; font-weight:900; }
+.monto-positivo { color:#28a745; font-weight:900; }
+</style>
+</head>
+<body>
+<div class="header-rotary d-flex justify-content-between align-items-center">
+<div>
+<h5 class="mb-0 fw-bold" style="font-size:15px;">ROTARY CLUB CREEL - TESORERIA - GASTOS</h5>
+<small style="font-size:10px;">GASTOS ADMINISTRATIVOS (DE CUOTAS) Y GASTOS DE PROYECTO</small>
+</div>
+<div>
+<a href="/tesoreria" class="btn btn-light btn-sm fw-bold">← MENU TESORERIA</a>
+<a href="/menu" class="btn btn-warning btn-sm fw-bold ms-1">MENU PRINCIPAL</a>
+</div>
+</div>
+
+<div class="container-fluid p-3">
+
+<!-- RESUMEN MES -->
+<div class="row mb-3">
+<div class="col-md-3">
+<div class="card border-success">
+<div class="card-body py-2 text-center">
+<small class="text-muted d-block" style="font-size:9px;">CUOTAS RECAUDADAS {{ mes_actual }}</small>
+<strong class="text-success" style="font-size:16px;">${{ "%.2f"|format(total_cuotas_mes) }}</strong>
+</div>
+</div>
+</div>
+<div class="col-md-3">
+<div class="card border-danger">
+<div class="card-body py-2 text-center">
+<small class="text-muted d-block" style="font-size:9px;">GASTOS ADMINISTRATIVOS</small>
+<strong class="monto-negativo" style="font-size:16px;">- ${{ "%.2f"|format(total_admin) }}</strong>
+<small class="d-block" style="font-size:8px; color:#666;">SE DESCUENTA DE CUOTAS</small>
+</div>
+</div>
+</div>
+<div class="col-md-3">
+<div class="card border-primary">
+<div class="card-body py-2 text-center">
+<small class="text-muted d-block" style="font-size:9px;">GASTOS DE PROYECTOS</small>
+<strong class="text-primary" style="font-size:16px;">- ${{ "%.2f"|format(total_proyecto) }}</strong>
+<small class="d-block" style="font-size:8px; color:#666;">DE OTROS INGRESOS</small>
+</div>
+</div>
+</div>
+<div class="col-md-3">
+<div class="card border-dark">
+<div class="card-body py-2 text-center">
+<small class="text-muted d-block" style="font-size:9px;">BALANCE CUOTAS {{ mes_actual }}</small>
+<strong class="{% if balance_cuotas >=0 %}text-success{% else %}text-danger{% endif %}" style="font-size:16px;">${{ "%.2f"|format(balance_cuotas) }}</strong>
+</div>
+</div>
+</div>
+</div>
+
+<!-- FILTRO MES + NUEVO GASTO -->
+<div class="card shadow-sm mb-3">
+<div class="card-body py-2 d-flex justify-content-between align-items-center">
+<div class="d-flex align-items-center">
+<label class="fw-bold me-2" style="font-size:11px;">MES:</label>
+<form method="GET" class="d-flex">
+<select name="mes" class="form-select form-select-sm" style="font-size:11px; min-width:140px;" onchange="this.form.submit()">
+{% for m in meses_lista %}
+<option value="{{ m }}" {% if m==mes_actual %}selected{% endif %}>{{ m }}</option>
+{% endfor %}
+</select>
+</form>
+<span class="ms-3 badge bg-dark" style="font-size:10px;">{{ gastos|length }} GASTOS EN {{ mes_actual }}</span>
+</div>
+<div>
+<button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoGasto"><i class="bi bi-plus-circle"></i> + NUEVO GASTO</button>
+<a href="/tesoreria/proyectos" class="btn btn-success btn-sm fw-bold ms-1"><i class="bi bi-flag"></i> VER PROYECTOS</a>
+</div>
+</div>
+</div>
+
+<!-- TABLA GASTOS -->
+<div class="card shadow-sm">
+<div class="card-header card-header-rotary d-flex justify-content-between">
+<span>📊 GASTOS DEL MES {{ mes_actual }} - ADMINISTRATIVOS (DE CUOTAS) Y DE PROYECTO</span>
+<small style="font-size:10px; opacity:0.8;">ADMIN = SE DESCUENTA DE CUOTAS | PROYECTO = SE DESCUENTA DE INGRESOS DEL PROYECTO</small>
+</div>
+<div class="card-body p-0">
+<div class="table-responsive">
+<table class="table table-bordered table-hover table-sm mb-0 text-center align-middle" style="font-size:11px;">
+<thead class="table-light">
+<tr>
+<th>FECHA</th>
+<th class="text-start">CONCEPTO</th>
+<th>CENTRO COSTO</th>
+<th>PROYECTO</th>
+<th>MONTO</th>
+<th>COMPROBANTE</th>
+<th>ACCIONES</th>
+</tr>
+</thead>
+<tbody>
+{% for g in gastos %}
+<tr>
+<td>{{ g.fecha.strftime('%d/%m/%Y') if g.fecha else '-' }}</td>
+<td class="text-start fw-bold">{{ g.concepto }}</td>
+<td>
+{% if g.centro_costo=='ADMINISTRATIVO' %}
+<span class="badge badge-admin" style="font-size:9px;">ADMINISTRATIVO</span>
+<small class="d-block" style="font-size:7px;">DE CUOTAS</small>
+{% else %}
+<span class="badge badge-proyecto" style="font-size:9px;">PROYECTO</span>
+<small class="d-block" style="font-size:7px;">DE INGRESOS PROY</small>
+{% endif %}
+</td>
+<td style="font-size:10px;">
+{% if g.proyecto_rel %}
+<strong style="color:#17458F;">{{ g.proyecto_rel.nombre }}</strong>
+{% else %}
+<span class="text-muted">-</span>
+{% endif %}
+</td>
+<td class="monto-negativo">${{ "%.2f"|format(g.monto) }}</td>
+<td style="font-size:9px;">{{ g.comprobante or '-' }}</td>
+<td>
+<form method="POST" action="/tesoreria/gastos/eliminar/{{ g.id }}" onsubmit="return confirm('¿Eliminar gasto {{ g.concepto }}?')">
+<button class="btn btn-outline-danger btn-sm" style="font-size:9px;"><i class="bi bi-trash"></i></button>
+</form>
+</td>
+</tr>
+{% else %}
+<tr><td colspan="7" class="text-muted py-3">No hay gastos en {{ mes_actual }} - Registra el primer gasto con el botón amarillo</td></tr>
+{% endfor %}
+</tbody>
+<tfoot class="table-dark fw-bold">
+<tr>
+<td colspan="4" class="text-end">TOTALES {{ mes_actual }}:</td>
+<td class="text-danger">ADMIN: ${{ "%.2f"|format(total_admin) }}</td>
+<td colspan="2" class="text-primary">PROYECTO: ${{ "%.2f"|format(total_proyecto) }}</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+</div>
+
+</div>
+
+<!-- MODAL NUEVO GASTO -->
+<div class="modal fade" id="modalNuevoGasto" tabindex="-1">
+<div class="modal-dialog">
+<div class="modal-content">
+<form method="POST" action="/tesoreria/gastos/nuevo">
+<div class="modal-header" style="background:#17458F; color:white;">
+<h6 class="modal-title" style="font-size:13px;"><i class="bi bi-cash-stack"></i> REGISTRAR NUEVO GASTO</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" style="font-size:11px;">
+
+<div class="row">
+<div class="col-6 mb-2">
+<label class="fw-bold" style="font-size:10px;">FECHA GASTO:</label>
+<input type="date" name="fecha" class="form-control form-control-sm" required value="{{ datetime_now }}" id="fechaGasto" onchange="actualizarMes()">
+</div>
+<div class="col-6 mb-2">
+<label class="fw-bold" style="font-size:10px;">MONTO $:</label>
+<input type="number" step="0.01" name="monto" class="form-control form-control-sm" required placeholder="0.00">
+</div>
+</div>
+
+<div class="mb-2">
+<label class="fw-bold" style="font-size:10px;">CONCEPTO DEL GASTO:</label>
+<input type="text" name="concepto" class="form-control form-control-sm" required placeholder="EJ: PAGO LUZ OFICINA, COMIDA SESION, COMPRA MATERIAL BOMBERA" style="text-transform:uppercase;">
+</div>
+
+<div class="mb-2">
+<label class="fw-bold" style="font-size:10px;">CENTRO DE COSTO (OBLIGATORIO):</label>
+<select name="centro_costo" id="centroCosto" class="form-select form-select-sm fw-bold" required onchange="toggleProyecto()">
+<option value="">-- SELECCIONA --</option>
+<option value="ADMINISTRATIVO" style="color:#dc3545;">🔴 GASTO ADMINISTRATIVO - SE DESCUENTA DE CUOTAS SOCIALES</option>
+<option value="PROYECTO" style="color:#0d6efd;">🔵 GASTO DE PROYECTO - SE DESCUENTA DE OTROS INGRESOS DEL PROYECTO</option>
+</select>
+<small style="font-size:9px; color:#666;">ADMIN = PAPELERIA, LUZ, RENTA, COMIDA SESIONES, ETC. PROYECTO = GASTOS DE BOMBERA, ETC.</small>
+</div>
+
+<div class="mb-2" id="divProyecto" style="display:none;">
+<label class="fw-bold" style="font-size:10px; color:#0d6efd;">PROYECTO (SOLO SI ES GASTO DE PROYECTO):</label>
+<select name="proyecto_id" class="form-select form-select-sm">
+<option value="">-- SELECCIONA PROYECTO --</option>
+{% for p in proyectos %}
+<option value="{{ p.id }}">{{ p.nombre }}</option>
+{% endfor %}
+</select>
+</div>
+
+<div class="row">
+<div class="col-6 mb-2">
+<label class="fw-bold" style="font-size:10px;">COMPROBANTE / FACTURA:</label>
+<input type="text" name="comprobante" class="form-control form-control-sm" placeholder="No. FACTURA, TICKET, ETC">
+</div>
+<div class="col-6 mb-2">
+<label class="fw-bold" style="font-size:10px;">NOTAS:</label>
+<input type="text" name="notas" class="form-control form-control-sm" placeholder="OPCIONAL">
+</div>
+</div>
+
+<div class="alert alert-info py-2" style="font-size:9px;">
+<strong>REGLA:</strong> Si eliges ADMINISTRATIVO, el gasto se resta de las CUOTAS SOCIALES de {{ mes_actual }}. Si eliges PROYECTO, se resta de los INGRESOS del proyecto seleccionado (ej. BOMBERA).
+</div>
+
+</div>
+<div class="modal-footer py-1">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+<button type="submit" class="btn btn-warning btn-sm fw-bold">💰 REGISTRAR GASTO</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function toggleProyecto(){
+  const centro = document.getElementById('centroCosto').value;
+  const div = document.getElementById('divProyecto');
+  div.style.display = (centro==='PROYECTO') ? 'block' : 'none';
+}
+document.addEventListener('DOMContentLoaded', function(){
+  const hoy = new Date().toISOString().split('T')[0];
+  const input = document.getElementById('fechaGasto');
+  if(input && !input.value) input.value = hoy;
+});
+</script>
+</body>
+</html>

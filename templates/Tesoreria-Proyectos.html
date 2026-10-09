@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Proyectos - Rotary Creel</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; background:#f4f6f9; }
+.header-rotary { background:#17458F; color:white; padding:12px 20px; border-bottom:4px solid #F7A81B; }
+.card-proyecto { border-left:5px solid #F7A81B; transition:0.2s; }
+.card-proyecto:hover { transform:translateY(-2px); box-shadow:0 6px 15px rgba(0,0,0,0.15); }
+.progress { height:22px; }
+</style>
+</head>
+<body>
+<div class="header-rotary d-flex justify-content-between align-items-center">
+<div>
+<h5 class="mb-0 fw-bold" style="font-size:15px;">ROTARY CLUB CREEL - PROYECTOS ACTIVOS</h5>
+<small style="font-size:10px;">INGRESOS POR PROYECTO Y EVENTOS RECAUDATORIOS</small>
+</div>
+<div>
+<a href="/tesoreria/gastos" class="btn btn-warning btn-sm fw-bold">← GASTOS</a>
+<a href="/tesoreria" class="btn btn-light btn-sm fw-bold ms-1">MENU TESORERIA</a>
+</div>
+</div>
+
+<div class="container-fluid p-3">
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+<h6 class="fw-bold mb-0" style="color:#17458F;">🏗️ PROYECTOS DEL CLUB - {{ proyectos|length }} ACTIVOS</h6>
+<button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto"><i class="bi bi-plus-circle"></i> + NUEVO PROYECTO</button>
+</div>
+
+<div class="row">
+{% for p in proyectos %}
+<div class="col-md-6 col-lg-4 mb-3">
+<div class="card card-proyecto shadow-sm h-100">
+<div class="card-body">
+<div class="d-flex justify-content-between align-items-start mb-2">
+<h6 class="fw-bold mb-0" style="font-size:13px; color:#17458F;"><i class="bi bi-flag-fill"></i> {{ p.nombre }}</h6>
+<span class="badge {% if p.activo %}bg-success{% else %}bg-secondary{% endif %}" style="font-size:8px;">{% if p.activo %}ACTIVO{% else %}CERRADO{% endif %}</span>
+</div>
+{% if p.descripcion %}
+<p class="text-muted mb-2" style="font-size:10px; text-transform:none;">{{ p.descripcion }}</p>
+{% endif %}
+
+<div class="row text-center mb-2" style="font-size:10px;">
+<div class="col-4">
+<small class="text-muted d-block" style="font-size:8px;">META TOTAL</small>
+<strong>${{ "%.2f"|format(p.total_meta_calc) }}</strong>
+</div>
+<div class="col-4">
+<small class="text-muted d-block" style="font-size:8px;">RECAUDADO</small>
+<strong class="text-success">${{ "%.2f"|format(p.total_recaudado_calc) }}</strong>
+</div>
+<div class="col-4">
+<small class="text-muted d-block" style="font-size:8px;">BALANCE</small>
+<strong class="{% if p.balance_calc>=0 %}text-success{% else %}text-danger{% endif %}">${{ "%.2f"|format(p.balance_calc) }}</strong>
+</div>
+</div>
+
+<div class="mb-2">
+<div class="d-flex justify-content-between" style="font-size:9px;">
+<small>AVANCE HACIA META</small>
+<small class="fw-bold">{{ "%.1f"|format(p.porcentaje_calc) }}% {% if p.porcentaje_calc>=100 %}✅ META ALCANZADA{% endif %}</small>
+</div>
+<div class="progress">
+<div class="progress-bar {% if p.porcentaje_calc>=100 %}bg-success{% elif p.porcentaje_calc>=75 %}bg-primary{% elif p.porcentaje_calc>=50 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ p.porcentaje_calc if p.porcentaje_calc<=100 else 100 }}%">{{ "%.0f"|format(p.porcentaje_calc) }}%</div>
+</div>
+<small style="font-size:8px; color:#666;">RECAUDADO ${{ "%.2f"|format(p.total_recaudado_calc) }} DE ${{ "%.2f"|format(p.total_meta_calc) }} META</small>
+</div>
+
+<div class="row text-center mb-2" style="font-size:9px;">
+<div class="col-6">
+<span class="badge bg-primary">{{ p.eventos|length }} EVENTOS</span>
+</div>
+<div class="col-6">
+<span class="badge bg-danger">{{ p.gastos|length }} GASTOS</span>
+</div>
+</div>
+
+<div class="d-grid">
+<a href="/tesoreria/proyecto/{{ p.id }}" class="btn btn-primary btn-sm fw-bold"><i class="bi bi-eye"></i> VER DETALLE Y EVENTOS</a>
+</div>
+
+</div>
+<div class="card-footer py-1 text-muted" style="font-size:8px;">
+CREADO: {{ p.fecha_creacion.strftime('%d/%m/%Y') if p.fecha_creacion else '-' }} | GASTADO: ${{ "%.2f"|format(p.total_gastado_calc) }}
+</div>
+</div>
+</div>
+{% else %}
+<div class="col-12 text-center py-5">
+<div class="alert alert-warning">
+<h6>NO HAY PROYECTOS ACTIVOS</h6>
+<p style="font-size:11px; text-transform:none;">Crea tu primer proyecto, ejemplo: PROYECTO BOMBERA, PROYECTO BECAS, PROYECTO REFORESTACION</p>
+<button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto">+ CREAR PRIMER PROYECTO</button>
+</div>
+</div>
+{% endfor %}
+</div>
+
+<!-- EJEMPLO BOMBERA SI EXISTE -->
+{% if proyectos %}
+<div class="card mt-3 border-warning">
+<div class="card-header bg-warning text-dark fw-bold" style="font-size:11px;">
+💡 EJEMPLO DE USO: PROYECTO BOMBERA - EVENTOS RECAUDATORIOS MULTIPLES
+</div>
+<div class="card-body" style="font-size:10px; text-transform:none;">
+<p><strong>Cómo funciona:</strong></p>
+<ol style="font-size:10px;">
+<li>Entras a PROYECTO BOMBERA → VER DETALLE</li>
+<li>Botón + NUEVO EVENTO RECAUDATORIO → Modal: Nombre (Cena Gala Bombera, Rifa, Boteo, Kermes), Monto Meta a recaudar, Monto Recaudado, Fecha, y cuadro texto detalle (ej: 50 boletos x $200 = $10,000, donación empresa X $5,000)</li>
+<li>El sistema calcula automáticamente % hacia meta y si se llegó a la meta ✅</li>
+<li>Los GASTOS del proyecto (compra equipo bombera, uniformes) se descuentan del total recaudado</li>
+<li>Balance = Recaudado - Gastos de Proyecto</li>
+</ol>
+</div>
+</div>
+{% endif %}
+
+</div>
+
+<!-- MODAL NUEVO PROYECTO -->
+<div class="modal fade" id="modalNuevoProyecto" tabindex="-1">
+<div class="modal-dialog">
+<div class="modal-content">
+<form method="POST" action="/tesoreria/proyecto/nuevo">
+<div class="modal-header" style="background:#28a745; color:white;">
+<h6 class="modal-title" style="font-size:13px;">🏗️ NUEVO PROYECTO</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" style="font-size:11px;">
+<div class="mb-2">
+<label class="fw-bold" style="font-size:10px;">NOMBRE DEL PROYECTO:</label>
+<input type="text" name="nombre" class="form-control form-control-sm fw-bold" required placeholder="EJ: PROYECTO BOMBERA, PROYECTO BECAS, PROYECTO BIBLIOTECA" style="text-transform:uppercase;">
+</div>
+<div class="mb-2">
+<label class="fw-bold" style="font-size:10px;">DESCRIPCION:</label>
+<textarea name="descripcion" class="form-control form-control-sm" rows="2" placeholder="Descripcion del proyecto..."></textarea>
+</div>
+<div class="alert alert-info py-2" style="font-size:9px;">
+Se creará activo y podrás agregar eventos recaudatorios con meta y detalle de lo recaudado.
+</div>
+</div>
+<div class="modal-footer py-1">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+<button type="submit" class="btn btn-success btn-sm fw-bold">CREAR PROYECTO</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
