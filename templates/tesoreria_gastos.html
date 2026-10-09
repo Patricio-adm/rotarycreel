@@ -2,228 +2,166 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Gastos - Rotary Creel</title>
+<title>Gastos - Rotary Creel - Con Foto</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:12px 20px; border-bottom:4px solid #F7A81B; }
 .card-header-rotary { background:#17458F; color:white; font-weight:700; font-size:12px; }
-.btn-rotary { background:#17458F; color:white; }
-.btn-rotary:hover { background:#0f2f61; color:white; }
-.badge-admin { background:#dc3545; }
-.badge-proyecto { background:#0d6efd; }
-.monto-negativo { color:#dc3545; font-weight:900; }
-.monto-positivo { color:#28a745; font-weight:900; }
-.preview-img { max-width:100%; max-height:150px; border-radius:6px; border:2px solid #F7A81B; margin-top:8px; }
+.preview-img { max-width:100%; max-height:220px; border-radius:8px; border:3px solid #F7A81B; margin-top:10px; }
+.btn-camara { background:#28a745; color:white; font-weight:900; font-size:12px; padding:10px; }
+.btn-galeria { background:#17458F; color:white; font-weight:900; font-size:12px; padding:10px; }
+.zona-foto { border:2px dashed #F7A81B; background:#fffbe6; border-radius:10px; padding:15px; text-align:center; }
 </style>
 </head>
 <body>
 <div class="header-rotary d-flex justify-content-between align-items-center">
 <div>
-<h5 class="mb-0 fw-bold" style="font-size:15px;">ROTARY CLUB CREEL - TESORERIA - GASTOS</h5>
-<small style="font-size:10px;">GASTOS ADMINISTRATIVOS (DE CUOTAS) Y GASTOS DE PROYECTO + COMPROBANTE CON FOTO</small>
+<h5 class="mb-0 fw-bold" style="font-size:14px;">TESORERIA - GASTOS - CON FOTO COMPROBANTE</h5>
+<small style="font-size:9px;">ADMIN DE CUOTAS Y PROYECTO + FOTO TICKET</small>
 </div>
 <div>
-<a href="/tesoreria" class="btn btn-light btn-sm fw-bold">← MENU TESORERIA</a>
-<a href="/menu" class="btn btn-warning btn-sm fw-bold ms-1">MENU PRINCIPAL</a>
+<a href="/tesoreria" class="btn btn-light btn-sm fw-bold">← TESORERIA</a>
+<a href="/menu" class="btn btn-warning btn-sm fw-bold ms-1">MENU</a>
 </div>
 </div>
 
 <div class="container-fluid p-3">
-
-<div class="row mb-3">
-<div class="col-md-3"><div class="card border-success"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:9px;">CUOTAS RECAUDADAS {{ mes_actual }}</small><strong class="text-success" style="font-size:16px;">${{ "%.2f"|format(total_cuotas_mes) }}</strong></div></div></div>
-<div class="col-md-3"><div class="card border-danger"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:9px;">GASTOS ADMINISTRATIVOS</small><strong class="monto-negativo" style="font-size:16px;">- ${{ "%.2f"|format(total_admin) }}</strong><small class="d-block" style="font-size:8px; color:#666;">SE DESCUENTA DE CUOTAS</small></div></div></div>
-<div class="col-md-3"><div class="card border-primary"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:9px;">GASTOS DE PROYECTOS</small><strong class="text-primary" style="font-size:16px;">- ${{ "%.2f"|format(total_proyecto) }}</strong><small class="d-block" style="font-size:8px; color:#666;">DE OTROS INGRESOS</small></div></div></div>
-<div class="col-md-3"><div class="card border-dark"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:9px;">BALANCE CUOTAS {{ mes_actual }}</small><strong class="{% if balance_cuotas >=0 %}text-success{% else %}text-danger{% endif %}" style="font-size:16px;">${{ "%.2f"|format(balance_cuotas) }}</strong></div></div></div>
-</div>
-
 <div class="card shadow-sm mb-3">
 <div class="card-body py-2 d-flex justify-content-between align-items-center">
 <div class="d-flex align-items-center">
-<label class="fw-bold me-2" style="font-size:11px;">MES:</label>
+<label class="fw-bold me-2">MES:</label>
 <form method="GET" class="d-flex"><select name="mes" class="form-select form-select-sm" style="font-size:11px; min-width:140px;" onchange="this.form.submit()">{% for m in meses_lista %}<option value="{{ m }}" {% if m==mes_actual %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></form>
-<span class="ms-3 badge bg-dark" style="font-size:10px;">{{ gastos|length }} GASTOS EN {{ mes_actual }}</span>
+<span class="ms-3 badge bg-dark">{{ gastos|length }} GASTOS EN {{ mes_actual }}</span>
 </div>
 <div>
-<button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoGasto"><i class="bi bi-plus-circle"></i> + NUEVO GASTO</button>
-<a href="/tesoreria/proyectos" class="btn btn-success btn-sm fw-bold ms-1"><i class="bi bi-flag"></i> VER PROYECTOS</a>
+<button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoGasto"><i class="bi bi-plus-circle"></i> + NUEVO GASTO CON FOTO</button>
 </div>
 </div>
 </div>
 
 <div class="card shadow-sm">
-<div class="card-header card-header-rotary d-flex justify-content-between">
-<span>📊 GASTOS DEL MES {{ mes_actual }} - CON COMPROBANTE Y FOTO</span>
-<small style="font-size:10px; opacity:0.8;">ADMIN = CUOTAS | PROYECTO = INGRESOS PROYECTO | CLICK EN FOTO PARA VER</small>
-</div>
+<div class="card-header card-header-rotary">GASTOS {{ mes_actual }} - TOTAL ADMIN ${{ "%.2f"|format(total_admin) }} | PROYECTO ${{ "%.2f"|format(total_proyecto) }}</div>
 <div class="card-body p-0">
 <div class="table-responsive">
 <table class="table table-bordered table-hover table-sm mb-0 text-center align-middle" style="font-size:11px;">
-<thead class="table-light"><tr><th>FECHA</th><th class="text-start">CONCEPTO</th><th>CENTRO COSTO</th><th>PROYECTO</th><th>MONTO</th><th>COMPROBANTE</th><th>FOTO</th><th>ACCIONES</th></tr></thead>
+<thead class="table-light"><tr><th>FECHA</th><th>CONCEPTO</th><th>CENTRO</th><th>PROYECTO</th><th>MONTO</th><th>No. COMP</th><th>FOTO</th><th>ACCION</th></tr></thead>
 <tbody>
 {% for g in gastos %}
 <tr>
 <td>{{ g.fecha.strftime('%d/%m/%Y') if g.fecha else '-' }}</td>
 <td class="text-start fw-bold">{{ g.concepto }}</td>
-<td>{% if g.centro_costo=='ADMINISTRATIVO' %}<span class="badge badge-admin" style="font-size:9px;">ADMIN</span>{% else %}<span class="badge badge-proyecto" style="font-size:9px;">PROYECTO</span>{% endif %}</td>
-<td style="font-size:10px;">{% if g.proyecto_rel %}<strong style="color:#17458F;">{{ g.proyecto_rel.nombre }}</strong>{% else %}<span class="text-muted">-</span>{% endif %}</td>
-<td class="monto-negativo">${{ "%.2f"|format(g.monto) }}</td>
+<td>{% if g.centro_costo=='ADMINISTRATIVO' %}<span class="badge bg-danger" style="font-size:8px;">ADMIN</span>{% else %}<span class="badge bg-primary" style="font-size:8px;">PROY</span>{% endif %}</td>
+<td>{% if g.proyecto_rel %}<strong style="font-size:9px;">{{ g.proyecto_rel.nombre }}</strong>{% else %}-{% endif %}</td>
+<td class="text-danger fw-bold">${{ "%.2f"|format(g.monto) }}</td>
 <td style="font-size:9px;">{{ g.comprobante or '-' }}</td>
 <td>
 {% if g.foto_comprobante %}
-<button class="btn btn-outline-primary btn-sm p-0" style="border:none;" data-bs-toggle="modal" data-bs-target="#modalFoto{{ g.id }}">
-<img src="{{ g.foto_comprobante }}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1.5px solid #F7A81B;">
-</button>
+<button class="btn p-0" data-bs-toggle="modal" data-bs-target="#foto{{ g.id }}"><img src="{{ g.foto_comprobante }}" style="width:45px; height:45px; object-fit:cover; border-radius:4px; border:2px solid #F7A81B;"></button>
 {% else %}
-<span class="text-muted" style="font-size:8px;">SIN FOTO</span>
+<span style="font-size:8px; color:#999;">SIN FOTO</span>
 {% endif %}
 </td>
 <td>
-<div class="d-flex gap-1 justify-content-center">
-{% if g.foto_comprobante %}
-<a href="{{ g.foto_comprobante }}" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size:9px;" title="Ver foto completa"><i class="bi bi-eye"></i></a>
-{% endif %}
-<form method="POST" action="/tesoreria/gastos/eliminar/{{ g.id }}" onsubmit="return confirm('¿Eliminar gasto {{ g.concepto }}?')"><button class="btn btn-outline-danger btn-sm" style="font-size:9px;"><i class="bi bi-trash"></i></button></form>
-</div>
+{% if g.foto_comprobante %}<a href="{{ g.foto_comprobante }}" target="_blank" class="btn btn-outline-primary btn-sm" style="font-size:9px;">VER</a>{% endif %}
+<form method="POST" action="/tesoreria/gastos/eliminar/{{ g.id }}" class="d-inline" onsubmit="return confirm('¿Eliminar?')"><button class="btn btn-outline-danger btn-sm" style="font-size:9px;"><i class="bi bi-trash"></i></button></form>
 </td>
 </tr>
-
-<!-- MODAL FOTO -->
 {% if g.foto_comprobante %}
-<div class="modal fade" id="modalFoto{{ g.id }}" tabindex="-1">
-<div class="modal-dialog modal-lg modal-dialog-centered">
-<div class="modal-content">
-<div class="modal-header py-2" style="background:#17458F; color:white;">
-<h6 class="modal-title" style="font-size:11px;">🧾 COMPROBANTE - {{ g.concepto }} - ${{ "%.2f"|format(g.monto) }}</h6>
-<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-</div>
-<div class="modal-body text-center p-2">
-<img src="{{ g.foto_comprobante }}" style="max-width:100%; max-height:75vh; border-radius:8px;">
-<div class="mt-2" style="font-size:10px;">
-<strong>{{ g.concepto }}</strong><br>
-{{ g.comprobante or '' }} | {{ g.fecha.strftime('%d/%m/%Y') if g.fecha else '' }} | {{ g.centro_costo }}
-{% if g.proyecto_rel %} | {{ g.proyecto_rel.nombre }}{% endif %}
-</div>
-</div>
-<div class="modal-footer py-1">
-<a href="{{ g.foto_comprobante }}" target="_blank" class="btn btn-primary btn-sm">Abrir en nueva pestaña</a>
-<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-</div>
-</div>
-</div>
-</div>
+<div class="modal fade" id="foto{{ g.id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-dark text-white py-2"><h6 style="font-size:11px;">COMPROBANTE - {{ g.concepto }}</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body text-center p-2"><img src="{{ g.foto_comprobante }}" style="max-width:100%; max-height:70vh;"><br><small style="font-size:9px;">{{ g.concepto }} | {{ g.comprobante }} | ${{ "%.2f"|format(g.monto) }}</small></div></div></div></div>
 {% endif %}
-
 {% else %}
-<tr><td colspan="8" class="text-muted py-3">No hay gastos en {{ mes_actual }}</td></tr>
+<tr><td colspan="8" class="py-3 text-muted">No hay gastos</td></tr>
 {% endfor %}
 </tbody>
-<tfoot class="table-dark fw-bold"><tr><td colspan="4" class="text-end">TOTALES {{ mes_actual }}:</td><td class="text-danger">ADMIN: ${{ "%.2f"|format(total_admin) }}</td><td colspan="3" class="text-primary">PROYECTO: ${{ "%.2f"|format(total_proyecto) }}</td></tr></tfoot>
 </table>
 </div>
 </div>
 </div>
-
 </div>
 
-<!-- MODAL NUEVO GASTO CON FOTO -->
+<!-- MODAL NUEVO GASTO CON FOTO VISIBLE -->
 <div class="modal fade" id="modalNuevoGasto" tabindex="-1">
 <div class="modal-dialog modal-lg">
 <div class="modal-content">
 <form method="POST" action="/tesoreria/gastos/nuevo" enctype="multipart/form-data">
 <div class="modal-header" style="background:#17458F; color:white;">
-<h6 class="modal-title" style="font-size:13px;"><i class="bi bi-cash-stack"></i> REGISTRAR NUEVO GASTO + COMPROBANTE CON FOTO</h6>
+<h6 class="modal-title fw-bold" style="font-size:12px;">💰 NUEVO GASTO - CON NUMERO Y FOTO DE COMPROBANTE</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="font-size:11px;">
 
 <div class="row">
-<div class="col-6 mb-2">
-<label class="fw-bold" style="font-size:10px;">FECHA GASTO:</label>
-<input type="date" name="fecha" class="form-control form-control-sm" required id="fechaGasto">
-</div>
-<div class="col-6 mb-2">
-<label class="fw-bold" style="font-size:10px;">MONTO $:</label>
-<input type="number" step="0.01" name="monto" class="form-control form-control-sm" required placeholder="0.00">
-</div>
+<div class="col-6 mb-2"><label class="fw-bold" style="font-size:10px;">FECHA:</label><input type="date" name="fecha" class="form-control form-control-sm" required id="fechaGasto"></div>
+<div class="col-6 mb-2"><label class="fw-bold" style="font-size:10px;">MONTO $:</label><input type="number" step="0.01" name="monto" class="form-control form-control-sm" required placeholder="0.00"></div>
 </div>
 
-<div class="mb-2">
-<label class="fw-bold" style="font-size:10px;">CONCEPTO DEL GASTO:</label>
-<input type="text" name="concepto" class="form-control form-control-sm" required placeholder="EJ: PAGO LUZ OFICINA, COMPRA MATERIAL BOMBERA" style="text-transform:uppercase;">
-</div>
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">CONCEPTO:</label><input type="text" name="concepto" class="form-control form-control-sm" required placeholder="EJ: PAGO LUZ, COMPRA MATERIAL BOMBERA" style="text-transform:uppercase;"></div>
 
 <div class="mb-2">
 <label class="fw-bold" style="font-size:10px;">CENTRO DE COSTO:</label>
-<select name="centro_costo" id="centroCosto" class="form-select form-select-sm fw-bold" required onchange="toggleProyecto()">
+<select name="centro_costo" id="centroCosto" class="form-select form-select-sm fw-bold" required onchange="document.getElementById('divProyecto').style.display = this.value==='PROYECTO' ? 'block' : 'none'">
 <option value="">-- SELECCIONA --</option>
-<option value="ADMINISTRATIVO">🔴 ADMINISTRATIVO - DE CUOTAS SOCIALES</option>
-<option value="PROYECTO">🔵 PROYECTO - DE INGRESOS DEL PROYECTO</option>
+<option value="ADMINISTRATIVO">🔴 ADMINISTRATIVO - DE CUOTAS</option>
+<option value="PROYECTO">🔵 PROYECTO - DE INGRESOS PROYECTO</option>
 </select>
 </div>
 
 <div class="mb-2" id="divProyecto" style="display:none;">
-<label class="fw-bold" style="font-size:10px; color:#0d6efd;">PROYECTO:</label>
-<select name="proyecto_id" class="form-select form-select-sm">
-<option value="">-- SELECCIONA PROYECTO --</option>
-{% for p in proyectos %}
-<option value="{{ p.id }}">{{ p.nombre }}</option>
-{% endfor %}
-</select>
+<label class="fw-bold" style="font-size:10px;">PROYECTO:</label>
+<select name="proyecto_id" class="form-select form-select-sm">{% for p in proyectos %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}</select>
 </div>
 
 <div class="row">
-<div class="col-6 mb-2">
-<label class="fw-bold" style="font-size:10px;">No. COMPROBANTE / FACTURA:</label>
-<input type="text" name="comprobante" class="form-control form-control-sm" placeholder="No. FACTURA, TICKET">
+<div class="col-6 mb-2"><label class="fw-bold" style="font-size:10px;">No. COMPROBANTE / FACTURA:</label><input type="text" name="comprobante" class="form-control form-control-sm" placeholder="No. FACTURA / TICKET"></div>
+<div class="col-6 mb-2"><label class="fw-bold" style="font-size:10px;">NOTAS:</label><input type="text" name="notas" class="form-control form-control-sm" placeholder="OPCIONAL"></div>
 </div>
-<div class="col-6 mb-2">
-<label class="fw-bold" style="font-size:10px;">NOTAS:</label>
-<input type="text" name="notas" class="form-control form-control-sm" placeholder="OPCIONAL">
+
+<!-- ZONA FOTO SUPER VISIBLE -->
+<div class="zona-foto mt-3">
+<h6 class="fw-bold" style="font-size:12px; color:#17458F;">📸 FOTO DEL COMPROBANTE - OBLIGATORIO TOMAR O SUBIR FOTO</h6>
+<p style="font-size:9px; text-transform:none; color:#666;">Toma foto del ticket, factura o nota con tu celular. Se guardará como evidencia del gasto.</p>
+
+<input type="file" name="foto_comprobante" id="fotoInput" accept="image/*" capture="environment" style="display:none;" onchange="mostrarPreview(event)">
+
+<div class="row g-2">
+<div class="col-6">
+<button type="button" class="btn btn-camara w-100" onclick="document.getElementById('fotoInput').setAttribute('capture','environment'); document.getElementById('fotoInput').click();">
+<i class="bi bi-camera-fill" style="font-size:18px;"></i><br>
+📷 TOMAR FOTO<br>
+<small style="font-size:8px; text-transform:none;">Abre cámara trasera</small>
+</button>
+</div>
+<div class="col-6">
+<button type="button" class="btn btn-galeria w-100" onclick="document.getElementById('fotoInput').removeAttribute('capture'); document.getElementById('fotoInput').click();">
+<i class="bi bi-images" style="font-size:18px;"></i><br>
+🖼️ SUBIR DE GALERÍA<br>
+<small style="font-size:8px; text-transform:none;">Selecciona foto existente</small>
+</button>
 </div>
 </div>
 
-<!-- NUEVO: SUBIR / TOMAR FOTO COMPROBANTE -->
-<div class="card border-warning mt-2">
-<div class="card-header bg-warning text-dark py-1 fw-bold" style="font-size:10px;">
-📸 FOTO DEL COMPROBANTE - SUBIR O TOMAR FOTO CON CÁMARA
+<div id="previewContainer" class="mt-3" style="display:none;">
+<img id="previewImg" class="preview-img">
+<div class="mt-2">
+<span class="badge bg-success" style="font-size:10px;">✅ FOTO CARGADA - LISTA PARA GUARDAR</span><br>
+<small id="nombreArchivo" style="font-size:9px;"></small>
 </div>
-<div class="card-body py-2">
-<div class="row align-items-center">
-<div class="col-12 mb-2">
-<label class="fw-bold" style="font-size:9px; color:#17458F;">SELECCIONA O TOMA FOTO DEL COMPROBANTE (TICKET, FACTURA, NOTA):</label>
-<input type="file" name="foto_comprobante" id="fotoComprobante" class="form-control form-control-sm" accept="image/*" capture="environment" onchange="previewFoto(event)">
-<small style="font-size:8px; color:#666;" class="d-block mt-1">
-✅ En celular: al hacer click abre cámara trasera para tomar foto del ticket<br>
-✅ En computadora: selecciona archivo de tu galería<br>
-Formatos: JPG, PNG, JPEG - Máx 5MB
-</small>
-</div>
-<div class="col-12 text-center">
-<img id="preview" class="preview-img" style="display:none;">
-<div id="noPreview" class="text-muted" style="font-size:9px; padding:10px; border:1px dashed #ccc; border-radius:6px;">
-<i class="bi bi-camera" style="font-size:24px;"></i><br>
-VISTA PREVIA DE LA FOTO APARECERÁ AQUÍ
-</div>
-</div>
-</div>
-<div class="d-flex gap-2 mt-2">
-<button type="button" class="btn btn-outline-secondary btn-sm" style="font-size:9px;" onclick="document.getElementById('fotoComprobante').value=''; document.getElementById('preview').style.display='none'; document.getElementById('noPreview').style.display='block';"><i class="bi bi-x-circle"></i> Quitar foto</button>
-<button type="button" class="btn btn-outline-primary btn-sm" style="font-size:9px;" onclick="document.getElementById('fotoComprobante').click()"><i class="bi bi-camera-fill"></i> Tomar/Subir otra foto</button>
-</div>
-</div>
+<button type="button" class="btn btn-outline-danger btn-sm mt-2" style="font-size:9px;" onclick="quitarFoto()"><i class="bi bi-trash"></i> Quitar foto y tomar otra</button>
 </div>
 
-<div class="alert alert-info py-2 mt-2" style="font-size:9px;">
-<strong>REGLA:</strong> ADMIN = se resta de cuotas {{ mes_actual }} | PROYECTO = se resta de ingresos del proyecto. La foto del comprobante es evidencia del gasto.
+<div id="sinFoto" class="mt-3" style="border:2px dashed #ccc; padding:15px; border-radius:8px;">
+<i class="bi bi-camera" style="font-size:32px; color:#ccc;"></i><br>
+<span style="font-size:9px; color:#999;">VISTA PREVIA - AQUÍ APARECERÁ LA FOTO DEL COMPROBANTE</span>
 </div>
 
 </div>
-<div class="modal-footer py-1">
+
+</div>
+<div class="modal-footer">
 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-<button type="submit" class="btn btn-warning btn-sm fw-bold">💰 REGISTRAR GASTO CON FOTO</button>
+<button type="submit" class="btn btn-warning btn-sm fw-bold"><i class="bi bi-save"></i> GUARDAR GASTO CON FOTO</button>
 </div>
 </form>
 </div>
@@ -232,31 +170,28 @@ VISTA PREVIA DE LA FOTO APARECERÁ AQUÍ
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-function toggleProyecto(){
-  const centro = document.getElementById('centroCosto').value;
-  document.getElementById('divProyecto').style.display = (centro==='PROYECTO') ? 'block' : 'none';
-}
-function previewFoto(event){
+function mostrarPreview(event){
   const file = event.target.files[0];
-  const preview = document.getElementById('preview');
-  const noPreview = document.getElementById('noPreview');
   if(file){
     const reader = new FileReader();
     reader.onload = function(e){
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-      noPreview.style.display = 'none';
+      document.getElementById('previewImg').src = e.target.result;
+      document.getElementById('previewContainer').style.display = 'block';
+      document.getElementById('sinFoto').style.display = 'none';
+      document.getElementById('nombreArchivo').textContent = file.name + ' - ' + (file.size/1024).toFixed(1) + ' KB';
     }
     reader.readAsDataURL(file);
-  } else {
-    preview.style.display = 'none';
-    noPreview.style.display = 'block';
   }
+}
+function quitarFoto(){
+  document.getElementById('fotoInput').value = '';
+  document.getElementById('previewContainer').style.display = 'none';
+  document.getElementById('sinFoto').style.display = 'block';
 }
 document.addEventListener('DOMContentLoaded', function(){
   const hoy = new Date().toISOString().split('T')[0];
-  const input = document.getElementById('fechaGasto');
-  if(input && !input.value) input.value = hoy;
+  const inp = document.getElementById('fechaGasto');
+  if(inp && !inp.value) inp.value = hoy;
 });
 </script>
 </body>
