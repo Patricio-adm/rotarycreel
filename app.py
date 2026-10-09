@@ -171,9 +171,14 @@ with app.app_context():
     try:
         db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(50) DEFAULT 'SOCIO';"))
         db.session.execute(db.text("ALTER TABLE socios DROP CONSTRAINT IF EXISTS socios_numero_socio_key;"))
+        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS foto_comprobante TEXT;"))
+        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS notas TEXT;"))
+        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS proyecto_id INTEGER;"))
+        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS comprobante VARCHAR(300);"))
         db.session.commit()
     except Exception as e:
         db.session.rollback()
+        print(f"Migracion gastos: {e}")
     pass_hash = generate_password_hash('rotary2026')
     credenciales = [
         ('admin', pass_hash, 'ADMIN'),
