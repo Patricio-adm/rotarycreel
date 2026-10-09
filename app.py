@@ -213,6 +213,16 @@ def index_publico():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'GET':
+        # Limpia flashes viejos de tesoreria/gastos/proyectos que se quedaron pegados
+        # para que no salgan en la pagina de login como en tu captura
+        if '_flashes' in session:
+            # Solo deja los de login (danger), borra los de success de gastos
+            flashes = session.get('_flashes', [])
+            # Filtra solo mensajes de error de login
+            session['_flashes'] = [f for f in flashes if 'contraseña' in f[1].lower() or 'incorrectos' in f[1].lower() or 'usuario' in f[1].lower()]
+            if not session['_flashes']:
+                session.pop('_flashes', None)
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
@@ -221,6 +231,8 @@ def login():
             session['user_id'] = user.id
             session['username'] = user.username
             session['rol'] = user.rol
+            # Limpia cualquier flash viejo al loguearse
+            session.pop('_flashes', None)
             return redirect(url_for('menu_principal'))
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
