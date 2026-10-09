@@ -39,6 +39,8 @@ MESES_CONTROL = [
     "ENE 2027", "FEB 2027", "MAR 2027", "ABR 2027", "MAY 2027", "JUN 2027"
 ]
 
+MESES_NOMBRES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"]
+
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -112,13 +114,59 @@ class Socio(db.Model):
     hijos = db.relationship('Hijo', backref='socio', lazy=True, cascade="all, delete-orphan")
     pagos = db.relationship('PagoCuota', backref='socio', lazy=True, cascade="all, delete-orphan", passive_deletes=True)
 
+# ==================== NUEVOS MODELOS GASTOS Y PROYECTOS ====================
+class Proyecto(db.Model):
+    __tablename__ = 'proyectos'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(150), nullable=False)  # PROYECTO BOMBERA
+    descripcion = db.Column(db.Text, nullable=True)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    activo = db.Column(db.Boolean, default=True)
+    eventos = db.relationship('EventoProyecto', backref='proyecto', cascade='all, delete-orphan', lazy=True)
+    gastos = db.relationship('Gasto', backref='proyecto_rel', lazy=True)
+
+class EventoProyecto(db.Model):
+    __tablename__ = 'eventos_proyecto'
+    id = db.Column(db.Integer, primary_key=True)
+    proyecto_id = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=False)
+    nombre = db.Column(db.String(200), nullable=False)  # Cena Gala, Rifa, Boteo
+    descripcion = db.Column(db.Text, nullable=True)
+    monto_meta = db.Column(db.Float, nullable=False)  # Monto a recaudar
+    monto_recaudado = db.Column(db.Float, default=0.0)
+    fecha_evento = db.Column(db.Date, nullable=True)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    detalle_recaudado = db.Column(db.Text, nullable=True)  # Detalle numerico
+    @property
+    def porcentaje_meta(self):
+        return (self.monto_recaudado / self.monto_meta * 100) if self.monto_meta > 0 else 0
+    @property
+    def faltante(self):
+        return self.monto_meta - self.monto_recaudado
+
+class Gasto(db.Model):
+    __tablename__ = 'gastos'
+    id = db.Column(db.Integer, primary_key=True)
+    fecha = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    mes_anio = db.Column(db.String(20), nullable=False)  # OCT 2026
+    concepto = db.Column(db.String(300), nullable=False)
+    monto = db.Column(db.Float, nullable=False)
+    centro_costo = db.Column(db.String(30), nullable=False)  # ADMINISTRATIVO o PROYECTO
+    proyecto_id = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=True)
+    comprobante = db.Column(db.String(300), nullable=True)
+    creado_por = db.Column(db.String(100), nullable=True)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    notas = db.Column(db.Text, nullable=True)
+
 with app.app_context():
     db.create_all()
     try:
         PagoCuota.__table__.create(db.engine, checkfirst=True)
         ConfiguracionTesoreria.__table__.create(db.engine, checkfirst=True)
+        Proyecto.__table__.create(db.engine, checkfirst=True)
+        EventoProyecto.__table__.create(db.engine, checkfirst=True)
+        Gasto.__table__.create(db.engine, checkfirst=True)
     except Exception as e:
-        print(f"Info tablas tesoreria: {e}")
+        print(f"Info tablas: {e}")
     try:
         db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(50) DEFAULT 'SOCIO';"))
         db.session.execute(db.text("ALTER TABLE socios DROP CONSTRAINT IF EXISTS socios_numero_socio_key;"))
@@ -142,6 +190,15 @@ with app.app_context():
     if not ConfiguracionTesoreria.query.first():
         db.session.add(ConfiguracionTesoreria(saldo_inicial=0.0))
         db.session.commit()
+    # Crear PROYECTO BOMBERA si no existe
+    if not Proyecto.query.filter_by(nombre='PROYECTO BOMBERA').first():
+        p = Proyecto(nombre='PROYECTO BOMBERA', descripcion='Proyecto activo recaudacion para bomberos Creel', activo=True)
+        db.session.add(p)
+        db.session.commit()
+
+def get_mes_anio_actual():
+    now = datetime.now()
+    return f"{MESES_NOMBRES[now.month-1]} {now.year}"
 
 @app.route('/')
 def index_publico():
@@ -192,23 +249,7 @@ def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     lista_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
-    meses_es = {1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO", 9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"}
-    mes_actual_num = datetime.now().month
-    mes_actual_nombre = meses_es.get(mes_actual_num, "MES")
-    festividades = []
-    for socio in lista_socios:
-        if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual_num:
-            festividades.append({'dia': socio.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}"})
-        if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual_num:
-            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CÓNYUGE', 'persona': socio.nombre_esposa or 'CÓNYUGE', 'detalle': f"CÓNYUGE DE: {socio.nombre_completo}"})
-        if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual_num:
-            festividades.append({'dia': socio.aniversario_matrimonio.day, 'tipo': 'ANIVERSARIO DE BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CÓNYUGE'}", 'detalle': "ANIVERSARIO MATRIMONIAL"})
-        if socio.hijos:
-            for hijo in socio.hijos:
-                if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual_num:
-                    festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
-    festividades = sorted(festividades, key=lambda x: x['dia'])
-    return render_template('socios.html', socios=lista_socios, mes_actual_nombre=mes_actual_nombre, festividades_mes=festividades)
+    return render_template('socios.html', socios=lista_socios)
 
 @app.route('/socios/agregar', methods=['POST'])
 def agregar_socio():
@@ -249,7 +290,7 @@ def agregar_socio():
             b64 = base64.b64encode(contenido).decode('utf-8')
             nuevo.foto_url = f"data:{mime};base64,{b64}"
         except Exception as e:
-            flash(f'Error al procesar foto: {e}', 'warning')
+            flash(f'Error foto: {e}', 'warning')
     db.session.add(nuevo)
     db.session.flush()
     cargo_inicial = request.form.get('cargo_inicial')
@@ -257,7 +298,7 @@ def agregar_socio():
     if cargo_inicial:
         db.session.add(HistorialCargo(socio_id=nuevo.id, cargo=cargo_inicial.upper(), periodo=periodo_inicial.upper(), es_actual=True))
     db.session.commit()
-    flash('Socio agregado correctamente.', 'success')
+    flash('Socio agregado.', 'success')
     return redirect(url_for('gestion_socios'))
 
 @app.route('/socios/editar/<int:socio_id>', methods=['POST'])
@@ -279,90 +320,25 @@ def editar_socio(socio_id):
     socio.telefono = to_upper(request.form.get('telefono')) or socio.telefono
     socio.correo = request.form.get('correo') or socio.correo
     socio.fecha_nacimiento = parse_date(request.form.get('fecha_nacimiento')) or socio.fecha_nacimiento
-    socio.calle_numero = to_upper(request.form.get('calle_numero')) or socio.calle_numero
-    socio.colonia = to_upper(request.form.get('colonia')) or socio.colonia
-    socio.codigo_postal = to_upper(request.form.get('codigo_postal')) or socio.codigo_postal
-    socio.ciudad = to_upper(request.form.get('ciudad')) or socio.ciudad
-    socio.estado = to_upper(request.form.get('estado')) or socio.estado
-    socio.estado_civil = to_upper(request.form.get('estado_civil')) or socio.estado_civil
-    socio.nombre_esposa = to_upper(request.form.get('nombre_esposa')) or socio.nombre_esposa
-    socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa')) or socio.fecha_nacimiento_esposa
-    socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio')) or socio.aniversario_matrimonio
-    socio.telefono_esposa = to_upper(request.form.get('telefono_esposa')) or socio.telefono_esposa
-    socio.telefono_emergencia = to_upper(request.form.get('telefono_emergencia')) or socio.telefono_emergencia
     foto_archivo = request.files.get('foto_archivo')
     if foto_archivo and foto_archivo.filename and allowed_file(foto_archivo.filename):
-        try:
-            contenido = foto_archivo.read()
-            mime = foto_archivo.mimetype or 'image/jpeg'
-            b64 = base64.b64encode(contenido).decode('utf-8')
-            socio.foto_url = f"data:{mime};base64,{b64}"
-        except Exception as e:
-            flash(f'Error al procesar foto: {e}', 'warning')
-
-    # --- MANEJO DE HIJOS ---
-    # Editar o eliminar hijos existentes
+        contenido = foto_archivo.read()
+        mime = foto_archivo.mimetype or 'image/jpeg'
+        b64 = base64.b64encode(contenido).decode('utf-8')
+        socio.foto_url = f"data:{mime};base64,{b64}"
     for hijo in list(socio.hijos):
-        del_key = f'hijo_eliminar_{hijo.id}'
-        if request.form.get(del_key) == '1':
+        if request.form.get(f'hijo_eliminar_{hijo.id}') == '1':
             db.session.delete(hijo)
         else:
-            nombre_key = f'hijo_nombre_{hijo.id}'
-            fecha_key = f'hijo_fecha_{hijo.id}'
-            nuevo_nombre = request.form.get(nombre_key)
-            if nuevo_nombre:
-                hijo.nombre = to_upper(nuevo_nombre)
-                hijo.fecha_nacimiento = parse_date(request.form.get(fecha_key)) or hijo.fecha_nacimiento
-
-    # Agregar nuevos hijos (hasta 3 por edición)
+            nn = request.form.get(f'hijo_nombre_{hijo.id}')
+            if nn:
+                hijo.nombre = to_upper(nn)
+                hijo.fecha_nacimiento = parse_date(request.form.get(f'hijo_fecha_{hijo.id}')) or hijo.fecha_nacimiento
     for i in range(1, 4):
         n_nombre = request.form.get(f'nuevo_hijo_nombre_{i}')
         n_fecha = request.form.get(f'nuevo_hijo_fecha_{i}')
         if n_nombre and n_nombre.strip():
-            nuevo_hijo = Hijo(
-                socio_id=socio.id,
-                nombre=to_upper(n_nombre),
-                fecha_nacimiento=parse_date(n_fecha)
-            )
-            db.session.add(nuevo_hijo)
-
-    db.session.commit()
-    flash('Socio actualizado correctamente (incluyendo hijos).', 'success')
-    return redirect(url_for('gestion_socios'))
-    socio = Socio.query.get_or_404(socio_id)
-    def parse_date(date_str):
-        if date_str:
-            try:
-                return datetime.strptime(date_str, '%Y-%m-%d').date()
-            except ValueError:
-                return None
-        return None
-    socio.numero_socio = to_upper(request.form.get('numero_socio')) or socio.numero_socio
-    socio.nombre_completo = to_upper(request.form.get('nombre_completo')) or socio.nombre_completo
-    socio.tipo_socio = to_upper(request.form.get('tipo_socio')) or socio.tipo_socio
-    socio.telefono = to_upper(request.form.get('telefono')) or socio.telefono
-    socio.correo = request.form.get('correo') or socio.correo
-    socio.fecha_nacimiento = parse_date(request.form.get('fecha_nacimiento')) or socio.fecha_nacimiento
-    socio.calle_numero = to_upper(request.form.get('calle_numero')) or socio.calle_numero
-    socio.colonia = to_upper(request.form.get('colonia')) or socio.colonia
-    socio.codigo_postal = to_upper(request.form.get('codigo_postal')) or socio.codigo_postal
-    socio.ciudad = to_upper(request.form.get('ciudad')) or socio.ciudad
-    socio.estado = to_upper(request.form.get('estado')) or socio.estado
-    socio.estado_civil = to_upper(request.form.get('estado_civil')) or socio.estado_civil
-    socio.nombre_esposa = to_upper(request.form.get('nombre_esposa')) or socio.nombre_esposa
-    socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa')) or socio.fecha_nacimiento_esposa
-    socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio')) or socio.aniversario_matrimonio
-    socio.telefono_esposa = to_upper(request.form.get('telefono_esposa')) or socio.telefono_esposa
-    socio.telefono_emergencia = to_upper(request.form.get('telefono_emergencia')) or socio.telefono_emergencia
-    foto_archivo = request.files.get('foto_archivo')
-    if foto_archivo and foto_archivo.filename and allowed_file(foto_archivo.filename):
-        try:
-            contenido = foto_archivo.read()
-            mime = foto_archivo.mimetype or 'image/jpeg'
-            b64 = base64.b64encode(contenido).decode('utf-8')
-            socio.foto_url = f"data:{mime};base64,{b64}"
-        except Exception as e:
-            flash(f'Error al procesar foto: {e}', 'warning')
+            db.session.add(Hijo(socio_id=socio.id, nombre=to_upper(n_nombre), fecha_nacimiento=parse_date(n_fecha)))
     db.session.commit()
     flash('Socio actualizado.', 'success')
     return redirect(url_for('gestion_socios'))
@@ -378,15 +354,7 @@ def cumpleanos_mes():
     festividades = []
     for socio in lista_socios:
         if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual_num:
-            festividades.append({'fecha_str': f"{socio.fecha_nacimiento.day:02d}/{socio.fecha_nacimiento.month:02d}/{socio.fecha_nacimiento.year}", 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}", 'dia': socio.fecha_nacimiento.day})
-        if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual_num:
-            festividades.append({'fecha_str': f"{socio.fecha_nacimiento_esposa.day:02d}/{socio.fecha_nacimiento_esposa.month:02d}/{socio.fecha_nacimiento_esposa.year}", 'tipo': 'CUMPLEAÑOS CÓNYUGE', 'persona': socio.nombre_esposa or 'CÓNYUGE', 'detalle': f"CÓNYUGE DE: {socio.nombre_completo}", 'dia': socio.fecha_nacimiento_esposa.day})
-        if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual_num:
-            festividades.append({'fecha_str': f"{socio.aniversario_matrimonio.day:02d}/{socio.aniversario_matrimonio.month:02d}/{socio.aniversario_matrimonio.year}", 'tipo': 'ANIVERSARIO DE BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CÓNYUGE'}", 'detalle': "ANIVERSARIO MATRIMONIAL", 'dia': socio.aniversario_matrimonio.day})
-        if socio.hijos:
-            for hijo in socio.hijos:
-                if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual_num:
-                    festividades.append({'fecha_str': f"{hijo.fecha_nacimiento.day:02d}/{hijo.fecha_nacimiento.month:02d}/{hijo.fecha_nacimiento.year}", 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}", 'dia': hijo.fecha_nacimiento.day})
+            festividades.append({'fecha_str': f"{socio.fecha_nacimiento.day:02d}/{socio.fecha_nacimiento.month:02d}", 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}", 'dia': socio.fecha_nacimiento.day})
     festividades = sorted(festividades, key=lambda x: x['dia'])
     return render_template('cumpleanos.html', festividades=festividades, mes_actual=mes_actual_nombre)
 
@@ -394,7 +362,7 @@ def cumpleanos_mes():
 def gestion_autoridades():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    autoridades = AutoridadRotaria.query.order_by(AutoridadRotaria.nivel.asc(), AutoridadRotaria.nombre.asc()).all()
+    autoridades = AutoridadRotaria.query.order_by(AutoridadRotaria.nivel.asc()).all()
     return render_template('autoridades.html', autoridades=autoridades)
 
 @app.route('/autoridades/guardar', methods=['POST'])
@@ -402,33 +370,29 @@ def guardar_autoridad():
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE']:
         flash('No autorizado.', 'danger')
         return redirect(url_for('gestion_autoridades'))
-    nombre = to_upper(request.form.get('nombre'))
-    cargo = to_upper(request.form.get('cargo'))
-    nivel = to_upper(request.form.get('nivel'))
-    correo = request.form.get('correo')
-    telefono = request.form.get('telefono')
-    if nombre and cargo and nivel:
-        db.session.add(AutoridadRotaria(nombre=nombre, cargo=cargo, nivel=nivel, correo=correo, telefono=telefono))
+    if request.form.get('nombre') and request.form.get('cargo'):
+        db.session.add(AutoridadRotaria(nombre=to_upper(request.form.get('nombre')), cargo=to_upper(request.form.get('cargo')), nivel=to_upper(request.form.get('nivel')), correo=request.form.get('correo'), telefono=request.form.get('telefono')))
         db.session.commit()
-        flash('Autoridad guardada.', 'success')
     return redirect(url_for('gestion_autoridades'))
 
 @app.route('/autoridades/eliminar/<int:id>', methods=['POST'])
 def eliminar_autoridad(id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE']:
-        flash('No autorizado.', 'danger')
-        return redirect(url_for('gestion_autoridades'))
     aut = AutoridadRotaria.query.get_or_404(id)
     db.session.delete(aut)
     db.session.commit()
-    flash('Autoridad eliminada.', 'warning')
     return redirect(url_for('gestion_autoridades'))
 
 @app.route('/tesoreria')
 def modulo_tesoreria():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    return render_template('tesoreria_menu.html')
+    # Resumen financiero para menu
+    total_cuotas = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0
+    total_gastos_admin = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='ADMINISTRATIVO').scalar() or 0
+    total_proyectos_ing = db.session.query(func.sum(EventoProyecto.monto_recaudado)).scalar() or 0
+    total_gastos_proy = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='PROYECTO').scalar() or 0
+    proyectos = Proyecto.query.filter_by(activo=True).all()
+    return render_template('tesoreria_menu.html', total_cuotas=total_cuotas, total_gastos_admin=total_gastos_admin, balance_cuotas=total_cuotas-total_gastos_admin, total_proyectos_ing=total_proyectos_ing, total_gastos_proy=total_gastos_proy, balance_proyectos=total_proyectos_ing-total_gastos_proy, proyectos=proyectos)
 
 @app.route('/tesoreria/cuotas-sociales')
 def cuotas_sociales():
@@ -437,7 +401,7 @@ def cuotas_sociales():
     socios = Socio.query.filter_by(es_activo=True).order_by(Socio.nombre_completo.asc()).all()
     config_teso = ConfiguracionTesoreria.query.first()
     saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
-    total_recaudado = PagoCuota.query.filter(PagoCuota.mes_anio.in_(MESES_CONTROL)).with_entities(db.func.sum(PagoCuota.monto)).scalar() or 0.0
+    total_recaudado = PagoCuota.query.filter(PagoCuota.mes_anio.in_(MESES_CONTROL)).with_entities(func.sum(PagoCuota.monto)).scalar() or 0.0
     saldo_total_general = saldo_inicial + total_recaudado
     recibo_ids = request.args.get('recibo_ids')
     pagos_recibo = []
@@ -464,7 +428,7 @@ def actualizar_saldo_inicial():
     try:
         nuevo_saldo = float(request.form.get('saldo_inicial', 0.0))
     except:
-        flash('Saldo inválido', 'danger')
+        flash('Saldo invalido', 'danger')
         return redirect(url_for('cuotas_sociales'))
     user = Usuario.query.get(session['user_id'])
     if user and check_password_hash(user.password_hash, password):
@@ -475,7 +439,7 @@ def actualizar_saldo_inicial():
         else:
             config.saldo_inicial = nuevo_saldo
         db.session.commit()
-        flash('¡Saldo inicial actualizado exitosamente!', 'success')
+        flash('Saldo actualizado!', 'success')
     else:
         flash('Contraseña incorrecta.', 'danger')
     return redirect(url_for('cuotas_sociales'))
@@ -503,17 +467,14 @@ def registrar_pago_cuota():
             pagos_creados_ids.append(str(pago.id))
     db.session.commit()
     if pagos_creados_ids:
-        flash(f'{len(pagos_creados_ids)} pago(s) registrado(s) correctamente.', 'success')
+        flash(f'{len(pagos_creados_ids)} pago(s) registrado(s).', 'success')
         return redirect(url_for('cuotas_sociales', recibo_ids=','.join(pagos_creados_ids)))
     else:
-        flash('Todos los meses seleccionados ya estaban pagados.', 'info')
+        flash('Ya estaban pagados.', 'info')
         return redirect(url_for('cuotas_sociales'))
 
 @app.route('/tesoreria/editar-pago/<int:pago_id>', methods=['POST'])
 def editar_pago_cuota(pago_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('No autorizado.', 'danger')
-        return redirect(url_for('menu_principal'))
     pago = PagoCuota.query.get_or_404(pago_id)
     if request.form.get('accion') == 'eliminar':
         db.session.delete(pago)
@@ -561,11 +522,142 @@ def estado_cuenta_pdf(socio_id):
     fecha_actual_str = f"{dias_es.get(ahora.strftime('%A'), '')}, {ahora.day} DE {meses_es.get(ahora.strftime('%B'), '')} DE {ahora.year}"
     return render_template('estado_cuenta_pdf.html', socio=socio, meses=MESES_CONTROL, fecha_actual_str=fecha_actual_str)
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('index_publico'))
+# ==================== NUEVO MODULO GASTOS ====================
+@app.route('/tesoreria/gastos')
+def tesoreria_gastos():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    mes_filtro = request.args.get('mes', get_mes_anio_actual())
+    gastos_mes = Gasto.query.filter_by(mes_anio=mes_filtro).order_by(Gasto.fecha.desc()).all()
+    total_admin = sum([g.monto for g in gastos_mes if g.centro_costo == 'ADMINISTRATIVO'])
+    total_proyecto = sum([g.monto for g in gastos_mes if g.centro_costo == 'PROYECTO'])
+    proyectos = Proyecto.query.filter_by(activo=True).all()
+    try:
+        total_cuotas_mes = db.session.query(func.sum(PagoCuota.monto)).filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).scalar() or 0
+    except:
+        total_cuotas_mes = 0
+    meses_lista = []
+    now = datetime.now()
+    for i in range(18):
+        m = now.month - i
+        y = now.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        meses_lista.append(f"{MESES_NOMBRES[m-1]} {y}")
+    return render_template('tesoreria_gastos.html', gastos=gastos_mes, proyectos=proyectos, mes_actual=mes_filtro, meses_lista=meses_lista, total_admin=total_admin, total_proyecto=total_proyecto, total_cuotas_mes=total_cuotas_mes, balance_cuotas=total_cuotas_mes-total_admin)
 
+@app.route('/tesoreria/gastos/nuevo', methods=['POST'])
+def nuevo_gasto():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    fecha_str = request.form.get('fecha')
+    fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.now().date()
+    mes_anio = f"{MESES_NOMBRES[fecha.month-1]} {fecha.year}"
+    centro = request.form.get('centro_costo')
+    proyecto_id = request.form.get('proyecto_id') if centro == 'PROYECTO' else None
+    gasto = Gasto(
+        fecha=fecha,
+        mes_anio=mes_anio,
+        concepto=request.form.get('concepto').upper(),
+        monto=float(request.form.get('monto')),
+        centro_costo=centro,
+        proyecto_id=int(proyecto_id) if proyecto_id else None,
+        comprobante=request.form.get('comprobante'),
+        creado_por=session.get('username','TESORERIA'),
+        notas=request.form.get('notas')
+    )
+    db.session.add(gasto)
+    db.session.commit()
+    flash(f'Gasto registrado: {gasto.concepto} - ${gasto.monto:,.2f} - {centro}', 'success')
+    return redirect(url_for('tesoreria_gastos', mes=mes_anio))
+
+@app.route('/tesoreria/gastos/eliminar/<int:gasto_id>', methods=['POST'])
+def eliminar_gasto(gasto_id):
+    gasto = Gasto.query.get_or_404(gasto_id)
+    mes = gasto.mes_anio
+    db.session.delete(gasto)
+    db.session.commit()
+    flash('Gasto eliminado.', 'warning')
+    return redirect(url_for('tesoreria_gastos', mes=mes))
+
+# ==================== MODULO PROYECTOS ====================
+@app.route('/tesoreria/proyectos')
+def tesoreria_proyectos():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    proyectos = Proyecto.query.order_by(Proyecto.fecha_creacion.desc()).all()
+    for p in proyectos:
+        total_rec = sum([e.monto_recaudado for e in p.eventos]) if p.eventos else 0
+        total_gas = sum([g.monto for g in p.gastos]) if p.gastos else 0
+        p.total_recaudado_calc = total_rec
+        p.total_gastado_calc = total_gas
+        p.balance_calc = total_rec - total_gas
+        total_meta = sum([e.monto_meta for e in p.eventos]) if p.eventos else 0
+        p.total_meta_calc = total_meta
+        p.porcentaje_calc = (total_rec / total_meta * 100) if total_meta > 0 else 0
+    return render_template('tesoreria_proyectos.html', proyectos=proyectos)
+
+@app.route('/tesoreria/proyecto/nuevo', methods=['POST'])
+def nuevo_proyecto():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    nombre = request.form.get('nombre').upper()
+    proyecto = Proyecto(nombre=nombre, descripcion=request.form.get('descripcion'))
+    db.session.add(proyecto)
+    db.session.commit()
+    flash(f'Proyecto creado: {nombre}', 'success')
+    return redirect(url_for('tesoreria_proyectos'))
+
+@app.route('/tesoreria/proyecto/<int:proyecto_id>')
+def ver_proyecto(proyecto_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    proyecto = Proyecto.query.get_or_404(proyecto_id)
+    eventos = EventoProyecto.query.filter_by(proyecto_id=proyecto_id).order_by(EventoProyecto.fecha_evento.desc()).all()
+    gastos = Gasto.query.filter_by(proyecto_id=proyecto_id).order_by(Gasto.fecha.desc()).all()
+    total_recaudado = sum([e.monto_recaudado for e in eventos])
+    total_meta = sum([e.monto_meta for e in eventos])
+    total_gastos = sum([g.monto for g in gastos])
+    return render_template('tesoreria_proyecto_detalle.html', proyecto=proyecto, eventos=eventos, gastos=gastos, total_recaudado=total_recaudado, total_meta=total_meta, total_gastos=total_gastos, balance=total_recaudado-total_gastos)
+
+@app.route('/tesoreria/proyecto/<int:proyecto_id>/evento/nuevo', methods=['POST'])
+def nuevo_evento_proyecto(proyecto_id):
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    proyecto = Proyecto.query.get_or_404(proyecto_id)
+    evento = EventoProyecto(
+        proyecto_id=proyecto_id,
+        nombre=request.form.get('nombre').upper(),
+        descripcion=request.form.get('descripcion'),
+        monto_meta=float(request.form.get('monto_meta')),
+        monto_recaudado=float(request.form.get('monto_recaudado') or 0),
+        fecha_evento=datetime.strptime(request.form.get('fecha_evento'), '%Y-%m-%d').date() if request.form.get('fecha_evento') else None,
+        detalle_recaudado=request.form.get('detalle_recaudado')
+    )
+    db.session.add(evento)
+    db.session.commit()
+    flash(f'Evento creado: {evento.nombre} - Meta ${evento.monto_meta:,.2f}', 'success')
+    return redirect(url_for('ver_proyecto', proyecto_id=proyecto_id))
+
+@app.route('/tesoreria/evento/<int:evento_id>/actualizar', methods=['POST'])
+def actualizar_evento(evento_id):
+    evento = EventoProyecto.query.get_or_404(evento_id)
+    evento.monto_recaudado = float(request.form.get('monto_recaudado'))
+    evento.detalle_recaudado = request.form.get('detalle_recaudado')
+    evento.nombre = request.form.get('nombre', evento.nombre).upper()
+    db.session.commit()
+    flash(f'Evento actualizado: {evento.nombre} - ${evento.monto_recaudado:,.2f}', 'success')
+    return redirect(url_for('ver_proyecto', proyecto_id=evento.proyecto_id))
+
+@app.route('/tesoreria/evento/<int:evento_id>/eliminar', methods=['POST'])
+def eliminar_evento(evento_id):
+    evento = EventoProyecto.query.get_or_404(evento_id)
+    pid = evento.proyecto_id
+    db.session.delete(evento)
+    db.session.commit()
+    flash('Evento eliminado.', 'warning')
+    return redirect(url_for('ver_proyecto', proyecto_id=pid))
 
 @app.route('/tesoreria/recaudacion-mensual')
 def recaudacion_mensual():
@@ -576,8 +668,10 @@ def recaudacion_mensual():
         total_socios = 12
     cuota_mensual = 500
     esperado_por_mes = total_socios * cuota_mensual
-    MESES_2025_LIST = [m for m in MESES_CONTROL if "2025" in m] if 'MESES_CONTROL' in globals() else ["JUN 2025","JUL 2025","AGO 2025","SEP 2025","OCT 2025","NOV 2025","DIC 2025"]
-    MESES_2026_LIST = [m for m in MESES_CONTROL if "2026" in m] if 'MESES_CONTROL' in globals() else ["ENE 2026","FEB 2026","MAR 2026","ABR 2026","MAY 2026","JUN 2026","JUL 2026","AGO 2026","SEP 2026","OCT 2026","NOV 2026","DIC 2026"]
+    anios_disponibles = sorted(list(set([m.split()[-1] for m in MESES_CONTROL if m.split()[-1].isdigit()])))
+    if not anios_disponibles:
+        anios_disponibles = ["2025", "2026"]
+    anio_filtro = request.args.get('anio', None)
     def calcular_meses(lista_meses):
         resultado = []
         total_recibido = 0
@@ -587,33 +681,64 @@ def recaudacion_mensual():
             esperado = esperado_por_mes
             diferencia = esperado - recibido
             porcentaje = (recibido / esperado * 100) if esperado > 0 else 0
-            resultado.append({
-                'mes': mes,
-                'recibido': recibido,
-                'esperado': esperado,
-                'diferencia': diferencia,
-                'porcentaje': porcentaje,
-                'num_pagos': len(pagos_mes)
-            })
+            tipo = "ESTADISTICO" if "2025" in mes else "CAJA"
+            resultado.append({'mes': mes, 'recibido': recibido, 'esperado': esperado, 'diferencia': diferencia, 'porcentaje': porcentaje, 'num_pagos': len(pagos_mes), 'tipo': tipo})
             total_recibido += recibido
         return resultado, total_recibido
-    meses_2025, total_2025 = calcular_meses(MESES_2025_LIST)
-    meses_2026, total_2026 = calcular_meses(MESES_2026_LIST)
-    esperado_2025 = len(MESES_2025_LIST) * esperado_por_mes
-    esperado_2026 = len(MESES_2026_LIST) * esperado_por_mes
-    porc_2025 = (total_2025 / esperado_2025 * 100) if esperado_2025 else 0
-    porc_2026 = (total_2026 / esperado_2026 * 100) if esperado_2026 else 0
+    if anio_filtro and anio_filtro in anios_disponibles:
+        meses_filtrados = [m for m in MESES_CONTROL if anio_filtro in m]
+        meses_data, total_filtrado = calcular_meses(meses_filtrados)
+        meses_2025 = []; meses_2026 = []; meses_2027 = []
+        if anio_filtro == "2025": meses_2025 = meses_data
+        elif anio_filtro == "2026": meses_2026 = meses_data
+        else: meses_2027 = meses_data
+        meses_2025_all, total_2025_all = calcular_meses([m for m in MESES_CONTROL if "2025" in m])
+        meses_2026_all, total_2026_all = calcular_meses([m for m in MESES_CONTROL if "2026" in m])
+        meses_2027_all, total_2027_all = calcular_meses([m for m in MESES_CONTROL if "2027" in m])
+    else:
+        meses_2025, total_2025 = calcular_meses([m for m in MESES_CONTROL if "2025" in m])
+        meses_2026, total_2026 = calcular_meses([m for m in MESES_CONTROL if "2026" in m])
+        meses_2027, total_2027 = calcular_meses([m for m in MESES_CONTROL if "2027" in m])
+        meses_2025_all = meses_2025; meses_2026_all = meses_2026; meses_2027_all = meses_2027
+        total_2025_all = total_2025; total_2026_all = total_2026; total_2027_all = total_2027
+        anio_filtro = "TODOS"
+    esperado_2025 = len([m for m in MESES_CONTROL if "2025" in m]) * esperado_por_mes
+    esperado_2026 = len([m for m in MESES_CONTROL if "2026" in m]) * esperado_por_mes
+    esperado_2027 = len([m for m in MESES_CONTROL if "2027" in m]) * esperado_por_mes if any("2027" in m for m in MESES_CONTROL) else 0
+    porc_2025 = (total_2025_all / esperado_2025 * 100) if esperado_2025 else 0
+    porc_2026 = (total_2026_all / esperado_2026 * 100) if esperado_2026 else 0
+    porc_2027 = (total_2027_all / esperado_2027 * 100) if esperado_2027 else 0
+    comparacion_anual = []
+    for anio in anios_disponibles:
+        lista = [m for m in MESES_CONTROL if anio in m]
+        datos, total = calcular_meses(lista)
+        esperado = len(lista) * esperado_por_mes
+        porc = (total / esperado * 100) if esperado else 0
+        tipo = "ESTADISTICO - NO VA A CAJA" if anio == "2025" else "DINERO EN CAJA"
+        comparacion_anual.append({'anio': anio, 'total_recibido': total, 'esperado': esperado, 'porcentaje': porc, 'meses': len(lista), 'tipo': tipo})
     return render_template('recaudacion_mensual.html',
                            total_socios=total_socios,
                            meses_2025=meses_2025,
                            meses_2026=meses_2026,
-                           total_2025=total_2025,
-                           total_2026=total_2026,
+                           meses_2027=meses_2027,
+                           total_2025=total_2025_all,
+                           total_2026=total_2026_all,
+                           total_2027=total_2027_all,
                            esperado_2025=esperado_2025,
                            esperado_2026=esperado_2026,
+                           esperado_2027=esperado_2027,
                            porc_2025=porc_2025,
-                           porc_2026=porc_2026)
+                           porc_2026=porc_2026,
+                           porc_2027=porc_2027,
+                           anios_disponibles=anios_disponibles,
+                           anio_filtro=anio_filtro,
+                           comparacion_anual=comparacion_anual,
+                           cuota_mensual=cuota_mensual)
 
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index_publico'))
 
 if __name__ == '__main__':
     app.run(debug=True)
