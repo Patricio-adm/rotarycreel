@@ -153,6 +153,7 @@ class Gasto(db.Model):
     centro_costo = db.Column(db.String(30), nullable=False)  # ADMINISTRATIVO o PROYECTO
     proyecto_id = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=True)
     comprobante = db.Column(db.String(300), nullable=True)
+    foto_comprobante = db.Column(db.Text, nullable=True)  # FOTO base64 comprobante
     creado_por = db.Column(db.String(100), nullable=True)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
     notas = db.Column(db.Text, nullable=True)
@@ -556,6 +557,18 @@ def nuevo_gasto():
     mes_anio = f"{MESES_NOMBRES[fecha.month-1]} {fecha.year}"
     centro = request.form.get('centro_costo')
     proyecto_id = request.form.get('proyecto_id') if centro == 'PROYECTO' else None
+    # Foto comprobante - subir/tomar foto
+    foto_b64 = None
+    foto_archivo = request.files.get('foto_comprobante')
+    if foto_archivo and foto_archivo.filename:
+        try:
+            contenido = foto_archivo.read()
+            if len(contenido) > 0 and len(contenido) < 8*1024*1024:  # max 8MB
+                mime = foto_archivo.mimetype or 'image/jpeg'
+                b64 = base64.b64encode(contenido).decode('utf-8')
+                foto_b64 = f"data:{mime};base64,{b64}"
+        except Exception as e:
+            print(f"Error foto comprobante: {e}")
     gasto = Gasto(
         fecha=fecha,
         mes_anio=mes_anio,
@@ -564,12 +577,13 @@ def nuevo_gasto():
         centro_costo=centro,
         proyecto_id=int(proyecto_id) if proyecto_id else None,
         comprobante=request.form.get('comprobante'),
+        foto_comprobante=foto_b64,
         creado_por=session.get('username','TESORERIA'),
         notas=request.form.get('notas')
     )
     db.session.add(gasto)
     db.session.commit()
-    flash(f'Gasto registrado: {gasto.concepto} - ${gasto.monto:,.2f} - {centro}', 'success')
+    flash(f'Gasto registrado: {gasto.concepto} - ${gasto.monto:,.2f} con comprobante', 'success')
     return redirect(url_for('tesoreria_gastos', mes=mes_anio))
 
 @app.route('/tesoreria/gastos/eliminar/<int:gasto_id>', methods=['POST'])
