@@ -1,1 +1,153 @@
-<html><head><meta charset="utf-8" /><meta name="referrer" content="origin" /></head><body><script type="text/javascript" nonce="TwFu0M4g">document.location.replace("https:\/\/cdn.fbsbx.com\/v\/t65.102178-21\/842864447_29088489904101627_4298550624573025953_n.jpg\/tesoreria_proyectos.html?_nc_ht=cdn.fbsbx.com&_nc_ohc=GNGnuvzql9gQ7kNvwFQ6Ucf&sdl=0&ccb=14-4&oh=00_AQPr-JLBmAdkqmCVfsVaqHCSOdL3XKuqyIwU7QcbL77daA&oe=6AF0C95B&_nc_sid=4ee932");</script></body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ingresos por Proyectos - Rotary Creel</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; background:#f4f6f9; }
+.header-rotary { background:#17458F; color:white; padding:12px 20px; border-bottom:4px solid #F7A81B; }
+.card-proyecto { border-top:5px solid #28a745; border-left:none; transition:0.2s; border-radius:12px; }
+.card-proyecto:hover { transform:translateY(-3px); box-shadow:0 8px 20px rgba(0,0,0,0.15); }
+.progress { height:22px; border-radius:10px; }
+.btn-ver { background:#17458F; color:white; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="header-rotary d-flex justify-content-between align-items-center">
+<div>
+<h5 class="mb-0 fw-bold" style="font-size:15px;">ROTARY CLUB CREEL - INGRESOS POR PROYECTOS</h5>
+<small style="font-size:10px;">CONTROL DE INGRESOS, EVENTOS RECAUDATORIOS Y BALANCE POR PROYECTO</small>
+</div>
+<div>
+<a href="/tesoreria/gastos" class="btn btn-warning btn-sm fw-bold">← GASTOS</a>
+<a href="/tesoreria" class="btn btn-light btn-sm fw-bold ms-1">MENÚ TESORERÍA</a>
+</div>
+</div>
+
+<div class="container-fluid p-3">
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+<h6 class="fw-bold mb-0" style="color:#17458F; font-size:14px;">💰 INGRESOS POR PROYECTOS - {{ proyectos|length }} ACTIVOS</h6>
+<button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto"><i class="bi bi-plus-circle"></i> + NUEVO PROYECTO</button>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{{ category }} alert-dismissible fade show py-2" style="font-size:11px;">
+{{ message }}
+<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="row">
+{% for p in proyectos %}
+<div class="col-md-6 col-lg-4 mb-3">
+<div class="card card-proyecto shadow-sm h-100">
+<div class="card-body">
+<div class="d-flex justify-content-between align-items-start mb-2">
+<h6 class="fw-bold mb-0" style="font-size:13px; color:#17458F;">💡 {{ p.nombre }}</h6>
+<span class="badge {% if p.activo %}bg-success{% else %}bg-secondary{% endif %}" style="font-size:8px;">{% if p.activo %}ACTIVO{% else %}CERRADO{% endif %}</span>
+</div>
+{% if p.descripcion %}
+<p class="text-muted mb-2" style="font-size:10px; text-transform:none;">{{ p.descripcion }}</p>
+{% endif %}
+
+<div class="row text-center mb-2" style="font-size:10px;">
+<div class="col-4">
+<small class="text-muted d-block" style="font-size:8px;">META TOTAL</small>
+<strong>${{ "%.2f"|format(p.total_meta_calc) }}</strong>
+</div>
+<div class="col-4">
+<small class="text-muted d-block" style="font-size:8px;">RECAUDADO</small>
+<strong class="text-success">${{ "%.2f"|format(p.total_recaudado_calc) }}</strong>
+</div>
+<div class="col-4">
+<small class="text-muted d-block" style="font-size:8px;">BALANCE</small>
+<strong class="{% if p.balance_calc>=0 %}text-success{% else %}text-danger{% endif %}">${{ "%.2f"|format(p.balance_calc) }}</strong>
+</div>
+</div>
+
+<div class="mb-2">
+<div class="d-flex justify-content-between" style="font-size:9px;">
+<small>AVANCE META</small>
+<small class="fw-bold">{{ "%.1f"|format(p.porcentaje_calc) }}% {% if p.porcentaje_calc>=100 %}✅ META ALCANZADA{% endif %}</small>
+</div>
+<div class="progress">
+<div class="progress-bar {% if p.porcentaje_calc>=100 %}bg-success{% elif p.porcentaje_calc>=75 %}bg-primary{% elif p.porcentaje_calc>=50 %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="width: {{ p.porcentaje_calc if p.porcentaje_calc<=100 else 100 }}%">{{ "%.0f"|format(p.porcentaje_calc) }}%</div>
+</div>
+<small style="font-size:8px; color:#666;">${{ "%.0f"|format(p.total_recaudado_calc) }} DE ${{ "%.0f"|format(p.total_meta_calc) }} META</small>
+</div>
+
+<div class="row text-center mb-3" style="font-size:9px;">
+<div class="col-6">
+<span class="badge bg-primary" style="font-size:9px;">{{ p.eventos|length }} EVENTOS</span>
+</div>
+<div class="col-6">
+<span class="badge bg-danger" style="font-size:9px;">{{ p.gastos|length }} GASTOS</span>
+</div>
+</div>
+
+<div class="d-grid">
+<a href="/tesoreria/proyecto/{{ p.id }}" class="btn btn-ver btn-sm"><i class="bi bi-eye"></i> VER INGRESOS Y EVENTOS</a>
+</div>
+
+</div>
+<div class="card-footer py-1 text-muted d-flex justify-content-between" style="font-size:8px;">
+<span>CREADO: {{ p.fecha_creacion.strftime('%d/%m/%Y') if p.fecha_creacion else '-' }}</span>
+<span>GASTADO: ${{ "%.0f"|format(p.total_gastado_calc) }}</span>
+</div>
+</div>
+</div>
+{% else %}
+<div class="col-12 text-center py-5">
+<div class="alert alert-warning">
+<h6>💡 NO HAY PROYECTOS / INGRESOS REGISTRADOS</h6>
+<p style="font-size:11px; text-transform:none;">Crea tu primer proyecto de ingresos. Ejemplo: PROYECTO BOMBERA, BECAS, BIBLIOTECA, REFORESTACIÓN.<br>Después podrás agregar eventos recaudatorios (Cena, Rifa, Boteo) con meta y detalle numérico.</p>
+<button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto">+ CREAR PRIMER PROYECTO DE INGRESOS</button>
+</div>
+</div>
+{% endfor %}
+</div>
+
+</div>
+
+<!-- MODAL NUEVO PROYECTO - INGRESOS POR PROYECTOS -->
+<div class="modal fade" id="modalNuevoProyecto" tabindex="-1">
+<div class="modal-dialog">
+<div class="modal-content">
+<form method="POST" action="/tesoreria/proyecto/nuevo">
+<div class="modal-header" style="background:#28a745; color:white;">
+<h6 class="modal-title fw-bold" style="font-size:13px;">💡 NUEVO PROYECTO / INGRESO POR PROYECTO</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" style="font-size:11px;">
+<div class="alert alert-info py-2" style="font-size:9px; text-transform:none;">
+<strong>¿Qué es esto?</strong> Registra un nuevo concepto de ingresos por proyecto. Ej: Si vas a hacer una cena para Bomberos, crea <strong>PROYECTO BOMBERA</strong>. Si no existe el proyecto que necesitas al registrar un ingreso, créalo aquí. Aparecerá en la lista de proyectos para asignarle eventos y gastos.
+</div>
+<div class="mb-3">
+<label class="fw-bold" style="font-size:10px;">NOMBRE DEL PROYECTO / CONCEPTO DE INGRESO:</label>
+<input type="text" name="nombre" class="form-control form-control-sm fw-bold" required placeholder="EJ: PROYECTO BOMBERA, PROYECTO BECAS, INGRESOS KERMES" style="text-transform:uppercase;">
+<small style="font-size:8px; color:#666; text-transform:none;">Se guardará en mayúsculas y aparecerá en GASTOS cuando selecciones centro de costo PROYECTO</small>
+</div>
+<div class="mb-2">
+<label class="fw-bold" style="font-size:10px;">DESCRIPCIÓN (OPCIONAL):</label>
+<textarea name="descripcion" class="form-control form-control-sm" rows="2" placeholder="Descripción breve del proyecto..."></textarea>
+</div>
+</div>
+<div class="modal-footer py-2">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+<button type="submit" class="btn btn-success btn-sm fw-bold">💾 CREAR PROYECTO DE INGRESOS</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
