@@ -67,20 +67,18 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 
 <div class="col-md-4">
-<a href="#proyectosActivos" class="text-decoration-none">
-<div class="card card-menu card-activos shadow-sm text-center p-3">
+<div class="card card-menu card-activos shadow-sm text-center p-3" onclick="toggleProyectos()" style="cursor:pointer;">
 <div class="icono">📋</div>
 <h6 class="fw-bold mb-1" style="font-size:13px; color:#000;">PROYECTOS ACTIVOS</h6>
 <small style="font-size:8px; color:#666; text-transform:none;">Ver todos los proyectos e ingresos</small>
-<span class="badge bg-warning text-dark mt-1" style="font-size:8px;">{{ proyectos|length }} ACTIVOS</span>
+<span class="badge bg-warning text-dark mt-1" style="font-size:8px;">{{ proyectos|length }} ACTIVOS - CLIC PARA VER</span>
 </div>
-</a>
-</div>
-
 </div>
 
-<!-- SECCION PROYECTOS ACTIVOS -->
-<div id="proyectosActivos" class="card shadow-sm mb-3">
+</div>
+
+<!-- SECCION PROYECTOS ACTIVOS - OCULTO AL INICIO, APARECE AL CLIC EN PROYECTOS ACTIVOS -->
+<div id="proyectosActivos" class="card shadow-sm mb-3" style="display:none;">
 <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between" style="font-size:12px;">
 <span>📋 PROYECTOS ACTIVOS - {{ proyectos|length }} PROYECTOS | CLIC EN VER PARA DETALLE EN MODAL</span>
 <span class="badge bg-light text-dark">{{ proyectos|length }} ACTIVOS</span>
@@ -358,9 +356,21 @@ Si el proyecto no existe al registrar ingreso, créalo aquí. Aparecerá en el d
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Auto-selecciona proyecto si viene del modal detalle
+function toggleProyectos() {
+  var div = document.getElementById('proyectosActivos');
+  if (div.style.display === 'none' || div.style.display === '') {
+    div.style.display = 'block';
+    div.scrollIntoView({ behavior: 'smooth' });
+  } else {
+    div.style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+// Si viene con hash #proyectosActivos, mostrar automaticamente
 document.addEventListener('DOMContentLoaded', function(){
-  var modales = document.querySelectorAll('[id^=modalDetalleProyecto]');
+  if (window.location.hash === '#proyectosActivos') {
+    document.getElementById('proyectosActivos').style.display = 'block';
+  }
 });
 </script>
 </body>
