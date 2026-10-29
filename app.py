@@ -207,6 +207,10 @@ def index_publico():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'GET':
+        # FIX DEFINITIVO: Borra TODOS los flashes de gastos/proyectos que quedaron pegados
+        # Tu captura muestra 5 gastos acumulados en login - esto los limpia
+        session.pop('_flashes', None)
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
@@ -215,6 +219,7 @@ def login():
             session['user_id'] = user.id
             session['username'] = user.username
             session['rol'] = user.rol
+            session.pop('_flashes', None)  # Limpia flashes viejos al loguearse
             return redirect(url_for('menu_principal'))
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
