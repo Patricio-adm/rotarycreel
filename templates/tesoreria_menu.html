@@ -7,12 +7,13 @@
 <style>
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
-.card-modulo { border:none; border-radius:12px; border-top:5px solid #17458F; height:130px; display:flex; flex-direction:column; justify-content:center; align-items:center; transition:0.2s; }
+.card-modulo { border:none; border-radius:12px; border-top:5px solid #17458F; height:120px; display:flex; flex-direction:column; justify-content:center; align-items:center; transition:0.2s; }
 .card-modulo:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.15); }
 .card-gastos { border-top-color:#F7A81B; }
 .card-proyectos { border-top-color:#28a745; }
 .card-recaudacion { border-top-color:#6f42c1; }
-.icono { font-size:38px; margin-bottom:8px; }
+.card-estado { border-top-color:#dc3545; }
+.icono { font-size:36px; margin-bottom:6px; }
 </style>
 </head>
 <body>
@@ -21,47 +22,55 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 <a href="/menu" class="btn btn-outline-light btn-sm fw-bold" style="font-size:11px;">MENÚ PRINCIPAL</a>
 </div>
 
-<div class="container py-5">
-
-<div class="text-center mb-5">
+<div class="container py-4">
+<div class="text-center mb-4">
 <h4 class="fw-bold" style="color:#17458F; font-size:22px;">GESTIÓN DE TESORERÍA</h4>
-<p class="text-muted" style="font-size:11px;">SELECCIONE EL MÓDULO O CONCEPTO QUE DESEA ADMINISTRAR</p>
+<p class="text-muted" style="font-size:11px;">SELECCIONE EL MÓDULO</p>
 </div>
 
-<div class="row g-4 justify-content-center">
+<div class="row g-3 justify-content-center">
 
-<div class="col-md-6 col-lg-3">
+<div class="col-md-4 col-lg-2">
 <a href="/tesoreria/cuotas-sociales" class="text-decoration-none">
-<div class="card card-modulo shadow-sm text-center p-3">
+<div class="card card-modulo shadow-sm text-center p-2">
 <div class="icono">💵</div>
-<h6 class="fw-bold mb-0" style="font-size:14px; color:#000;">CUOTAS SOCIALES</h6>
+<h6 class="fw-bold mb-0" style="font-size:12px; color:#000;">CUOTAS SOCIALES</h6>
 </div>
 </a>
 </div>
 
-<div class="col-md-6 col-lg-3">
+<div class="col-md-4 col-lg-2">
 <a href="/tesoreria/gastos" class="text-decoration-none">
-<div class="card card-modulo card-gastos shadow-sm text-center p-3">
+<div class="card card-modulo card-gastos shadow-sm text-center p-2">
 <div class="icono">💸</div>
-<h6 class="fw-bold mb-0" style="font-size:14px; color:#000;">GASTOS</h6>
+<h6 class="fw-bold mb-0" style="font-size:12px; color:#000;">GASTOS</h6>
 </div>
 </a>
 </div>
 
-<div class="col-md-6 col-lg-3">
+<div class="col-md-4 col-lg-2">
 <a href="/tesoreria/proyectos" class="text-decoration-none">
-<div class="card card-modulo card-proyectos shadow-sm text-center p-3">
+<div class="card card-modulo card-proyectos shadow-sm text-center p-2">
 <div class="icono">💡</div>
-<h6 class="fw-bold mb-0" style="font-size:14px; color:#000;">PROYECTOS</h6>
+<h6 class="fw-bold mb-0" style="font-size:12px; color:#000;">PROYECTOS</h6>
 </div>
 </a>
 </div>
 
-<div class="col-md-6 col-lg-3">
+<div class="col-md-4 col-lg-3">
+<a href="/tesoreria/estado-cuenta-mensual" class="text-decoration-none">
+<div class="card card-modulo card-estado shadow-sm text-center p-2">
+<div class="icono">📑</div>
+<h6 class="fw-bold mb-0" style="font-size:12px; color:#000;">ESTADO DE CUENTA MENSUAL</h6>
+</div>
+</a>
+</div>
+
+<div class="col-md-4 col-lg-3">
 <a href="/tesoreria/recaudacion-mensual" class="text-decoration-none">
-<div class="card card-modulo card-recaudacion shadow-sm text-center p-3">
+<div class="card card-modulo card-recaudacion shadow-sm text-center p-2">
 <div class="icono">📊</div>
-<h6 class="fw-bold mb-0" style="font-size:14px; color:#000;">RECAUDACIÓN MENSUAL</h6>
+<h6 class="fw-bold mb-0" style="font-size:12px; color:#000;">RECAUDACIÓN MENSUAL</h6>
 </div>
 </a>
 </div>
@@ -69,7 +78,5 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 </div>
 
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
