@@ -8,10 +8,15 @@
 <style>
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:12px 20px; border-bottom:4px solid #F7A81B; }
+.card-menu { border:none; border-radius:12px; border-top:5px solid #17458F; height:120px; display:flex; flex-direction:column; justify-content:center; align-items:center; transition:0.2s; cursor:pointer; }
+.card-menu:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.15); }
+.card-ingreso { border-top-color:#0d6efd; }
+.card-nuevo-proy { border-top-color:#28a745; }
+.card-activos { border-top-color:#F7A81B; }
+.icono { font-size:36px; margin-bottom:6px; }
 .card-proyecto { border-top:5px solid #28a745; border-radius:12px; transition:0.2s; }
-.card-proyecto:hover { transform:translateY(-3px); box-shadow:0 8px 20px rgba(0,0,0,0.15); }
+.card-proyecto:hover { transform:translateY(-2px); box-shadow:0 6px 15px rgba(0,0,0,0.15); }
 .progress { height:22px; border-radius:10px; }
-.btn-ver { background:#17458F; color:white; font-weight:700; }
 .zona-ingreso { border:2px dashed #28a745; background:#f0fff0; border-radius:10px; padding:12px; }
 </style>
 </head>
@@ -29,14 +34,6 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 
 <div class="container-fluid p-3">
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-<h6 class="fw-bold mb-0" style="color:#17458F; font-size:14px;">💰 INGRESOS POR PROYECTOS - {{ proyectos|length }} PROYECTOS ACTIVOS</h6>
-<div>
-<button class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoIngreso"><i class="bi bi-cash-stack"></i> + NUEVO INGRESO</button>
-<button class="btn btn-success btn-sm fw-bold ms-1" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto"><i class="bi bi-plus-circle"></i> + AGREGAR PROYECTO</button>
-</div>
-</div>
-
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 {% for category, message in messages %}
@@ -48,6 +45,47 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 {% endif %}
 {% endwith %}
 
+<!-- 3 MENUS / ICONOS SUPERIORES -->
+<div class="row g-3 justify-content-center mb-4">
+
+<div class="col-md-4">
+<div class="card card-menu card-ingreso shadow-sm text-center p-3" data-bs-toggle="modal" data-bs-target="#modalNuevoIngreso">
+<div class="icono">💰</div>
+<h6 class="fw-bold mb-1" style="font-size:13px; color:#0d6efd;">INGRESO DE DINERO</h6>
+<small style="font-size:8px; color:#666; text-transform:none;">Registrar nuevo ingreso / recaudación en proyecto</small>
+<span class="badge bg-primary mt-1" style="font-size:8px;">CENTRO: PROYECTOS</span>
+</div>
+</div>
+
+<div class="col-md-4">
+<div class="card card-menu card-nuevo-proy shadow-sm text-center p-3" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto">
+<div class="icono">➕💡</div>
+<h6 class="fw-bold mb-1" style="font-size:13px; color:#28a745;">NUEVO PROYECTO</h6>
+<small style="font-size:8px; color:#666; text-transform:none;">Crear proyecto si no existe en la lista</small>
+<span class="badge bg-success mt-1" style="font-size:8px;">+ AGREGAR PROYECTO</span>
+</div>
+</div>
+
+<div class="col-md-4">
+<a href="#proyectosActivos" class="text-decoration-none">
+<div class="card card-menu card-activos shadow-sm text-center p-3">
+<div class="icono">📋</div>
+<h6 class="fw-bold mb-1" style="font-size:13px; color:#000;">PROYECTOS ACTIVOS</h6>
+<small style="font-size:8px; color:#666; text-transform:none;">Ver todos los proyectos e ingresos</small>
+<span class="badge bg-warning text-dark mt-1" style="font-size:8px;">{{ proyectos|length }} ACTIVOS</span>
+</div>
+</a>
+</div>
+
+</div>
+
+<!-- SECCION PROYECTOS ACTIVOS -->
+<div id="proyectosActivos" class="card shadow-sm mb-3">
+<div class="card-header bg-dark text-white fw-bold d-flex justify-content-between" style="font-size:12px;">
+<span>📋 PROYECTOS ACTIVOS - {{ proyectos|length }} PROYECTOS | CLIC EN VER PARA DETALLE EN MODAL</span>
+<span class="badge bg-light text-dark">{{ proyectos|length }} ACTIVOS</span>
+</div>
+<div class="card-body">
 <div class="row">
 {% for p in proyectos %}
 <div class="col-md-6 col-lg-4 mb-3">
@@ -64,29 +102,29 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="row text-center mb-2" style="font-size:10px;">
 <div class="col-4">
 <small class="text-muted d-block" style="font-size:8px;">META TOTAL</small>
-<strong>${{ "%.2f"|format(p.total_meta_calc) }}</strong>
+<strong>${{ "%.0f"|format(p.total_meta_calc) }}</strong>
 </div>
 <div class="col-4">
 <small class="text-muted d-block" style="font-size:8px;">RECAUDADO</small>
-<strong class="text-success">${{ "%.2f"|format(p.total_recaudado_calc) }}</strong>
+<strong class="text-success">${{ "%.0f"|format(p.total_recaudado_calc) }}</strong>
 </div>
 <div class="col-4">
 <small class="text-muted d-block" style="font-size:8px;">BALANCE</small>
-<strong class="{% if p.balance_calc>=0 %}text-success{% else %}text-danger{% endif %}">${{ "%.2f"|format(p.balance_calc) }}</strong>
+<strong class="{% if p.balance_calc>=0 %}text-success{% else %}text-danger{% endif %}">${{ "%.0f"|format(p.balance_calc) }}</strong>
 </div>
 </div>
 
 <div class="mb-2">
 <div class="d-flex justify-content-between" style="font-size:9px;">
 <small>AVANCE META</small>
-<small class="fw-bold">{{ "%.1f"|format(p.porcentaje_calc) }}% {% if p.porcentaje_calc>=100 %}✅ META ALCANZADA{% endif %}</small>
+<small class="fw-bold">{{ "%.1f"|format(p.porcentaje_calc) }}% {% if p.porcentaje_calc>=100 %}✅{% endif %}</small>
 </div>
 <div class="progress">
 <div class="progress-bar {% if p.porcentaje_calc>=100 %}bg-success{% elif p.porcentaje_calc>=75 %}bg-primary{% elif p.porcentaje_calc>=50 %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="width: {{ p.porcentaje_calc if p.porcentaje_calc<=100 else 100 }}%">{{ "%.0f"|format(p.porcentaje_calc) }}%</div>
 </div>
 </div>
 
-<div class="row text-center mb-3" style="font-size:9px;">
+<div class="row text-center mb-2" style="font-size:9px;">
 <div class="col-6">
 <span class="badge bg-primary" style="font-size:9px;">{{ p.eventos|length }} INGRESOS</span>
 </div>
@@ -95,8 +133,9 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 </div>
 
-<div class="d-grid">
-<a href="/tesoreria/proyecto/{{ p.id }}" class="btn btn-ver btn-sm"><i class="bi bi-eye"></i> VER INGRESOS Y GASTOS</a>
+<div class="d-grid gap-1">
+<button class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalDetalleProyecto{{ p.id }}"><i class="bi bi-eye"></i> VER INGRESOS Y GASTOS</button>
+<a href="/tesoreria/proyecto/{{ p.id }}" class="btn btn-outline-dark btn-sm" style="font-size:9px;">IR A PÁGINA DETALLE</a>
 </div>
 
 </div>
@@ -106,16 +145,107 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 </div>
 </div>
+
+<!-- MODAL DETALLE PROYECTO -->
+<div class="modal fade" id="modalDetalleProyecto{{ p.id }}" tabindex="-1">
+<div class="modal-dialog modal-lg">
+<div class="modal-content">
+<div class="modal-header" style="background:#17458F; color:white;">
+<h6 class="modal-title fw-bold" style="font-size:13px;">💰 {{ p.nombre }} - DETALLE COMPLETO</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" style="font-size:11px; text-transform:none;">
+
+<div class="row mb-3 text-center">
+<div class="col-4">
+<div class="card border-primary">
+<div class="card-body py-2">
+<small class="text-muted d-block" style="font-size:8px;">META TOTAL</small>
+<strong style="font-size:14px;">${{ "%.2f"|format(p.total_meta_calc) }}</strong>
+</div>
+</div>
+</div>
+<div class="col-4">
+<div class="card border-success">
+<div class="card-body py-2">
+<small class="text-muted d-block" style="font-size:8px;">RECAUDADO</small>
+<strong class="text-success" style="font-size:14px;">${{ "%.2f"|format(p.total_recaudado_calc) }}</strong>
+</div>
+</div>
+</div>
+<div class="col-4">
+<div class="card border-danger">
+<div class="card-body py-2">
+<small class="text-muted d-block" style="font-size:8px;">BALANCE</small>
+<strong class="{% if p.balance_calc>=0 %}text-success{% else %}text-danger{% endif %}" style="font-size:14px;">${{ "%.2f"|format(p.balance_calc) }}</strong>
+</div>
+</div>
+</div>
+</div>
+
+<div class="mb-3">
+<h6 class="fw-bold" style="font-size:11px;">📋 INGRESOS REGISTRADOS ({{ p.eventos|length }})</h6>
+{% if p.eventos %}
+<table class="table table-sm table-bordered" style="font-size:10px;">
+<thead class="table-light"><tr><th>FECHA</th><th>EVENTO</th><th>META</th><th>RECAUDADO</th><th>%</th></tr></thead>
+<tbody>
+{% for e in p.eventos %}
+<tr>
+<td>{{ e.fecha_evento.strftime('%d/%m/%Y') if e.fecha_evento else '-' }}</td>
+<td>{{ e.nombre }}</td>
+<td>${{ "%.0f"|format(e.monto_meta) }}</td>
+<td class="text-success fw-bold">${{ "%.0f"|format(e.monto_recaudado) }}</td>
+<td>{{ "%.0f"|format(e.porcentaje_meta) }}%</td>
+</tr>
+{% if e.detalle_recaudado %}
+<tr><td colspan="5" style="font-size:9px; background:#fffbe6;"><strong>DETALLE:</strong> {{ e.detalle_recaudado }}</td></tr>
+{% endif %}
+{% endfor %}
+</tbody>
+</table>
 {% else %}
-<div class="col-12 text-center py-5">
+<div class="alert alert-info py-2" style="font-size:10px;">Sin ingresos registrados. Usa INGRESO DE DINERO para registrar.</div>
+{% endif %}
+</div>
+
+<div class="mb-2">
+<h6 class="fw-bold" style="font-size:11px;">💸 GASTOS ASOCIADOS ({{ p.gastos|length }}) - CENTRO: PROYECTOS</h6>
+{% if p.gastos %}
+<table class="table table-sm table-bordered" style="font-size:10px;">
+<thead class="table-light"><tr><th>FECHA</th><th>CONCEPTO</th><th>MONTO</th></tr></thead>
+<tbody>
+{% for g in p.gastos %}
+<tr><td>{{ g.fecha.strftime('%d/%m/%Y') if g.fecha else '-' }}</td><td>{{ g.concepto }}</td><td class="text-danger fw-bold">${{ "%.0f"|format(g.monto) }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% else %}
+<div class="alert alert-warning py-2" style="font-size:10px;">Sin gastos. Los gastos de este proyecto se registran en MÓDULO GASTOS seleccionando CENTRO: PROYECTO y este proyecto.</div>
+{% endif %}
+</div>
+
+<p class="text-muted" style="font-size:9px;">CREADO: {{ p.fecha_creacion.strftime('%d/%m/%Y') if p.fecha_creacion else '-' }} | DESCRIPCIÓN: {{ p.descripcion or 'Sin descripción' }}</p>
+
+</div>
+<div class="modal-footer py-2">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+<a href="/tesoreria/proyecto/{{ p.id }}" class="btn btn-primary btn-sm fw-bold">IR A GESTIÓN COMPLETA</a>
+<button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoIngreso" data-bs-dismiss="modal">+ NUEVO INGRESO EN ESTE PROYECTO</button>
+</div>
+</div>
+</div>
+</div>
+
+{% else %}
+<div class="col-12 text-center py-4">
 <div class="alert alert-warning">
-<h6>💰 NO HAY INGRESOS POR PROYECTOS REGISTRADOS</h6>
-<p style="font-size:11px; text-transform:none;">Crea tu primer proyecto de ingresos. Ejemplo: PROYECTO BOMBERA, BECAS, BIBLIOTECA.<br>Después registra ingresos (Cena, Rifa, Boteo) con centro de costos PROYECTOS.</p>
-<button class="btn btn-success btn-sm fw-bold me-2" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto">+ AGREGAR PROYECTO</button>
-<button class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoIngreso">+ REGISTRAR PRIMER INGRESO</button>
+<h6>💰 NO HAY PROYECTOS ACTIVOS</h6>
+<p style="font-size:11px; text-transform:none;">Crea tu primer proyecto con NUEVO PROYECTO. Ejemplo: PROYECTO BOMBERA, BECAS, BIBLIOTECA.</p>
 </div>
 </div>
 {% endfor %}
+</div>
+</div>
 </div>
 
 </div>
@@ -126,7 +256,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="modal-content">
 <form method="POST" action="/tesoreria/ingreso/nuevo">
 <div class="modal-header" style="background:#0d6efd; color:white;">
-<h6 class="modal-title fw-bold" style="font-size:13px;">💰 NUEVO INGRESO POR PROYECTOS</h6>
+<h6 class="modal-title fw-bold" style="font-size:13px;">💰 INGRESO DE DINERO - CENTRO: PROYECTOS</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="font-size:11px;">
@@ -144,20 +274,20 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </select>
 </div>
 <div class="col-4 d-flex align-items-end">
-<button type="button" class="btn btn-success btn-sm w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto" onclick="bootstrap.Modal.getInstance(document.getElementById('modalNuevoIngreso')).hide();"><i class="bi bi-plus"></i> AGREGAR PROYECTO</button>
+<button type="button" class="btn btn-success btn-sm w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto" onclick="var m=bootstrap.Modal.getInstance(document.getElementById('modalNuevoIngreso')); if(m) m.hide();"><i class="bi bi-plus"></i> AGREGAR PROYECTO</button>
 </div>
 </div>
-<small style="font-size:8px; color:#666; text-transform:none;">Si el proyecto no existe, haz clic en AGREGAR PROYECTO para crearlo. Se asignará como centro de costos PROYECTOS.</small>
+<small style="font-size:8px; color:#666; text-transform:none;">Si el proyecto no existe, haz clic en AGREGAR PROYECTO para crearlo.</small>
 </div>
 
 <div class="row">
 <div class="col-8 mb-2">
 <label class="fw-bold" style="font-size:10px;">NOMBRE DEL INGRESO / EVENTO:</label>
-<input type="text" name="nombre" class="form-control form-control-sm fw-bold" required placeholder="EJ: CENA GALA BOMBERA, RIFA NAVIDEÑA, BOTEO" style="text-transform:uppercase;">
+<input type="text" name="nombre" class="form-control form-control-sm fw-bold" required placeholder="EJ: CENA GALA BOMBERA, RIFA" style="text-transform:uppercase;">
 </div>
 <div class="col-4 mb-2">
 <label class="fw-bold" style="font-size:10px;">FECHA INGRESO:</label>
-<input type="date" name="fecha_evento" class="form-control form-control-sm" required>
+<input type="date" name="fecha_evento" class="form-control form-control-sm" required value="{{ '' }}">
 </div>
 </div>
 
@@ -165,51 +295,48 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="col-6 mb-2">
 <label class="fw-bold" style="font-size:10px;">MONTO META $:</label>
 <input type="number" step="0.01" name="monto_meta" class="form-control form-control-sm fw-bold" required placeholder="20000">
-<small style="font-size:8px;">Meta a recaudar</small>
 </div>
 <div class="col-6 mb-2">
-<label class="fw-bold" style="font-size:10px;">MONTO RECAUDADO / INGRESADO $:</label>
+<label class="fw-bold" style="font-size:10px;">MONTO RECAUDADO $:</label>
 <input type="number" step="0.01" name="monto_recaudado" class="form-control form-control-sm fw-bold text-success" required value="0">
-<small style="font-size:8px;">Monto real ingresado</small>
 </div>
 </div>
 
 <div class="mb-2">
 <label class="fw-bold" style="font-size:10px;">DESCRIPCIÓN:</label>
-<input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción breve del ingreso...">
+<input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción breve...">
 </div>
 
 <div class="mb-2">
-<label class="fw-bold" style="font-size:10px; color:#17458F;">📊 DETALLE NUMÉRICO DE LO RECAUDADO:</label>
-<textarea name="detalle_recaudado" class="form-control form-control-sm" rows="4" style="font-family:monospace; font-size:10px;" placeholder="EJEMPLO:
-50 BOLETOS CENA X $200 = $10,000
+<label class="fw-bold" style="font-size:10px; color:#17458F;">📊 DETALLE NUMÉRICO:</label>
+<textarea name="detalle_recaudado" class="form-control form-control-sm" rows="4" style="font-family:monospace; font-size:10px;" placeholder="EJ:
+50 BOLETOS X $200 = $10,000
 DONACIÓN EMPRESA X = $5,000
-BOTEO PLAZA = $2,350
-TOTAL = $17,350"></textarea>
+TOTAL = $15,000"></textarea>
 </div>
 
 </div>
 <div class="modal-footer py-2">
 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-<button type="submit" class="btn btn-primary btn-sm fw-bold">💾 REGISTRAR INGRESO EN PROYECTOS</button>
+<button type="submit" class="btn btn-primary btn-sm fw-bold">💾 REGISTRAR INGRESO</button>
 </div>
 </form>
 </div>
 </div>
 </div>
 
-<!-- MODAL NUEVO PROYECTO - AGREGAR SI NO EXISTE -->
+<!-- MODAL NUEVO PROYECTO -->
 <div class="modal fade" id="modalNuevoProyecto" tabindex="-1">
 <div class="modal-dialog">
 <div class="modal-content">
 <form method="POST" action="/tesoreria/proyecto/nuevo">
 <div class="modal-header" style="background:#28a745; color:white;">
-<h6 class="modal-title fw-bold" style="font-size:13px;">➕ AGREGAR NUEVO PROYECTO (CENTRO COSTOS PROYECTOS)</h6>
+<h6 class="modal-title fw-bold" style="font-size:13px;">➕ NUEVO PROYECTO - CENTRO: PROYECTOS</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="font-size:11px;">
 <div class="alert alert-info py-2" style="font-size:9px; text-transform:none;">
-<strong>¿Para qué es esto?</strong> Si al registrar un ingreso el proyecto no existe en la lista, créalo aquí. Ejemplo: PROYECTO BOMBERA, BECAS, REFORESTACIÓN. Después podrás registrar ingresos y gastos asociados a ese proyecto con centro de costos PROYECTOS.
+Si el proyecto no existe al registrar ingreso, créalo aquí. Aparecerá en el dropdown de centro de costos.
 </div>
 <div class="mb-3">
 <label class="fw-bold" style="font-size:10px;">NOMBRE DEL PROYECTO:</label>
@@ -230,5 +357,11 @@ TOTAL = $17,350"></textarea>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Auto-selecciona proyecto si viene del modal detalle
+document.addEventListener('DOMContentLoaded', function(){
+  var modales = document.querySelectorAll('[id^=modalDetalleProyecto]');
+});
+</script>
 </body>
 </html>
