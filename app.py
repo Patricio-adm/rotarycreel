@@ -153,7 +153,6 @@ class Gasto(db.Model):
     centro_costo = db.Column(db.String(30), nullable=False)  # ADMINISTRATIVO o PROYECTO
     proyecto_id = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=True)
     comprobante = db.Column(db.String(300), nullable=True)
-    foto_comprobante = db.Column(db.Text, nullable=True)  # FOTO base64 comprobante
     creado_por = db.Column(db.String(100), nullable=True)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
     notas = db.Column(db.Text, nullable=True)
@@ -171,14 +170,9 @@ with app.app_context():
     try:
         db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(50) DEFAULT 'SOCIO';"))
         db.session.execute(db.text("ALTER TABLE socios DROP CONSTRAINT IF EXISTS socios_numero_socio_key;"))
-        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS foto_comprobante TEXT;"))
-        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS notas TEXT;"))
-        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS proyecto_id INTEGER;"))
-        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS comprobante VARCHAR(300);"))
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        print(f"Migracion gastos: {e}")
     pass_hash = generate_password_hash('rotary2026')
     credenciales = [
         ('admin', pass_hash, 'ADMIN'),
@@ -213,16 +207,6 @@ def index_publico():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'GET':
-        # Limpia flashes viejos de tesoreria/gastos/proyectos que se quedaron pegados
-        # para que no salgan en la pagina de login como en tu captura
-        if '_flashes' in session:
-            # Solo deja los de login (danger), borra los de success de gastos
-            flashes = session.get('_flashes', [])
-            # Filtra solo mensajes de error de login
-            session['_flashes'] = [f for f in flashes if 'contraseña' in f[1].lower() or 'incorrectos' in f[1].lower() or 'usuario' in f[1].lower()]
-            if not session['_flashes']:
-                session.pop('_flashes', None)
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
@@ -231,8 +215,6 @@ def login():
             session['user_id'] = user.id
             session['username'] = user.username
             session['rol'] = user.rol
-            # Limpia cualquier flash viejo al loguearse
-            session.pop('_flashes', None)
             return redirect(url_for('menu_principal'))
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
@@ -574,13 +556,12 @@ def nuevo_gasto():
     mes_anio = f"{MESES_NOMBRES[fecha.month-1]} {fecha.year}"
     centro = request.form.get('centro_costo')
     proyecto_id = request.form.get('proyecto_id') if centro == 'PROYECTO' else None
-    # Foto comprobante - subir/tomar foto
     foto_b64 = None
     foto_archivo = request.files.get('foto_comprobante')
     if foto_archivo and foto_archivo.filename:
         try:
             contenido = foto_archivo.read()
-            if len(contenido) > 0 and len(contenido) < 8*1024*1024:  # max 8MB
+            if len(contenido) > 0 and len(contenido) < 8*1024*1024:
                 mime = foto_archivo.mimetype or 'image/jpeg'
                 b64 = base64.b64encode(contenido).decode('utf-8')
                 foto_b64 = f"data:{mime};base64,{b64}"
@@ -690,6 +671,138 @@ def eliminar_evento(evento_id):
     flash('Evento eliminado.', 'warning')
     return redirect(url_for('ver_proyecto', proyecto_id=pid))
 
+
+# ==================== ESTADO DE CUENTA MENSUAL ====================
+@app.route('/tesoreria/estado-cuenta-mensual')
+def estado_cuenta_mensual():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    mes_filtro = request.args.get('mes', get_mes_anio_actual())
+    # meses lista
+    meses_lista = []
+    now = datetime.now()
+    for i in range(18):
+        m = now.month - i
+        y = now.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        meses_lista.append(f"{MESES_NOMBRES[m-1]} {y}")
+
+    config = ConfiguracionTesoreria.query.first()
+    saldo_inicial = config.saldo_inicial if config else 0.0
+
+    # CUOTAS MES
+    pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
+    total_cuotas_mes = sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0
+
+    # GASTOS MES
+    gastos_admin = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='ADMINISTRATIVO').order_by(Gasto.fecha.desc()).all()
+    gastos_proy = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='PROYECTO').order_by(Gasto.fecha.desc()).all()
+    total_gastos_admin_mes = sum([g.monto for g in gastos_admin]) if gastos_admin else 0
+    total_gastos_proy_mes = sum([g.monto for g in gastos_proy]) if gastos_proy else 0
+
+    # INGRESOS PROYECTOS MES - eventos cuya fecha_evento cae en el mes, o creacion en ese mes
+    # Para simplificar: filtra por mes_anio si tienes, sino todos los eventos que tienen monto_recaudado y agrupamos
+    # Busca eventos con fecha_evento en ese mes
+    try:
+        mes_num = MESES_NOMBRES.index(mes_filtro.split()[0]) + 1
+        anio_num = int(mes_filtro.split()[1])
+        eventos_mes = EventoProyecto.query.filter(func.extract('month', EventoProyecto.fecha_evento) == mes_num, func.extract('year', EventoProyecto.fecha_evento) == anio_num).all()
+    except:
+        eventos_mes = EventoProyecto.query.all()
+        # fallback: muestra todos si no coincide mes
+
+    total_ingresos_proyectos_mes = sum([e.monto_recaudado for e in eventos_mes]) if eventos_mes else 0
+
+    # Si no hay eventos filtrados por fecha, intenta buscar por mes_anio no existe en eventos, entonces usa 0
+    # Pero para que veas datos, si no hay eventos en ese mes, total_ingresos_proyectos_mes = 0, puedes ajustar luego
+
+    total_ingresos = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes
+    total_egresos = total_gastos_admin_mes + total_gastos_proy_mes
+    balance_final = total_cuotas_mes + total_ingresos_proyectos_mes - total_egresos
+    balance_acumulado = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes - total_gastos_admin_mes - total_gastos_proy_mes
+
+    # Historicos totales
+    total_cuotas_historico = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0
+    total_gastos_admin_hist = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='ADMINISTRATIVO').scalar() or 0
+    total_gastos_proy_hist = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='PROYECTO').scalar() or 0
+    total_ingresos_proy_hist = db.session.query(func.sum(EventoProyecto.monto_recaudado)).scalar() or 0
+
+    saldo_cuotas = total_cuotas_mes - total_gastos_admin_mes
+    saldo_proyectos = total_ingresos_proyectos_mes - total_gastos_proy_mes
+
+    return render_template('estado_cuenta_mensual.html',
+                           mes_actual=mes_filtro,
+                           meses_lista=meses_lista,
+                           saldo_inicial=saldo_inicial,
+                           pagos_cuotas=pagos_cuotas,
+                           total_cuotas_mes=total_cuotas_mes,
+                           num_pagos_cuotas=len(pagos_cuotas),
+                           gastos_admin=gastos_admin,
+                           gastos_proy=gastos_proy,
+                           total_gastos_admin_mes=total_gastos_admin_mes,
+                           total_gastos_proy_mes=total_gastos_proy_mes,
+                           num_gastos_admin=len(gastos_admin),
+                           num_gastos_proy=len(gastos_proy),
+                           eventos_mes=eventos_mes,
+                           total_ingresos_proyectos_mes=total_ingresos_proyectos_mes,
+                           num_eventos_mes=len(eventos_mes),
+                           total_ingresos=total_ingresos,
+                           total_egresos=total_egresos,
+                           balance_final=balance_final,
+                           balance_acumulado=balance_acumulado,
+                           saldo_cuotas=saldo_cuotas,
+                           saldo_proyectos=saldo_proyectos,
+                           total_cuotas_historico=total_cuotas_historico,
+                           total_gastos_admin_hist=total_gastos_admin_hist,
+                           total_gastos_proy_hist=total_gastos_proy_hist,
+                           total_ingresos_proy_hist=total_ingresos_proy_hist)
+
+@app.route('/tesoreria/estado-cuenta-pdf-mensual')
+def estado_cuenta_pdf_mensual():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    mes_filtro = request.args.get('mes', get_mes_anio_actual())
+    config = ConfiguracionTesoreria.query.first()
+    saldo_inicial = config.saldo_inicial if config else 0.0
+    pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
+    total_cuotas_mes = sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0
+    gastos_admin = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='ADMINISTRATIVO').all()
+    gastos_proy = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='PROYECTO').all()
+    total_gastos_admin_mes = sum([g.monto for g in gastos_admin]) if gastos_admin else 0
+    total_gastos_proy_mes = sum([g.monto for g in gastos_proy]) if gastos_proy else 0
+    try:
+        mes_num = MESES_NOMBRES.index(mes_filtro.split()[0]) + 1
+        anio_num = int(mes_filtro.split()[1])
+        eventos_mes = EventoProyecto.query.filter(func.extract('month', EventoProyecto.fecha_evento) == mes_num, func.extract('year', EventoProyecto.fecha_evento) == anio_num).all()
+    except:
+        eventos_mes = EventoProyecto.query.all()
+    total_ingresos_proyectos_mes = sum([e.monto_recaudado for e in eventos_mes]) if eventos_mes else 0
+    total_ingresos = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes
+    total_egresos = total_gastos_admin_mes + total_gastos_proy_mes
+    balance_final = total_cuotas_mes + total_ingresos_proyectos_mes - total_egresos
+    balance_acumulado = saldo_inicial + balance_final
+    fecha_gen = datetime.now().strftime('%d/%m/%Y %H:%M')
+    return render_template('estado_cuenta_mensual_pdf.html',
+                           mes_actual=mes_filtro,
+                           saldo_inicial=saldo_inicial,
+                           pagos_cuotas=pagos_cuotas,
+                           total_cuotas_mes=total_cuotas_mes,
+                           num_pagos_cuotas=len(pagos_cuotas),
+                           gastos_admin=gastos_admin,
+                           gastos_proy=gastos_proy,
+                           total_gastos_admin_mes=total_gastos_admin_mes,
+                           total_gastos_proy_mes=total_gastos_proy_mes,
+                           eventos_mes=eventos_mes,
+                           total_ingresos_proyectos_mes=total_ingresos_proyectos_mes,
+                           total_ingresos=total_ingresos,
+                           total_egresos=total_egresos,
+                           balance_final=balance_final,
+                           balance_acumulado=balance_acumulado,
+                           fecha_generacion=fecha_gen)
+
+
 @app.route('/tesoreria/recaudacion-mensual')
 def recaudacion_mensual():
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
@@ -773,3 +886,5 @@ def logout():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
