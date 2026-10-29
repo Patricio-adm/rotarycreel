@@ -8,17 +8,18 @@
 <style>
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:12px 20px; border-bottom:4px solid #F7A81B; }
-.card-proyecto { border-top:5px solid #28a745; border-left:none; transition:0.2s; border-radius:12px; }
+.card-proyecto { border-top:5px solid #28a745; border-radius:12px; transition:0.2s; }
 .card-proyecto:hover { transform:translateY(-3px); box-shadow:0 8px 20px rgba(0,0,0,0.15); }
 .progress { height:22px; border-radius:10px; }
 .btn-ver { background:#17458F; color:white; font-weight:700; }
+.zona-ingreso { border:2px dashed #28a745; background:#f0fff0; border-radius:10px; padding:12px; }
 </style>
 </head>
 <body>
 <div class="header-rotary d-flex justify-content-between align-items-center">
 <div>
 <h5 class="mb-0 fw-bold" style="font-size:15px;">ROTARY CLUB CREEL - INGRESOS POR PROYECTOS</h5>
-<small style="font-size:10px;">CONTROL DE INGRESOS, EVENTOS RECAUDATORIOS Y BALANCE POR PROYECTO</small>
+<small style="font-size:10px;">CENTRO DE COSTOS: PROYECTOS | CONTROL DE INGRESOS Y EVENTOS RECAUDATORIOS</small>
 </div>
 <div>
 <a href="/tesoreria/gastos" class="btn btn-warning btn-sm fw-bold">← GASTOS</a>
@@ -29,8 +30,11 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="container-fluid p-3">
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-<h6 class="fw-bold mb-0" style="color:#17458F; font-size:14px;">💰 INGRESOS POR PROYECTOS - {{ proyectos|length }} ACTIVOS</h6>
-<button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto"><i class="bi bi-plus-circle"></i> + NUEVO PROYECTO</button>
+<h6 class="fw-bold mb-0" style="color:#17458F; font-size:14px;">💰 INGRESOS POR PROYECTOS - {{ proyectos|length }} PROYECTOS ACTIVOS</h6>
+<div>
+<button class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoIngreso"><i class="bi bi-cash-stack"></i> + NUEVO INGRESO</button>
+<button class="btn btn-success btn-sm fw-bold ms-1" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto"><i class="bi bi-plus-circle"></i> + AGREGAR PROYECTO</button>
+</div>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -50,7 +54,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="card card-proyecto shadow-sm h-100">
 <div class="card-body">
 <div class="d-flex justify-content-between align-items-start mb-2">
-<h6 class="fw-bold mb-0" style="font-size:13px; color:#17458F;">💡 {{ p.nombre }}</h6>
+<h6 class="fw-bold mb-0" style="font-size:13px; color:#17458F;">💰 {{ p.nombre }}</h6>
 <span class="badge {% if p.activo %}bg-success{% else %}bg-secondary{% endif %}" style="font-size:8px;">{% if p.activo %}ACTIVO{% else %}CERRADO{% endif %}</span>
 </div>
 {% if p.descripcion %}
@@ -80,12 +84,11 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="progress">
 <div class="progress-bar {% if p.porcentaje_calc>=100 %}bg-success{% elif p.porcentaje_calc>=75 %}bg-primary{% elif p.porcentaje_calc>=50 %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="width: {{ p.porcentaje_calc if p.porcentaje_calc<=100 else 100 }}%">{{ "%.0f"|format(p.porcentaje_calc) }}%</div>
 </div>
-<small style="font-size:8px; color:#666;">${{ "%.0f"|format(p.total_recaudado_calc) }} DE ${{ "%.0f"|format(p.total_meta_calc) }} META</small>
 </div>
 
 <div class="row text-center mb-3" style="font-size:9px;">
 <div class="col-6">
-<span class="badge bg-primary" style="font-size:9px;">{{ p.eventos|length }} EVENTOS</span>
+<span class="badge bg-primary" style="font-size:9px;">{{ p.eventos|length }} INGRESOS</span>
 </div>
 <div class="col-6">
 <span class="badge bg-danger" style="font-size:9px;">{{ p.gastos|length }} GASTOS</span>
@@ -93,22 +96,23 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 
 <div class="d-grid">
-<a href="/tesoreria/proyecto/{{ p.id }}" class="btn btn-ver btn-sm"><i class="bi bi-eye"></i> VER INGRESOS Y EVENTOS</a>
+<a href="/tesoreria/proyecto/{{ p.id }}" class="btn btn-ver btn-sm"><i class="bi bi-eye"></i> VER INGRESOS Y GASTOS</a>
 </div>
 
 </div>
 <div class="card-footer py-1 text-muted d-flex justify-content-between" style="font-size:8px;">
-<span>CREADO: {{ p.fecha_creacion.strftime('%d/%m/%Y') if p.fecha_creacion else '-' }}</span>
-<span>GASTADO: ${{ "%.0f"|format(p.total_gastado_calc) }}</span>
+<span>CENTRO: PROYECTOS</span>
+<span>BALANCE: ${{ "%.0f"|format(p.balance_calc) }}</span>
 </div>
 </div>
 </div>
 {% else %}
 <div class="col-12 text-center py-5">
 <div class="alert alert-warning">
-<h6>💡 NO HAY PROYECTOS / INGRESOS REGISTRADOS</h6>
-<p style="font-size:11px; text-transform:none;">Crea tu primer proyecto de ingresos. Ejemplo: PROYECTO BOMBERA, BECAS, BIBLIOTECA, REFORESTACIÓN.<br>Después podrás agregar eventos recaudatorios (Cena, Rifa, Boteo) con meta y detalle numérico.</p>
-<button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto">+ CREAR PRIMER PROYECTO DE INGRESOS</button>
+<h6>💰 NO HAY INGRESOS POR PROYECTOS REGISTRADOS</h6>
+<p style="font-size:11px; text-transform:none;">Crea tu primer proyecto de ingresos. Ejemplo: PROYECTO BOMBERA, BECAS, BIBLIOTECA.<br>Después registra ingresos (Cena, Rifa, Boteo) con centro de costos PROYECTOS.</p>
+<button class="btn btn-success btn-sm fw-bold me-2" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto">+ AGREGAR PROYECTO</button>
+<button class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoIngreso">+ REGISTRAR PRIMER INGRESO</button>
 </div>
 </div>
 {% endfor %}
@@ -116,32 +120,109 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 
 </div>
 
-<!-- MODAL NUEVO PROYECTO - INGRESOS POR PROYECTOS -->
+<!-- MODAL NUEVO INGRESO - CON CENTRO DE COSTOS PROYECTOS -->
+<div class="modal fade" id="modalNuevoIngreso" tabindex="-1">
+<div class="modal-dialog modal-lg">
+<div class="modal-content">
+<form method="POST" action="/tesoreria/ingreso/nuevo">
+<div class="modal-header" style="background:#0d6efd; color:white;">
+<h6 class="modal-title fw-bold" style="font-size:13px;">💰 NUEVO INGRESO POR PROYECTOS</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" style="font-size:11px;">
+
+<div class="zona-ingreso mb-3">
+<h6 class="fw-bold" style="font-size:11px; color:#28a745;">CENTRO DE COSTOS: PROYECTOS</h6>
+<div class="row">
+<div class="col-8">
+<label class="fw-bold" style="font-size:10px;">PROYECTO / CENTRO DE COSTOS:</label>
+<select name="proyecto_id" id="selectProyectoIngreso" class="form-select form-select-sm fw-bold" required>
+<option value="">-- SELECCIONA PROYECTO --</option>
+{% for p in proyectos %}
+<option value="{{ p.id }}">{{ p.nombre }}</option>
+{% endfor %}
+</select>
+</div>
+<div class="col-4 d-flex align-items-end">
+<button type="button" class="btn btn-success btn-sm w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoProyecto" onclick="bootstrap.Modal.getInstance(document.getElementById('modalNuevoIngreso')).hide();"><i class="bi bi-plus"></i> AGREGAR PROYECTO</button>
+</div>
+</div>
+<small style="font-size:8px; color:#666; text-transform:none;">Si el proyecto no existe, haz clic en AGREGAR PROYECTO para crearlo. Se asignará como centro de costos PROYECTOS.</small>
+</div>
+
+<div class="row">
+<div class="col-8 mb-2">
+<label class="fw-bold" style="font-size:10px;">NOMBRE DEL INGRESO / EVENTO:</label>
+<input type="text" name="nombre" class="form-control form-control-sm fw-bold" required placeholder="EJ: CENA GALA BOMBERA, RIFA NAVIDEÑA, BOTEO" style="text-transform:uppercase;">
+</div>
+<div class="col-4 mb-2">
+<label class="fw-bold" style="font-size:10px;">FECHA INGRESO:</label>
+<input type="date" name="fecha_evento" class="form-control form-control-sm" required>
+</div>
+</div>
+
+<div class="row">
+<div class="col-6 mb-2">
+<label class="fw-bold" style="font-size:10px;">MONTO META $:</label>
+<input type="number" step="0.01" name="monto_meta" class="form-control form-control-sm fw-bold" required placeholder="20000">
+<small style="font-size:8px;">Meta a recaudar</small>
+</div>
+<div class="col-6 mb-2">
+<label class="fw-bold" style="font-size:10px;">MONTO RECAUDADO / INGRESADO $:</label>
+<input type="number" step="0.01" name="monto_recaudado" class="form-control form-control-sm fw-bold text-success" required value="0">
+<small style="font-size:8px;">Monto real ingresado</small>
+</div>
+</div>
+
+<div class="mb-2">
+<label class="fw-bold" style="font-size:10px;">DESCRIPCIÓN:</label>
+<input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción breve del ingreso...">
+</div>
+
+<div class="mb-2">
+<label class="fw-bold" style="font-size:10px; color:#17458F;">📊 DETALLE NUMÉRICO DE LO RECAUDADO:</label>
+<textarea name="detalle_recaudado" class="form-control form-control-sm" rows="4" style="font-family:monospace; font-size:10px;" placeholder="EJEMPLO:
+50 BOLETOS CENA X $200 = $10,000
+DONACIÓN EMPRESA X = $5,000
+BOTEO PLAZA = $2,350
+TOTAL = $17,350"></textarea>
+</div>
+
+</div>
+<div class="modal-footer py-2">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+<button type="submit" class="btn btn-primary btn-sm fw-bold">💾 REGISTRAR INGRESO EN PROYECTOS</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+
+<!-- MODAL NUEVO PROYECTO - AGREGAR SI NO EXISTE -->
 <div class="modal fade" id="modalNuevoProyecto" tabindex="-1">
 <div class="modal-dialog">
 <div class="modal-content">
 <form method="POST" action="/tesoreria/proyecto/nuevo">
 <div class="modal-header" style="background:#28a745; color:white;">
-<h6 class="modal-title fw-bold" style="font-size:13px;">💡 NUEVO PROYECTO / INGRESO POR PROYECTO</h6>
+<h6 class="modal-title fw-bold" style="font-size:13px;">➕ AGREGAR NUEVO PROYECTO (CENTRO COSTOS PROYECTOS)</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="font-size:11px;">
 <div class="alert alert-info py-2" style="font-size:9px; text-transform:none;">
-<strong>¿Qué es esto?</strong> Registra un nuevo concepto de ingresos por proyecto. Ej: Si vas a hacer una cena para Bomberos, crea <strong>PROYECTO BOMBERA</strong>. Si no existe el proyecto que necesitas al registrar un ingreso, créalo aquí. Aparecerá en la lista de proyectos para asignarle eventos y gastos.
+<strong>¿Para qué es esto?</strong> Si al registrar un ingreso el proyecto no existe en la lista, créalo aquí. Ejemplo: PROYECTO BOMBERA, BECAS, REFORESTACIÓN. Después podrás registrar ingresos y gastos asociados a ese proyecto con centro de costos PROYECTOS.
 </div>
 <div class="mb-3">
-<label class="fw-bold" style="font-size:10px;">NOMBRE DEL PROYECTO / CONCEPTO DE INGRESO:</label>
-<input type="text" name="nombre" class="form-control form-control-sm fw-bold" required placeholder="EJ: PROYECTO BOMBERA, PROYECTO BECAS, INGRESOS KERMES" style="text-transform:uppercase;">
-<small style="font-size:8px; color:#666; text-transform:none;">Se guardará en mayúsculas y aparecerá en GASTOS cuando selecciones centro de costo PROYECTO</small>
+<label class="fw-bold" style="font-size:10px;">NOMBRE DEL PROYECTO:</label>
+<input type="text" name="nombre" class="form-control form-control-sm fw-bold" required placeholder="EJ: PROYECTO BOMBERA" style="text-transform:uppercase;">
 </div>
 <div class="mb-2">
-<label class="fw-bold" style="font-size:10px;">DESCRIPCIÓN (OPCIONAL):</label>
-<textarea name="descripcion" class="form-control form-control-sm" rows="2" placeholder="Descripción breve del proyecto..."></textarea>
+<label class="fw-bold" style="font-size:10px;">DESCRIPCIÓN:</label>
+<textarea name="descripcion" class="form-control form-control-sm" rows="2" placeholder="Descripción breve..."></textarea>
 </div>
 </div>
 <div class="modal-footer py-2">
 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-<button type="submit" class="btn btn-success btn-sm fw-bold">💾 CREAR PROYECTO DE INGRESOS</button>
+<button type="submit" class="btn btn-success btn-sm fw-bold">💾 CREAR PROYECTO</button>
 </div>
 </form>
 </div>
