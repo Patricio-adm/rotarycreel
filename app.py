@@ -638,6 +638,29 @@ def ver_proyecto(proyecto_id):
     total_gastos = sum([g.monto for g in gastos])
     return render_template('tesoreria_proyecto_detalle.html', proyecto=proyecto, eventos=eventos, gastos=gastos, total_recaudado=total_recaudado, total_meta=total_meta, total_gastos=total_gastos, balance=total_recaudado-total_gastos)
 
+@app.route('/tesoreria/ingreso/nuevo', methods=['POST'])
+def nuevo_ingreso_proyecto():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    proyecto_id = request.form.get('proyecto_id')
+    if not proyecto_id:
+        flash('Debe seleccionar un proyecto / centro de costos', 'danger')
+        return redirect(url_for('tesoreria_proyectos'))
+    proyecto = Proyecto.query.get_or_404(int(proyecto_id))
+    evento = EventoProyecto(
+        proyecto_id=int(proyecto_id),
+        nombre=request.form.get('nombre').upper(),
+        descripcion=request.form.get('descripcion'),
+        monto_meta=float(request.form.get('monto_meta')),
+        monto_recaudado=float(request.form.get('monto_recaudado') or 0),
+        fecha_evento=datetime.strptime(request.form.get('fecha_evento'), '%Y-%m-%d').date() if request.form.get('fecha_evento') else None,
+        detalle_recaudado=request.form.get('detalle_recaudado')
+    )
+    db.session.add(evento)
+    db.session.commit()
+    flash(f'Ingreso registrado: {evento.nombre} - ${evento.monto_recaudado:,.2f} en {proyecto.nombre} - Centro Costos: PROYECTOS', 'success')
+    return redirect(url_for('tesoreria_proyectos'))
+
 @app.route('/tesoreria/proyecto/<int:proyecto_id>/evento/nuevo', methods=['POST'])
 def nuevo_evento_proyecto(proyecto_id):
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
