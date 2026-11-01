@@ -5,31 +5,32 @@
 <title>Cuotas Sociales - Rotary Creel</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 11px; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
 .card-header-rotary { background:#17458F; color:white; font-weight:700; font-size:11px; }
 
-/* TABLA CON LINEAS NEGRAS SEPARACIONES */
+/* TABLA CON LINEAS NEGRAS */
 .tabla-cuotas { border:2px solid #000 !important; border-collapse:collapse !important; }
-.tabla-cuotas th { font-size:9px; background:#17458F; color:white; text-align:center; border:1.5px solid #000 !important; padding:4px 2px !important; line-height:1.1; }
-.tabla-cuotas td { font-size:9px; text-align:center; padding:2px 1px !important; border:1px solid #000 !important; line-height:1.1; vertical-align:middle; }
-.tabla-cuotas thead th { border-bottom:2px solid #000 !important; }
-.tabla-cuotas .socio-col { font-size:9px; text-align:left; min-width:150px; max-width:180px; background:#fff; border-right:2px solid #000 !important; font-weight:700; }
-.pagado { background:#d4edda !important; color:#155724; font-weight:900; }
+.tabla-cuotas th { font-size:8px; background:#17458F; color:white; text-align:center; border:1.5px solid #000 !important; padding:4px 2px !important; line-height:1.1; }
+.tabla-cuotas td { font-size:8px; text-align:center; padding:2px 1px !important; border:1px solid #000 !important; line-height:1.1; vertical-align:middle; }
+.socio-col { font-size:8px; text-align:left; min-width:150px; max-width:180px; background:#fff; border-right:2px solid #000 !important; font-weight:700; cursor:pointer; }
+.socio-col:hover { background:#e3f2fd !important; }
+.pagado { background:#d4edda !important; color:#155724; font-weight:900; cursor:pointer; }
+.pagado:hover { background:#b1dfbb !important; }
 .adeudo { background:#f8d7da !important; color:#721c24; font-weight:700; }
-.recibo-media { width:50%; margin:0 auto; border:2px solid #17458F; padding:15px; background:white; }
-@media print { .no-print { display:none; } .recibo-media { width:100%; border:none; } }
-.mes-check { font-size:9px; }
+.recibo-card { border:2px solid #17458F; background:white; padding:12px; border-radius:8px; }
 .metodo-T { font-size:8px; font-weight:900; color:#0d6efd; }
 .metodo-E { font-size:8px; font-weight:900; color:#28a745; }
+.modal-header-rotary { background:#17458F; color:white; }
 </style>
 </head>
 <body>
 <div class="header-rotary d-flex justify-content-between align-items-center no-print">
 <div>
 <h5 class="mb-0 fw-bold" style="font-size:14px;">TESORERIA - CUOTAS SOCIALES</h5>
-<small style="font-size:9px;">CONTROL MENSUAL DE PAGOS DE SOCIOS $500.00 MXN - T=TRANSFERENCIA E=EFECTIVO</small>
+<small style="font-size:9px;">T=TRANSFERENCIA E=EFECTIVO - CLIC EN SOCIO PARA INFO - CLIC EN $500 PARA RECIBO</small>
 </div>
 <div class="d-flex align-items-center">
 <button class="btn btn-success btn-sm fw-bold me-2" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago" style="font-size:11px; border:2px solid #fff;">💵 REGISTRAR PAGO</button>
@@ -52,134 +53,59 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 {% endif %}
 {% endwith %}
 
-<!-- SALDO INICIAL Y TOTAL -->
+<!-- SALDOS -->
 <div class="row mb-2 no-print">
-<div class="col-md-4">
-<div class="card border-success">
-<div class="card-body py-2 text-center">
-<small class="text-muted d-block" style="font-size:8px;">SALDO INICIAL EN CAJA</small>
-<strong class="text-success" style="font-size:14px;">${{ "%.2f"|format(saldo_inicial) }}</strong>
-<button class="btn btn-outline-success btn-sm ms-2" style="font-size:9px;" data-bs-toggle="modal" data-bs-target="#modalSaldo">✏️ EDITAR</button>
-</div>
-</div>
-</div>
-<div class="col-md-4">
-<div class="card border-primary">
-<div class="card-body py-2 text-center">
-<small class="text-muted d-block" style="font-size:8px;">TOTAL RECAUDADO CUOTAS</small>
-<strong class="text-primary" style="font-size:14px;">${{ "%.2f"|format(saldo_total_general - saldo_inicial) }}</strong>
-</div>
-</div>
-</div>
-<div class="col-md-4">
-<div class="card border-dark">
-<div class="card-body py-2 text-center">
-<small class="text-muted d-block" style="font-size:8px;">SALDO TOTAL EN CAJA</small>
-<strong style="font-size:14px;">${{ "%.2f"|format(saldo_total_general) }}</strong>
-</div>
-</div>
-</div>
+<div class="col-md-4"><div class="card border-success"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:8px;">SALDO INICIAL</small><strong class="text-success" style="font-size:14px;">${{ "%.2f"|format(saldo_inicial) }}</strong><button class="btn btn-outline-success btn-sm ms-2" style="font-size:9px;" data-bs-toggle="modal" data-bs-target="#modalSaldo">✏️</button></div></div></div>
+<div class="col-md-4"><div class="card border-primary"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:8px;">RECAUDADO CUOTAS</small><strong class="text-primary" style="font-size:14px;">${{ "%.2f"|format(saldo_total_general - saldo_inicial) }}</strong></div></div></div>
+<div class="col-md-4"><div class="card border-dark"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:8px;">SALDO TOTAL</small><strong style="font-size:14px;">${{ "%.2f"|format(saldo_total_general) }}</strong></div></div></div>
 </div>
 
-<!-- RECIBO MEDIA CARTA - SI HAY PAGOS RECIENTES -->
-{% if pagos_recibo %}
-<div class="card shadow-sm mb-3 border-success">
-<div class="card-header bg-success text-white fw-bold d-flex justify-content-between no-print" style="font-size:11px;">
-<span>🧾 RECIBO GENERADO - {{ pagos_recibo|length }} PAGO(S) - MEDIA CARTA</span>
-<a href="/tesoreria/cuotas-sociales" class="btn btn-light btn-sm" style="font-size:9px;">CERRAR RECIBO</a>
-</div>
-<div class="card-body">
-{% for pago in pagos_recibo %}
-<div class="recibo-media mb-3">
-<div class="text-center border-bottom pb-2 mb-2">
-<h6 class="fw-bold" style="color:#17458F; font-size:14px; margin:0;">ROTARY CLUB CREEL</h6>
-<small style="font-size:9px;">RECIBO DE PAGO CUOTA SOCIAL</small><br>
-<small style="font-size:8px;">No. RECIBO: {{ pago.id }} | FECHA: {{ pago.fecha_pago.strftime('%d/%m/%Y %H:%M') if pago.fecha_pago else '' }}</small>
-</div>
-<table class="table table-sm table-borderless mb-1" style="font-size:11px;">
-<tr><td class="fw-bold" style="width:35%;">SOCIO:</td><td>{{ pago.socio.nombre_completo if pago.socio else '' }}</td></tr>
-<tr><td class="fw-bold">MES PAGADO:</td><td class="fw-bold" style="color:#17458F;">{{ pago.mes_anio }}</td></tr>
-<tr><td class="fw-bold">MONTO:</td><td class="fw-bold text-success" style="font-size:14px;">${{ "%.2f"|format(pago.monto) }} MXN</td></tr>
-<tr><td class="fw-bold">MÉTODO:</td><td>{% if pago.metodo_pago and 'TRANSF' in pago.metodo_pago %}T{% elif pago.metodo_pago and 'EFECT' in pago.metodo_pago %}E{% else %}{{ pago.metodo_pago[:1] if pago.metodo_pago else 'E' }}{% endif %} - {{ pago.metodo_pago or 'EFECTIVO' }}</td></tr>
-<tr><td class="fw-bold">REFERENCIA:</td><td>{{ pago.referencia or '-' }}</td></tr>
-</table>
-<div class="text-center mt-3">
-<p style="font-size:9px; margin:0;">CONCEPTO: PAGO CUOTA SOCIAL {{ pago.mes_anio }}</p>
-<hr style="margin:10px 0;">
-<div class="row">
-<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA TESORERO</small></div>
-<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA SOCIO</small></div>
-</div>
-</div>
-<div class="text-center mt-2 no-print">
-<button class="btn btn-primary btn-sm" onclick="window.print()" style="font-size:10px;">🖨️ IMPRIMIR RECIBO</button>
-</div>
-</div>
-{% if not loop.last %}<hr>{% endif %}
-{% endfor %}
-</div>
-</div>
-{% endif %}
-
-<!-- TABLA CONTROL MENSUAL CON LINEAS NEGRAS -->
+<!-- TABLA CONTROL MENSUAL -->
 <div class="card shadow-sm" style="border:2px solid #000;">
 <div class="card-header card-header-rotary d-flex justify-content-between" style="border-bottom:2px solid #000;">
-<span>📊 CONTROL MENSUAL DE CUOTAS - ESTADO DE CUENTA POR SOCIO - T=TRANSFERENCIA E=EFECTIVO</span>
-<small style="font-size:8px;">VERDE=PAGADO ROJO=ADEUDO | LINEAS NEGRAS SEPARACIÓN | CLIC EN $500 PARA RECIBO</small>
+<span>📊 CONTROL MENSUAL DE CUOTAS - T=TRANSFERENCIA E=EFECTIVO | CLIC EN SOCIO PARA INFO | CLIC EN $500 PARA RECIBO CON CAPTURA WHATSAPP</span>
 </div>
 <div class="card-body p-0">
 <div class="table-responsive">
 <table class="table tabla-cuotas mb-0">
 <thead>
 <tr>
-<th class="socio-col" style="background:#17458F; color:white; border:1.5px solid #000;">SOCIO</th>
+<th class="socio-col" style="background:#17458F; color:white;">SOCIO - CLIC PARA INFO</th>
 {% for mes in meses %}
-<th style="min-width:55px; max-width:65px;">{{ mes.split()[0][:3] }}<br><small style="font-size:6px;">{{ mes.split()[1][2:] }}</small></th>
+<th style="min-width:55px; max-width:65px;">{{ mes.split()[0][:3] }}<br><small style="font-size:6px;">{{ mes.split()[1][2:] if mes.split()|length>1 else '' }}</small></th>
 {% endfor %}
-<th style="min-width:60px; background:#000; color:#fff; border:1.5px solid #000;">TOTAL</th>
+<th style="min-width:60px; background:#000; color:#fff;">TOTAL</th>
 </tr>
 </thead>
 <tbody>
 {% for socio in socios %}
-<tr style="border-bottom:1.5px solid #000;">
-<td class="socio-col" style="font-size:8px; line-height:1.1;">
-{{ socio.nombre_completo }}<br>
-<small style="font-size:6px; color:#666;">No. {{ socio.numero_socio or socio.id }}</small>
-</td>
 {% set total_socio = namespace(value=0) %}
+{% set adeudos_socio = namespace(meses=[]) %}
+{% for mes in meses %}
+{% set pago = socio.pagos|selectattr('mes_anio','equalto',mes)|first if socio.pagos else None %}
+{% if pago %}{% set total_socio.value = total_socio.value + pago.monto %}{% else %}{% set adeudos_socio.meses = adeudos_socio.meses + [mes] %}{% endif %}
+{% endfor %}
+
+<tr style="border-bottom:1.5px solid #000;">
+<td class="socio-col" onclick="abrirModalSocio({{ socio.id }})" title="Clic para ver información del socio">
+{{ socio.nombre_completo }}<br>
+<small style="font-size:6px; color:#666;">No. {{ socio.numero_socio or socio.id }} | ${{ "%.0f"|format(total_socio.value) }} | {{ adeudos_socio.meses|length }} ADEUDOS</small>
+</td>
 {% for mes in meses %}
 {% set pago = socio.pagos|selectattr('mes_anio','equalto',mes)|first if socio.pagos else None %}
 {% if pago %}
-{% set total_socio.value = total_socio.value + pago.monto %}
-<td class="pagado" style="border:1px solid #000 !important;">
-<a href="/tesoreria/cuotas-sociales?recibo_id={{ pago.id }}" class="text-decoration-none" style="color:#155724; font-size:8px; display:block; line-height:1.1;">
+<td class="pagado" onclick="abrirModalRecibo({{ pago.id }})" title="Clic para ver recibo, imprimir y captura WhatsApp">
 <span style="font-size:9px; font-weight:900;">✅ $500</span><br>
 {% if pago.metodo_pago and 'TRANSF' in pago.metodo_pago %}<span class="metodo-T">T</span>{% elif pago.metodo_pago and 'EFECT' in pago.metodo_pago %}<span class="metodo-E">E</span>{% else %}<span style="font-size:7px;">{{ pago.metodo_pago[:1] if pago.metodo_pago else 'E' }}</span>{% endif %}
-</a>
 </td>
 {% else %}
-<td class="adeudo" style="font-size:7px; border:1px solid #000 !important; line-height:1.1;">❌<br><span style="font-size:6px;">ADEUDO</span></td>
+<td class="adeudo" style="font-size:7px;">❌<br><span style="font-size:6px;">ADEUDO</span></td>
 {% endif %}
 {% endfor %}
-<td class="fw-bold" style="background:#e9ecef; border-left:2px solid #000 !important; border-right:2px solid #000 !important; font-size:9px;">${{ "%.0f"|format(total_socio.value) }}</td>
+<td class="fw-bold" style="background:#e9ecef; border-left:2px solid #000 !important; font-size:9px;">${{ "%.0f"|format(total_socio.value) }}</td>
 </tr>
 {% endfor %}
 </tbody>
-<tfoot style="border-top:2px solid #000;">
-<tr style="background:#212529; color:white;">
-<td class="text-end fw-bold" style="border:1.5px solid #000; font-size:8px;">TOTAL POR MES</td>
-{% for mes in meses %}
-{% set total_mes = namespace(value=0) %}
-{% for socio in socios %}
-{% for p in socio.pagos if p.mes_anio==mes %}
-{% set total_mes.value = total_mes.value + p.monto %}
-{% endfor %}
-{% endfor %}
-<td class="fw-bold" style="border:1.5px solid #000; font-size:8px;">${{ "%.0f"|format(total_mes.value) }}</td>
-{% endfor %}
-<td style="border:1.5px solid #000;">-</td>
-</tr>
-</tfoot>
 </table>
 </div>
 </div>
@@ -187,20 +113,124 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 
 </div>
 
-<!-- MODAL REGISTRAR PAGO - AHORA ES MODAL ARRIBA CERCA DE MENU -->
+<!-- MODAL RECIBO - CON BOTONES IMPRIMIR Y CAPTURA WHATSAPP -->
+<div class="modal fade" id="modalRecibo" tabindex="-1">
+<div class="modal-dialog">
+<div class="modal-content">
+<div class="modal-header modal-header-rotary py-2">
+<h6 class="modal-title" style="font-size:12px;">🧾 RECIBO DE PAGO - CUOTA SOCIAL</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" id="reciboCaptura">
+<div class="recibo-card" id="reciboCardContent">
+<div class="text-center border-bottom pb-2 mb-2">
+<h6 class="fw-bold" style="color:#17458F; font-size:16px; margin:0;">ROTARY CLUB CREEL</h6>
+<small style="font-size:10px;">RECIBO DE PAGO CUOTA SOCIAL</small><br>
+<small style="font-size:8px;" id="reciboNumero">No. RECIBO: - | FECHA: -</small>
+</div>
+<table class="table table-sm table-borderless mb-1" style="font-size:11px;">
+<tr><td class="fw-bold" style="width:35%;">SOCIO:</td><td id="reciboSocio">-</td></tr>
+<tr><td class="fw-bold">No. SOCIO:</td><td id="reciboNoSocio">-</td></tr>
+<tr><td class="fw-bold">MES PAGADO:</td><td class="fw-bold" style="color:#17458F;" id="reciboMes">-</td></tr>
+<tr><td class="fw-bold">MONTO:</td><td class="fw-bold text-success" style="font-size:16px;" id="reciboMonto">-</td></tr>
+<tr><td class="fw-bold">MÉTODO:</td><td id="reciboMetodo">-</td></tr>
+<tr><td class="fw-bold">REFERENCIA:</td><td id="reciboReferencia">-</td></tr>
+</table>
+<div class="text-center mt-3">
+<p style="font-size:9px; margin:0;" id="reciboConcepto">CONCEPTO: PAGO CUOTA SOCIAL</p>
+<hr style="margin:10px 0;">
+<div class="row">
+<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA TESORERO</small></div>
+<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA SOCIO</small></div>
+</div>
+</div>
+</div>
+</div>
+<div class="modal-footer py-2">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+<button type="button" class="btn btn-primary btn-sm fw-bold" onclick="imprimirRecibo()"><i class="bi bi-printer"></i> 🖨️ IMPRIMIR</button>
+<button type="button" class="btn btn-success btn-sm fw-bold" onclick="capturaWhatsapp()"><i class="bi bi-whatsapp"></i> 📸 CAPTURA WHATSAPP</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- MODAL SOCIO INFO -->
+<div class="modal fade" id="modalSocio" tabindex="-1">
+<div class="modal-dialog modal-lg">
+<div class="modal-content">
+<div class="modal-header" style="background:#0d6efd; color:white;">
+<h6 class="modal-title" style="font-size:12px;">👤 INFORMACIÓN DEL SOCIO</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" id="socioInfoContent" style="font-size:11px;">
+<div class="row">
+<div class="col-6">
+<p><strong>NOMBRE:</strong> <span id="socioNombre">-</span></p>
+<p><strong>No. SOCIO:</strong> <span id="socioNo">-</span></p>
+<p><strong>TOTAL PAGADO:</strong> <span id="socioTotalPagado" class="text-success fw-bold">-</span></p>
+</div>
+<div class="col-6">
+<p><strong>TOTAL ADEUDOS:</strong> <span id="socioTotalAdeudos" class="text-danger fw-bold">-</span> MESES</p>
+<p><strong>MONTO ADEUDADO:</strong> <span id="socioMontoAdeudado" class="text-danger fw-bold">-</span></p>
+<p><strong>ESTADO:</strong> <span id="socioEstado">-</span></p>
+</div>
+</div>
+<hr>
+<h6 style="font-size:11px; color:#17458F;">📋 HISTORIAL DE PAGOS</h6>
+<div id="socioHistorial" style="max-height:200px; overflow-y:auto; border:1px solid #000; padding:6px;"></div>
+</div>
+<div class="modal-footer py-2">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+<button type="button" class="btn btn-warning btn-sm fw-bold" onclick="abrirModalAdeudos()"><i class="bi bi-exclamation-triangle"></i> VER MESES ADEUDADOS</button>
+<button type="button" class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago">💵 REGISTRAR PAGO</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- MODAL ADEUDOS DESDE MES EN CURSO HACIA ATRAS -->
+<div class="modal fade" id="modalAdeudos" tabindex="-1">
+<div class="modal-dialog">
+<div class="modal-content">
+<div class="modal-header bg-danger text-white">
+<h6 class="modal-title" style="font-size:12px;">⚠️ MESES ADEUDADOS - DESDE MES EN CURSO HACIA ATRÁS</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" style="font-size:11px;">
+<div class="alert alert-warning py-2" style="font-size:9px;">
+<strong>Mes actual:</strong> <span id="mesActualTxt"></span><br>
+Se muestran adeudos desde el mes en curso hacia atrás (no incluye meses futuros).
+</div>
+<div id="listaAdeudos" style="max-height:300px; overflow-y:auto; border:1.5px solid #000; padding:8px;"></div>
+<div class="mt-2 p-2 bg-light" style="border:1px solid #000;">
+<strong>TOTAL ADEUDADO:</strong> <span id="totalAdeudadoModal" class="text-danger fw-bold"></span><br>
+<small style="font-size:9px;">Cada mes = $500.00 MXN</small>
+</div>
+</div>
+<div class="modal-footer py-2">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+<button type="button" class="btn btn-success btn-sm fw-bold" onclick="capturaAdeudosWhatsapp()"><i class="bi bi-whatsapp"></i> 📸 CAPTURA WHATSAPP ADEUDOS</button>
+<button type="button" class="btn btn-primary btn-sm fw-bold" onclick="imprimirAdeudos()"><i class="bi bi-printer"></i> IMPRIMIR ADEUDOS</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- MODAL REGISTRAR PAGO -->
 <div class="modal fade" id="modalRegistrarPago" tabindex="-1">
 <div class="modal-dialog modal-lg">
 <div class="modal-content">
 <form method="POST" action="/tesoreria/registrar-pago">
 <div class="modal-header" style="background:#17458F; color:white;">
-<h6 class="modal-title fw-bold" style="font-size:12px;">💵 REGISTRAR PAGO DE CUOTA SOCIAL - $500.00 MXN POR MES</h6>
+<h6 class="modal-title fw-bold" style="font-size:12px;">💵 REGISTRAR PAGO DE CUOTA SOCIAL - $500.00 MXN</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="font-size:11px;">
 <div class="row">
 <div class="col-md-5 mb-2">
 <label class="fw-bold" style="font-size:10px;">SOCIO:</label>
-<select name="socio_id" class="form-select form-select-sm fw-bold" required>
+<select name="socio_id" id="selectSocioPago" class="form-select form-select-sm fw-bold" required>
 <option value="">-- SELECCIONA SOCIO --</option>
 {% for s in socios %}
 <option value="{{ s.id }}">{{ s.nombre_completo }} - No. {{ s.numero_socio or s.id }}</option>
@@ -215,29 +245,25 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <option value="CHEQUE">C - CHEQUE</option>
 <option value="OTRO">O - OTRO</option>
 </select>
-<small style="font-size:7px;">Se mostrará como T o E en la tabla</small>
 </div>
 <div class="col-md-4 mb-2">
 <label class="fw-bold" style="font-size:10px;">REFERENCIA / NOTA:</label>
-<input type="text" name="referencia" class="form-control form-control-sm" placeholder="EJ: TRANSF 1234, EFECTIVO SESIÓN">
+<input type="text" name="referencia" class="form-control form-control-sm" placeholder="EJ: TRANSF 1234">
 </div>
 </div>
-
-<div class="mt-3">
-<label class="fw-bold" style="font-size:10px;">MESES A PAGAR (SELECCIONA UNO O VARIOS):</label>
-<div class="row g-1" style="max-height:200px; overflow-y:auto; border:1.5px solid #000; padding:8px; border-radius:6px; background:#fff;">
+<div class="mt-2">
+<label class="fw-bold" style="font-size:10px;">MESES A PAGAR:</label>
+<div class="row g-1" style="max-height:180px; overflow-y:auto; border:1.5px solid #000; padding:8px; border-radius:6px; background:#fff;">
 {% for mes in meses %}
 <div class="col-3 col-md-2">
-<div class="form-check mes-check">
+<div class="form-check" style="font-size:8px;">
 <input class="form-check-input" type="checkbox" name="meses" value="{{ mes }}" id="mes_{{ loop.index }}" style="border:1px solid #000;">
 <label class="form-check-label fw-bold" for="mes_{{ loop.index }}" style="font-size:8px;">{{ mes }}</label>
 </div>
 </div>
 {% endfor %}
 </div>
-<small style="font-size:8px; color:#000; font-weight:700;">Cada mes = $500.00 MXN. Si seleccionas 3 meses = $1,500.00. Se generará recibo media carta por cada mes pagado. En tabla se verá T=Transferencia E=Efectivo.</small>
 </div>
-
 </div>
 <div class="modal-footer py-2">
 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
@@ -254,22 +280,16 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="modal-content">
 <form method="POST" action="/tesoreria/actualizar-saldo-inicial">
 <div class="modal-header bg-success text-white">
-<h6 class="modal-title" style="font-size:12px;">EDITAR SALDO INICIAL EN CAJA</h6>
+<h6 class="modal-title" style="font-size:12px;">EDITAR SALDO INICIAL</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="font-size:11px;">
-<div class="mb-2">
-<label class="fw-bold">SALDO INICIAL ACTUAL: ${{ "%.2f"|format(saldo_inicial) }}</label>
-<input type="number" step="0.01" name="saldo_inicial" class="form-control form-control-sm fw-bold" value="{{ saldo_inicial }}" required>
-</div>
-<div class="mb-2">
-<label class="fw-bold">CONFIRMA TU CONTRASEÑA:</label>
-<input type="password" name="password" class="form-control form-control-sm" required placeholder="Tu contraseña de login">
-</div>
+<div class="mb-2"><label class="fw-bold">SALDO INICIAL: ${{ "%.2f"|format(saldo_inicial) }}</label><input type="number" step="0.01" name="saldo_inicial" class="form-control form-control-sm fw-bold" value="{{ saldo_inicial }}" required></div>
+<div class="mb-2"><label class="fw-bold">CONTRASEÑA:</label><input type="password" name="password" class="form-control form-control-sm" required></div>
 </div>
 <div class="modal-footer py-1">
 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-<button type="submit" class="btn btn-success btn-sm fw-bold">GUARDAR SALDO</button>
+<button type="submit" class="btn btn-success btn-sm fw-bold">GUARDAR</button>
 </div>
 </form>
 </div>
@@ -277,5 +297,216 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// DATOS DE PAGOS Y SOCIOS PARA MODALES
+const pagosData = {
+{% for socio in socios %}
+{% for pago in socio.pagos %}
+{{ pago.id }}: {
+  id: {{ pago.id }},
+  socio_id: {{ pago.socio_id }},
+  socio_nombre: "{{ socio.nombre_completo|e }}",
+  socio_numero: "{{ socio.numero_socio or socio.id }}",
+  mes_anio: "{{ pago.mes_anio }}",
+  monto: "{{ '%.2f'|format(pago.monto) }}",
+  metodo: "{{ pago.metodo_pago or 'EFECTIVO' }}",
+  metodo_corto: "{% if pago.metodo_pago and 'TRANSF' in pago.metodo_pago %}T{% elif pago.metodo_pago and 'EFECT' in pago.metodo_pago %}E{% else %}{{ pago.metodo_pago[:1] if pago.metodo_pago else 'E' }}{% endif %}",
+  referencia: "{{ (pago.referencia or '-')|e }}",
+  fecha: "{{ pago.fecha_pago.strftime('%d/%m/%Y %H:%M') if pago.fecha_pago else '' }}"
+},
+{% endfor %}
+{% endfor %}
+};
+
+const sociosData = {
+{% for socio in socios %}
+{{ socio.id }}: {
+  id: {{ socio.id }},
+  nombre: "{{ socio.nombre_completo|e }}",
+  numero: "{{ socio.numero_socio or socio.id }}",
+  pagos: [
+  {% for pago in socio.pagos %}
+  { mes: "{{ pago.mes_anio }}", monto: {{ pago.monto }}, metodo: "{{ pago.metodo_pago or '' }}", id: {{ pago.id }} },
+  {% endfor %}
+  ],
+  total_pagado: {{ socio.pagos|sum(attribute='monto') if socio.pagos else 0 }},
+  meses: {{ meses|tojson }}
+},
+{% endfor %}
+};
+
+const mesesLista = {{ meses|tojson }};
+let socioActualId = null;
+
+function abrirModalRecibo(pagoId) {
+  const pago = pagosData[pagoId];
+  if (!pago) return;
+  document.getElementById('reciboNumero').textContent = `No. RECIBO: ${pago.id} | FECHA: ${pago.fecha}`;
+  document.getElementById('reciboSocio').textContent = pago.socio_nombre;
+  document.getElementById('reciboNoSocio').textContent = pago.socio_numero;
+  document.getElementById('reciboMes').textContent = pago.mes_anio;
+  document.getElementById('reciboMonto').textContent = `$${pago.monto} MXN`;
+  document.getElementById('reciboMetodo').textContent = `${pago.metodo_corto} - ${pago.metodo}`;
+  document.getElementById('reciboReferencia').textContent = pago.referencia;
+  document.getElementById('reciboConcepto').textContent = `CONCEPTO: PAGO CUOTA SOCIAL CORRESPONDIENTE A ${pago.mes_anio}`;
+  var modal = new bootstrap.Modal(document.getElementById('modalRecibo'));
+  modal.show();
+}
+
+function imprimirRecibo() {
+  const contenido = document.getElementById('reciboCardContent').innerHTML;
+  const ventana = window.open('', '', 'height=600,width=400');
+  ventana.document.write('<html><head><title>Recibo</title>');
+  ventana.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">');
+  ventana.document.write('</head><body style="padding:15px;">');
+  ventana.document.write(contenido);
+  ventana.document.write('</body></html>');
+  ventana.document.close();
+  ventana.focus();
+  setTimeout(() => { ventana.print(); ventana.close(); }, 500);
+}
+
+function capturaWhatsapp() {
+  const elemento = document.getElementById('reciboCardContent');
+  html2canvas(elemento, { scale: 2 }).then(canvas => {
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const pagoId = document.getElementById('reciboNumero').textContent;
+      a.download = `recibo_${pagoId.replace(/[^0-9]/g,'')}.png`;
+      a.click();
+      // Intentar compartir por Web Share API para WhatsApp
+      if (navigator.canShare && navigator.canShare({ files: [new File([blob], "recibo.png", { type: "image/png" })] })) {
+        const file = new File([blob], "recibo.png", { type: "image/png" });
+        navigator.share({ title: "Recibo Rotary Creel", text: document.getElementById('reciboConcepto').textContent, files: [file] }).catch(()=>{});
+      } else {
+        alert('✅ Captura guardada como imagen. Ahora puedes enviarla por WhatsApp desde tu galería/descargas.');
+      }
+    });
+  });
+}
+
+function abrirModalSocio(socioId) {
+  const socio = sociosData[socioId];
+  if (!socio) return;
+  socioActualId = socioId;
+  document.getElementById('socioNombre').textContent = socio.nombre;
+  document.getElementById('socioNo').textContent = socio.numero;
+  document.getElementById('socioTotalPagado').textContent = `$${socio.total_pagado.toFixed(2)}`;
+  // Calcular adeudos hasta mes actual
+  const mesActual = new Date();
+  const mesesMap = { "ENE":0,"FEB":1,"MAR":2,"ABR":3,"MAY":4,"JUN":5,"JUL":6,"AGO":7,"SEP":8,"OCT":9,"NOV":10,"DIC":11 };
+  let mesActualIdx = -1;
+  let adeudos = [];
+  let totalAdeudo = 0;
+  // Buscar indice del mes actual en lista
+  for (let i=0; i<mesesLista.length; i++) {
+    const partes = mesesLista[i].split(' ');
+    if (partes.length<2) continue;
+    const mesAbrev = partes[0].substring(0,3).toUpperCase();
+    const anio = parseInt(partes[1]);
+    const mesNum = mesesMap[mesAbrev];
+    if (mesNum===undefined) continue;
+    const fechaMes = new Date(anio, mesNum, 1);
+    if (fechaMes <= new Date(mesActual.getFullYear(), mesActual.getMonth(), 1)) {
+      mesActualIdx = i;
+    }
+  }
+  // Adeudos hasta mes actual
+  const pagosMeses = socio.pagos.map(p=>p.mes);
+  for (let i=0; i<=mesActualIdx; i++) {
+    if (!pagosMeses.includes(mesesLista[i])) {
+      adeudos.push(mesesLista[i]);
+      totalAdeudo += 500;
+    }
+  }
+  document.getElementById('socioTotalAdeudos').textContent = adeudos.length;
+  document.getElementById('socioMontoAdeudado').textContent = `$${totalAdeudo.toFixed(2)}`;
+  document.getElementById('socioEstado').textContent = adeudos.length===0 ? 'AL CORRIENTE ✅' : `${adeudos.length} MESES ADEUDO ⚠️`;
+  
+  // Historial
+  let historialHtml = '<table class="table table-sm table-bordered" style="font-size:9px;"><thead><tr><th>MES</th><th>MONTO</th><th>METODO</th></tr></thead><tbody>';
+  socio.pagos.forEach(p=>{
+    const metodoCorto = p.metodo.includes('TRANSF') ? 'T' : p.metodo.includes('EFECT') ? 'E' : p.metodo.charAt(0);
+    historialHtml += `<tr><td>${p.mes}</td><td>$${p.monto}</td><td>${metodoCorto}</td></tr>`;
+  });
+  historialHtml += '</tbody></table>';
+  if (socio.pagos.length===0) historialHtml = '<div class="alert alert-warning py-1" style="font-size:9px;">Sin pagos registrados</div>';
+  document.getElementById('socioHistorial').innerHTML = historialHtml;
+  
+  // Guardar adeudos para modal siguiente
+  document.getElementById('socioInfoContent').dataset.adeudos = JSON.stringify(adeudos);
+  document.getElementById('socioInfoContent').dataset.totalAdeudo = totalAdeudo;
+  
+  var modal = new bootstrap.Modal(document.getElementById('modalSocio'));
+  modal.show();
+}
+
+function abrirModalAdeudos() {
+  const adeudosJson = document.getElementById('socioInfoContent').dataset.adeudos;
+  const totalAdeudo = document.getElementById('socioInfoContent').dataset.totalAdeudo;
+  if (!adeudosJson) return;
+  const adeudos = JSON.parse(adeudosJson);
+  const mesActual = new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }).toUpperCase();
+  document.getElementById('mesActualTxt').textContent = mesActual;
+  
+  let html = '';
+  if (adeudos.length===0) {
+    html = '<div class="alert alert-success py-2" style="font-size:10px;">✅ AL CORRIENTE - Sin adeudos hasta el mes en curso</div>';
+  } else {
+    html = '<table class="table table-sm table-bordered" style="font-size:10px;"><thead class="table-danger"><tr><th>#</th><th>MES ADEUDADO</th><th>MONTO</th></tr></thead><tbody>';
+    adeudos.reverse().forEach((mes, idx)=>{
+      html += `<tr><td>${idx+1}</td><td>${mes}</td><td>$500.00</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  document.getElementById('listaAdeudos').innerHTML = html;
+  document.getElementById('totalAdeudadoModal').textContent = `$${parseFloat(totalAdeudo).toFixed(2)} (${adeudos.length} meses x $500)`;
+  
+  // Cierra modal socio y abre adeudos
+  var modalSocio = bootstrap.Modal.getInstance(document.getElementById('modalSocio'));
+  if (modalSocio) modalSocio.hide();
+  setTimeout(()=>{
+    var modalAdeudos = new bootstrap.Modal(document.getElementById('modalAdeudos'));
+    modalAdeudos.show();
+  }, 300);
+}
+
+function imprimirAdeudos() {
+  const contenido = document.getElementById('listaAdeudos').innerHTML + '<br>' + document.getElementById('totalAdeudadoModal').parentElement.innerHTML;
+  const socioNombre = document.getElementById('socioNombre').textContent;
+  const ventana = window.open('', '', 'height=600,width=400');
+  ventana.document.write('<html><head><title>Adeudos</title>');
+  ventana.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">');
+  ventana.document.write('</head><body style="padding:15px; text-transform:uppercase;">');
+  ventana.document.write(`<h6>ROTARY CLUB CREEL - ADEUDOS DE ${socioNombre}</h6>`);
+  ventana.document.write(`<p style="font-size:10px;">Mes actual: ${document.getElementById('mesActualTxt').textContent}</p>`);
+  ventana.document.write(contenido);
+  ventana.document.write('</body></html>');
+  ventana.document.close();
+  ventana.focus();
+  setTimeout(() => { ventana.print(); ventana.close(); }, 500);
+}
+
+function capturaAdeudosWhatsapp() {
+  const elemento = document.getElementById('modalAdeudos').querySelector('.modal-content');
+  html2canvas(elemento, { scale: 2 }).then(canvas => {
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `adeudos_${document.getElementById('socioNombre').textContent.replace(/\s+/g,'_')}.png`;
+      a.click();
+      if (navigator.canShare && navigator.canShare({ files: [new File([blob], "adeudos.png", { type: "image/png" })] })) {
+        const file = new File([blob], "adeudos.png", { type: "image/png" });
+        navigator.share({ title: `Adeudos ${document.getElementById('socioNombre').textContent}`, text: `Adeudos: ${document.getElementById('totalAdeudadoModal').textContent}`, files: [file] }).catch(()=>{});
+      } else {
+        alert('✅ Captura de adeudos guardada. Puedes enviarla por WhatsApp.');
+      }
+    });
+  });
+}
+</script>
 </body>
 </html>
