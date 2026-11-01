@@ -9,22 +9,30 @@
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 11px; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
 .card-header-rotary { background:#17458F; color:white; font-weight:700; font-size:11px; }
-.tabla-cuotas th { font-size:9px; background:#17458F; color:white; text-align:center; }
-.tabla-cuotas td { font-size:10px; text-align:center; padding:3px !important; }
+
+/* TABLA CON LINEAS NEGRAS SEPARACIONES */
+.tabla-cuotas { border:2px solid #000 !important; border-collapse:collapse !important; }
+.tabla-cuotas th { font-size:9px; background:#17458F; color:white; text-align:center; border:1.5px solid #000 !important; padding:4px 2px !important; line-height:1.1; }
+.tabla-cuotas td { font-size:9px; text-align:center; padding:2px 1px !important; border:1px solid #000 !important; line-height:1.1; vertical-align:middle; }
+.tabla-cuotas thead th { border-bottom:2px solid #000 !important; }
+.tabla-cuotas .socio-col { font-size:9px; text-align:left; min-width:150px; max-width:180px; background:#fff; border-right:2px solid #000 !important; font-weight:700; }
 .pagado { background:#d4edda !important; color:#155724; font-weight:900; }
-.adeudo { background:#f8d7da !important; color:#721c24; }
+.adeudo { background:#f8d7da !important; color:#721c24; font-weight:700; }
 .recibo-media { width:50%; margin:0 auto; border:2px solid #17458F; padding:15px; background:white; }
 @media print { .no-print { display:none; } .recibo-media { width:100%; border:none; } }
 .mes-check { font-size:9px; }
+.metodo-T { font-size:8px; font-weight:900; color:#0d6efd; }
+.metodo-E { font-size:8px; font-weight:900; color:#28a745; }
 </style>
 </head>
 <body>
 <div class="header-rotary d-flex justify-content-between align-items-center no-print">
 <div>
 <h5 class="mb-0 fw-bold" style="font-size:14px;">TESORERIA - CUOTAS SOCIALES</h5>
-<small style="font-size:9px;">CONTROL MENSUAL DE PAGOS DE SOCIOS $500.00 MXN - RECIBO MEDIA CARTA</small>
+<small style="font-size:9px;">CONTROL MENSUAL DE PAGOS DE SOCIOS $500.00 MXN - T=TRANSFERENCIA E=EFECTIVO</small>
 </div>
-<div>
+<div class="d-flex align-items-center">
+<button class="btn btn-success btn-sm fw-bold me-2" data-bs-toggle="modal" data-bs-target="#modalRegistrarPago" style="font-size:11px; border:2px solid #fff;">💵 REGISTRAR PAGO</button>
 <a href="/tesoreria" class="btn btn-light btn-sm fw-bold">← TESORERIA</a>
 <a href="/menu" class="btn btn-warning btn-sm fw-bold ms-1">MENU</a>
 <button class="btn btn-outline-light btn-sm ms-1" onclick="window.print()" style="font-size:10px;">🖨️ IMPRIMIR</button>
@@ -50,7 +58,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="card border-success">
 <div class="card-body py-2 text-center">
 <small class="text-muted d-block" style="font-size:8px;">SALDO INICIAL EN CAJA</small>
-<strong class="text-success" style="font-size:16px;">${{ "%.2f"|format(saldo_inicial) }}</strong>
+<strong class="text-success" style="font-size:14px;">${{ "%.2f"|format(saldo_inicial) }}</strong>
 <button class="btn btn-outline-success btn-sm ms-2" style="font-size:9px;" data-bs-toggle="modal" data-bs-target="#modalSaldo">✏️ EDITAR</button>
 </div>
 </div>
@@ -59,72 +67,17 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="card border-primary">
 <div class="card-body py-2 text-center">
 <small class="text-muted d-block" style="font-size:8px;">TOTAL RECAUDADO CUOTAS</small>
-<strong class="text-primary" style="font-size:16px;">${{ "%.2f"|format(saldo_total_general - saldo_inicial) }}</strong>
-<small class="d-block" style="font-size:8px;">SOLO CUOTAS SOCIALES</small>
+<strong class="text-primary" style="font-size:14px;">${{ "%.2f"|format(saldo_total_general - saldo_inicial) }}</strong>
 </div>
 </div>
 </div>
 <div class="col-md-4">
 <div class="card border-dark">
 <div class="card-body py-2 text-center">
-<small class="text-muted d-block" style="font-size:8px;">SALDO TOTAL EN CAJA (INICIAL + CUOTAS)</small>
-<strong style="font-size:16px;">${{ "%.2f"|format(saldo_total_general) }}</strong>
+<small class="text-muted d-block" style="font-size:8px;">SALDO TOTAL EN CAJA</small>
+<strong style="font-size:14px;">${{ "%.2f"|format(saldo_total_general) }}</strong>
 </div>
 </div>
-</div>
-</div>
-
-<!-- FORM REGISTRAR PAGO -->
-<div class="card shadow-sm mb-3 no-print">
-<div class="card-header card-header-rotary d-flex justify-content-between">
-<span>💵 REGISTRAR PAGO DE CUOTA SOCIAL - $500.00 MXN POR MES</span>
-<small style="font-size:9px;">SELECCIONA SOCIO Y MESES A PAGAR - GENERA RECIBO MEDIA CARTA</small>
-</div>
-<div class="card-body py-2">
-<form method="POST" action="/tesoreria/registrar-pago">
-<div class="row">
-<div class="col-md-3 mb-2">
-<label class="fw-bold" style="font-size:10px;">SOCIO:</label>
-<select name="socio_id" class="form-select form-select-sm fw-bold" required>
-<option value="">-- SELECCIONA SOCIO --</option>
-{% for s in socios %}
-<option value="{{ s.id }}">{{ s.nombre_completo }} - No. {{ s.numero_socio or s.id }}</option>
-{% endfor %}
-</select>
-</div>
-<div class="col-md-2 mb-2">
-<label class="fw-bold" style="font-size:10px;">MÉTODO PAGO:</label>
-<select name="metodo_pago" class="form-select form-select-sm">
-<option value="EFECTIVO">EFECTIVO</option>
-<option value="TRANSFERENCIA">TRANSFERENCIA</option>
-<option value="CHEQUE">CHEQUE</option>
-<option value="OTRO">OTRO</option>
-</select>
-</div>
-<div class="col-md-3 mb-2">
-<label class="fw-bold" style="font-size:10px;">REFERENCIA / NOTA:</label>
-<input type="text" name="referencia" class="form-control form-control-sm" placeholder="EJ: TRANSF 1234, EFECTIVO SESIÓN">
-</div>
-<div class="col-md-4 mb-2 d-flex align-items-end">
-<button type="submit" class="btn btn-success btn-sm fw-bold w-100">💾 REGISTRAR PAGO Y GENERAR RECIBO</button>
-</div>
-</div>
-
-<div class="mt-2">
-<label class="fw-bold" style="font-size:10px;">MESES A PAGAR (SELECCIONA UNO O VARIOS):</label>
-<div class="row g-1" style="max-height:120px; overflow-y:auto; border:1px solid #dee2e6; padding:8px; border-radius:6px; background:#fff;">
-{% for mes in meses %}
-<div class="col-2 col-md-2">
-<div class="form-check mes-check">
-<input class="form-check-input" type="checkbox" name="meses" value="{{ mes }}" id="mes_{{ loop.index }}">
-<label class="form-check-label fw-bold" for="mes_{{ loop.index }}" style="font-size:9px;">{{ mes }}</label>
-</div>
-</div>
-{% endfor %}
-</div>
-<small style="font-size:8px; color:#666;">Cada mes = $500.00 MXN. Si seleccionas 3 meses = $1,500.00. Se generará recibo media carta por cada mes pagado.</small>
-</div>
-</form>
 </div>
 </div>
 
@@ -132,7 +85,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 {% if pagos_recibo %}
 <div class="card shadow-sm mb-3 border-success">
 <div class="card-header bg-success text-white fw-bold d-flex justify-content-between no-print" style="font-size:11px;">
-<span>🧾 RECIBO GENERADO - {{ pagos_recibo|length }} PAGO(S) - MEDIA CARTA PARA IMPRESIÓN</span>
+<span>🧾 RECIBO GENERADO - {{ pagos_recibo|length }} PAGO(S) - MEDIA CARTA</span>
 <a href="/tesoreria/cuotas-sociales" class="btn btn-light btn-sm" style="font-size:9px;">CERRAR RECIBO</a>
 </div>
 <div class="card-body">
@@ -145,26 +98,17 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 <table class="table table-sm table-borderless mb-1" style="font-size:11px;">
 <tr><td class="fw-bold" style="width:35%;">SOCIO:</td><td>{{ pago.socio.nombre_completo if pago.socio else '' }}</td></tr>
-<tr><td class="fw-bold">No. SOCIO:</td><td>{{ pago.socio.numero_socio if pago.socio and pago.socio.numero_socio else pago.socio_id }}</td></tr>
 <tr><td class="fw-bold">MES PAGADO:</td><td class="fw-bold" style="color:#17458F;">{{ pago.mes_anio }}</td></tr>
 <tr><td class="fw-bold">MONTO:</td><td class="fw-bold text-success" style="font-size:14px;">${{ "%.2f"|format(pago.monto) }} MXN</td></tr>
-<tr><td class="fw-bold">MÉTODO:</td><td>{{ pago.metodo_pago or 'EFECTIVO' }}</td></tr>
+<tr><td class="fw-bold">MÉTODO:</td><td>{% if pago.metodo_pago and 'TRANSF' in pago.metodo_pago %}T{% elif pago.metodo_pago and 'EFECT' in pago.metodo_pago %}E{% else %}{{ pago.metodo_pago[:1] if pago.metodo_pago else 'E' }}{% endif %} - {{ pago.metodo_pago or 'EFECTIVO' }}</td></tr>
 <tr><td class="fw-bold">REFERENCIA:</td><td>{{ pago.referencia or '-' }}</td></tr>
 </table>
 <div class="text-center mt-3">
-<p style="font-size:9px; margin:0;">CONCEPTO: PAGO CUOTA SOCIAL CORRESPONDIENTE A {{ pago.mes_anio }}</p>
+<p style="font-size:9px; margin:0;">CONCEPTO: PAGO CUOTA SOCIAL {{ pago.mes_anio }}</p>
 <hr style="margin:10px 0;">
 <div class="row">
-<div class="col-6 text-center">
-<br><br>
-<hr style="width:80%; margin:0 auto;">
-<small style="font-size:8px;">FIRMA TESORERO</small>
-</div>
-<div class="col-6 text-center">
-<br><br>
-<hr style="width:80%; margin:0 auto;">
-<small style="font-size:8px;">FIRMA SOCIO</small>
-</div>
+<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA TESORERO</small></div>
+<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA SOCIO</small></div>
 </div>
 </div>
 <div class="text-center mt-2 no-print">
@@ -177,50 +121,53 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 {% endif %}
 
-<!-- TABLA CONTROL MENSUAL -->
-<div class="card shadow-sm">
-<div class="card-header card-header-rotary d-flex justify-content-between">
-<span>📊 CONTROL MENSUAL DE CUOTAS - ESTADO DE CUENTA POR SOCIO</span>
-<small style="font-size:9px;">VERDE = PAGADO | ROJO = ADEUDO | CLIC EN PAGADO PARA REIMPRIMIR RECIBO</small>
+<!-- TABLA CONTROL MENSUAL CON LINEAS NEGRAS -->
+<div class="card shadow-sm" style="border:2px solid #000;">
+<div class="card-header card-header-rotary d-flex justify-content-between" style="border-bottom:2px solid #000;">
+<span>📊 CONTROL MENSUAL DE CUOTAS - ESTADO DE CUENTA POR SOCIO - T=TRANSFERENCIA E=EFECTIVO</span>
+<small style="font-size:8px;">VERDE=PAGADO ROJO=ADEUDO | LINEAS NEGRAS SEPARACIÓN | CLIC EN $500 PARA RECIBO</small>
 </div>
 <div class="card-body p-0">
 <div class="table-responsive">
-<table class="table table-bordered tabla-cuotas mb-0">
+<table class="table tabla-cuotas mb-0">
 <thead>
 <tr>
-<th style="min-width:180px;">SOCIO</th>
+<th class="socio-col" style="background:#17458F; color:white; border:1.5px solid #000;">SOCIO</th>
 {% for mes in meses %}
-<th style="min-width:80px;">{{ mes.split()[0][:3] }}<br><small style="font-size:7px;">{{ mes.split()[1] }}</small></th>
+<th style="min-width:55px; max-width:65px;">{{ mes.split()[0][:3] }}<br><small style="font-size:6px;">{{ mes.split()[1][2:] }}</small></th>
 {% endfor %}
-<th style="min-width:80px;">TOTAL</th>
+<th style="min-width:60px; background:#000; color:#fff; border:1.5px solid #000;">TOTAL</th>
 </tr>
 </thead>
 <tbody>
 {% for socio in socios %}
-<tr>
-<td class="text-start fw-bold" style="font-size:10px;">{{ socio.nombre_completo }}<br><small style="font-size:7px; color:#666;">No. {{ socio.numero_socio or socio.id }}</small></td>
+<tr style="border-bottom:1.5px solid #000;">
+<td class="socio-col" style="font-size:8px; line-height:1.1;">
+{{ socio.nombre_completo }}<br>
+<small style="font-size:6px; color:#666;">No. {{ socio.numero_socio or socio.id }}</small>
+</td>
 {% set total_socio = namespace(value=0) %}
 {% for mes in meses %}
 {% set pago = socio.pagos|selectattr('mes_anio','equalto',mes)|first if socio.pagos else None %}
 {% if pago %}
 {% set total_socio.value = total_socio.value + pago.monto %}
-<td class="pagado">
-<a href="/tesoreria/cuotas-sociales?recibo_id={{ pago.id }}" class="text-decoration-none" style="color:#155724; font-size:9px;">
-✅ $500<br>
-<small style="font-size:7px;">{{ pago.metodo_pago or '' }}</small>
+<td class="pagado" style="border:1px solid #000 !important;">
+<a href="/tesoreria/cuotas-sociales?recibo_id={{ pago.id }}" class="text-decoration-none" style="color:#155724; font-size:8px; display:block; line-height:1.1;">
+<span style="font-size:9px; font-weight:900;">✅ $500</span><br>
+{% if pago.metodo_pago and 'TRANSF' in pago.metodo_pago %}<span class="metodo-T">T</span>{% elif pago.metodo_pago and 'EFECT' in pago.metodo_pago %}<span class="metodo-E">E</span>{% else %}<span style="font-size:7px;">{{ pago.metodo_pago[:1] if pago.metodo_pago else 'E' }}</span>{% endif %}
 </a>
 </td>
 {% else %}
-<td class="adeudo" style="font-size:8px;">❌<br>ADEUDO</td>
+<td class="adeudo" style="font-size:7px; border:1px solid #000 !important; line-height:1.1;">❌<br><span style="font-size:6px;">ADEUDO</span></td>
 {% endif %}
 {% endfor %}
-<td class="fw-bold" style="background:#e9ecef;">${{ "%.0f"|format(total_socio.value) }}</td>
+<td class="fw-bold" style="background:#e9ecef; border-left:2px solid #000 !important; border-right:2px solid #000 !important; font-size:9px;">${{ "%.0f"|format(total_socio.value) }}</td>
 </tr>
 {% endfor %}
 </tbody>
-<tfoot class="table-dark">
-<tr>
-<td class="text-end fw-bold">TOTAL POR MES</td>
+<tfoot style="border-top:2px solid #000;">
+<tr style="background:#212529; color:white;">
+<td class="text-end fw-bold" style="border:1.5px solid #000; font-size:8px;">TOTAL POR MES</td>
 {% for mes in meses %}
 {% set total_mes = namespace(value=0) %}
 {% for socio in socios %}
@@ -228,9 +175,9 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 {% set total_mes.value = total_mes.value + p.monto %}
 {% endfor %}
 {% endfor %}
-<td class="fw-bold" style="font-size:9px;">${{ "%.0f"|format(total_mes.value) }}</td>
+<td class="fw-bold" style="border:1.5px solid #000; font-size:8px;">${{ "%.0f"|format(total_mes.value) }}</td>
 {% endfor %}
-<td>-</td>
+<td style="border:1.5px solid #000;">-</td>
 </tr>
 </tfoot>
 </table>
@@ -238,6 +185,67 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 </div>
 
+</div>
+
+<!-- MODAL REGISTRAR PAGO - AHORA ES MODAL ARRIBA CERCA DE MENU -->
+<div class="modal fade" id="modalRegistrarPago" tabindex="-1">
+<div class="modal-dialog modal-lg">
+<div class="modal-content">
+<form method="POST" action="/tesoreria/registrar-pago">
+<div class="modal-header" style="background:#17458F; color:white;">
+<h6 class="modal-title fw-bold" style="font-size:12px;">💵 REGISTRAR PAGO DE CUOTA SOCIAL - $500.00 MXN POR MES</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" style="font-size:11px;">
+<div class="row">
+<div class="col-md-5 mb-2">
+<label class="fw-bold" style="font-size:10px;">SOCIO:</label>
+<select name="socio_id" class="form-select form-select-sm fw-bold" required>
+<option value="">-- SELECCIONA SOCIO --</option>
+{% for s in socios %}
+<option value="{{ s.id }}">{{ s.nombre_completo }} - No. {{ s.numero_socio or s.id }}</option>
+{% endfor %}
+</select>
+</div>
+<div class="col-md-3 mb-2">
+<label class="fw-bold" style="font-size:10px;">MÉTODO PAGO:</label>
+<select name="metodo_pago" class="form-select form-select-sm">
+<option value="EFECTIVO">E - EFECTIVO</option>
+<option value="TRANSFERENCIA">T - TRANSFERENCIA</option>
+<option value="CHEQUE">C - CHEQUE</option>
+<option value="OTRO">O - OTRO</option>
+</select>
+<small style="font-size:7px;">Se mostrará como T o E en la tabla</small>
+</div>
+<div class="col-md-4 mb-2">
+<label class="fw-bold" style="font-size:10px;">REFERENCIA / NOTA:</label>
+<input type="text" name="referencia" class="form-control form-control-sm" placeholder="EJ: TRANSF 1234, EFECTIVO SESIÓN">
+</div>
+</div>
+
+<div class="mt-3">
+<label class="fw-bold" style="font-size:10px;">MESES A PAGAR (SELECCIONA UNO O VARIOS):</label>
+<div class="row g-1" style="max-height:200px; overflow-y:auto; border:1.5px solid #000; padding:8px; border-radius:6px; background:#fff;">
+{% for mes in meses %}
+<div class="col-3 col-md-2">
+<div class="form-check mes-check">
+<input class="form-check-input" type="checkbox" name="meses" value="{{ mes }}" id="mes_{{ loop.index }}" style="border:1px solid #000;">
+<label class="form-check-label fw-bold" for="mes_{{ loop.index }}" style="font-size:8px;">{{ mes }}</label>
+</div>
+</div>
+{% endfor %}
+</div>
+<small style="font-size:8px; color:#000; font-weight:700;">Cada mes = $500.00 MXN. Si seleccionas 3 meses = $1,500.00. Se generará recibo media carta por cada mes pagado. En tabla se verá T=Transferencia E=Efectivo.</small>
+</div>
+
+</div>
+<div class="modal-footer py-2">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+<button type="submit" class="btn btn-success btn-sm fw-bold">💾 REGISTRAR PAGO Y GENERAR RECIBO</button>
+</div>
+</form>
+</div>
+</div>
 </div>
 
 <!-- MODAL SALDO INICIAL -->
@@ -257,7 +265,6 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="mb-2">
 <label class="fw-bold">CONFIRMA TU CONTRASEÑA:</label>
 <input type="password" name="password" class="form-control form-control-sm" required placeholder="Tu contraseña de login">
-<small style="font-size:8px; color:#666;">Por seguridad debes confirmar tu contraseña para editar saldo inicial</small>
 </div>
 </div>
 <div class="modal-footer py-1">
