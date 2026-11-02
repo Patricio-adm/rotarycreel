@@ -157,6 +157,23 @@ class Gasto(db.Model):
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
     notas = db.Column(db.Text, nullable=True)
 
+class IngresoExtraordinario(db.Model):
+    __tablename__ = 'ingresos_extraordinarios'
+    id = db.Column(db.Integer, primary_key=True)
+    fecha = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    mes_anio = db.Column(db.String(20), nullable=False)  # NOV 2026
+    tipo = db.Column(db.String(50), nullable=False)  # DONACION, INGRESO EXTRAORDINARIO, PATROCINIO, APORTACION, OTRO
+    concepto = db.Column(db.String(300), nullable=False)  # Ej: DONACION EMPRESA X
+    monto = db.Column(db.Float, nullable=False)
+    metodo_pago = db.Column(db.String(50), default='EFECTIVO')  # EFECTIVO, TRANSFERENCIA
+    referencia = db.Column(db.String(200), nullable=True)
+    proyecto_id = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=True)  # Opcional, si va a proyecto
+    descripcion = db.Column(db.Text, nullable=True)
+    comprobante = db.Column(db.String(300), nullable=True)
+    creado_por = db.Column(db.String(100), nullable=True)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    proyecto = db.relationship('Proyecto', backref='ingresos_extra', lazy=True)
+
 with app.app_context():
     db.create_all()
     try:
@@ -165,6 +182,7 @@ with app.app_context():
         Proyecto.__table__.create(db.engine, checkfirst=True)
         EventoProyecto.__table__.create(db.engine, checkfirst=True)
         Gasto.__table__.create(db.engine, checkfirst=True)
+        IngresoExtraordinario.__table__.create(db.engine, checkfirst=True)
     except Exception as e:
         print(f"Info tablas: {e}")
     try:
@@ -907,6 +925,85 @@ def recaudacion_mensual():
                            comparacion_anual=comparacion_anual,
                            cuota_mensual=cuota_mensual)
 
+# ==================== MODULO INGRESOS EXTRAORDINARIOS / DONACIONES ====================
+@app.route('/tesoreria/ingresos-extraordinarios')
+def ingresos_extraordinarios():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    mes_filtro = request.args.get('mes', get_mes_anio_actual())
+    tipo_filtro = request.args.get('tipo', 'TODOS')
+    query = IngresoExtraordinario.query
+    if mes_filtro and mes_filtro != 'TODOS':
+        query = query.filter(func.upper(func.trim(IngresoExtraordinario.mes_anio)) == mes_filtro.strip().upper())
+    if tipo_filtro and tipo_filtro != 'TODOS':
+        query = query.filter(IngresoExtraordinario.tipo == tipo_filtro)
+    ingresos = query.order_by(IngresoExtraordinario.fecha.desc()).all()
+    total_ingresos = sum([i.monto for i in ingresos]) if ingresos else 0
+    total_donaciones = sum([i.monto for i in ingresos if i.tipo == 'DONACION']) if ingresos else 0
+    total_extra = sum([i.monto for i in ingresos if i.tipo == 'INGRESO EXTRAORDINARIO']) if ingresos else 0
+    proyectos = Proyecto.query.filter_by(activo=True).all()
+    return render_template('ingresos_extraordinarios.html',
+                           ingresos=ingresos,
+                           total_ingresos=total_ingresos,
+                           total_donaciones=total_donaciones,
+                           total_extra=total_extra,
+                           meses=MESES_CONTROL,
+                           mes_filtro=mes_filtro,
+                           tipo_filtro=tipo_filtro,
+                           proyectos=proyectos,
+                           mes_actual=get_mes_anio_actual())
+
+@app.route('/tesoreria/ingresos-extraordinarios/crear', methods=['POST'])
+def crear_ingreso_extraordinario():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+        return redirect(url_for('login'))
+    try:
+        fecha_str = request.form.get('fecha')
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.now().date()
+        mes_anio = request.form.get('mes_anio') or get_mes_anio_actual()
+        tipo = to_upper(request.form.get('tipo')) or 'DONACION'
+        concepto = to_upper(request.form.get('concepto'))
+        monto = float(request.form.get('monto', 0))
+        metodo_pago = to_upper(request.form.get('metodo_pago')) or 'EFECTIVO'
+        referencia = to_upper(request.form.get('referencia'))
+        descripcion = to_upper(request.form.get('descripcion'))
+        proyecto_id = request.form.get('proyecto_id')
+        proyecto_id = int(proyecto_id) if proyecto_id and proyecto_id != '' else None
+
+        if not concepto or monto <= 0:
+            flash('CONCEPTO Y MONTO SON OBLIGATORIOS', 'danger')
+            return redirect(url_for('ingresos_extraordinarios'))
+
+        ingreso = IngresoExtraordinario(
+            fecha=fecha,
+            mes_anio=mes_anio,
+            tipo=tipo,
+            concepto=concepto,
+            monto=monto,
+            metodo_pago=metodo_pago,
+            referencia=referencia,
+            descripcion=descripcion,
+            proyecto_id=proyecto_id,
+            creado_por=session.get('username', 'TESORERO')
+        )
+        db.session.add(ingreso)
+        db.session.commit()
+        flash(f'INGRESO REGISTRADO: {concepto} - ${monto:.2f} ({tipo})', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'ERROR AL REGISTRAR INGRESO: {str(e)}', 'danger')
+    return redirect(url_for('ingresos_extraordinarios'))
+
+@app.route('/tesoreria/ingresos-extraordinarios/eliminar/<int:id>')
+def eliminar_ingreso_extraordinario(id):
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO']:
+        return redirect(url_for('login'))
+    ingreso = IngresoExtraordinario.query.get_or_404(id)
+    db.session.delete(ingreso)
+    db.session.commit()
+    flash(f'INGRESO ELIMINADO: {ingreso.concepto}', 'warning')
+    return redirect(url_for('ingresos_extraordinarios'))
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -914,5 +1011,3 @@ def logout():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
