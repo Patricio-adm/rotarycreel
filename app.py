@@ -129,6 +129,12 @@ class GestionRotaria(db.Model):
     archivo_tipo = db.Column(db.String(20), default='PDF')
     subido_por = db.Column(db.String(100), nullable=True)
     estado = db.Column(db.String(20), default='VIGENTE')  # VIGENTE, ARCHIVADO, BORRADOR
+    # NUEVO: contenido creado directamente en sistema (sin PDF)
+    contenido_sistema = db.Column(db.Text, nullable=True)  # HTML o texto enriquecido del acta/acuerdo creado en sistema
+    origen = db.Column(db.String(20), default='PDF')  # PDF, SISTEMA, MIXTO
+    lugar = db.Column(db.String(150), nullable=True)  # Lugar de sesion
+    participantes = db.Column(db.Text, nullable=True)  # Lista participantes
+    acuerdos_lista = db.Column(db.Text, nullable=True)  # Acuerdos en formato lista
 
 class Proyecto(db.Model):
     __tablename__ = 'proyectos'
@@ -211,6 +217,11 @@ with app.app_context():
         db.session.execute(db.text("ALTER TABLE pagos_cuotas ADD COLUMN IF NOT EXISTS grupo_recibo VARCHAR(50);"))
         db.session.execute(db.text("ALTER TABLE pagos_cuotas ADD COLUMN IF NOT EXISTS fecha_pago TIMESTAMP;"))
         db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS archivo_base64 TEXT;"))
+        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS contenido_sistema TEXT;"))
+        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS origen VARCHAR(20);"))
+        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS lugar VARCHAR(150);"))
+        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS participantes TEXT;"))
+        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS acuerdos_lista TEXT;"))
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -1149,6 +1160,11 @@ def subir_documento_rotaria():
     descripcion = request.form.get('descripcion', '').strip()
     fecha_doc_str = request.form.get('fecha_documento')
     estado = request.form.get('estado', 'VIGENTE').strip().upper()
+    origen_form = request.form.get('origen', 'PDF').strip().upper()
+    lugar = request.form.get('lugar', '').strip()
+    participantes = request.form.get('participantes', '').strip()
+    contenido_sistema = request.form.get('contenido_sistema', '').strip()
+    acuerdos_lista = request.form.get('acuerdos_lista', '').strip()
     if not titulo:
         flash('El titulo es obligatorio.', 'warning')
         return redirect(url_for('gestion_rotaria'))
@@ -1165,16 +1181,27 @@ def subir_documento_rotaria():
         file = request.files['archivo']
         if file and file.filename:
             archivo_nombre = file.filename
-            # Validar PDF
             if not archivo_nombre.lower().endswith('.pdf'):
                 flash('Solo se permiten archivos PDF.', 'warning')
                 return redirect(url_for('gestion_rotaria'))
             contenido = file.read()
-            if len(contenido) > 15 * 1024 * 1024:  # 15 MB max
+            if len(contenido) > 15 * 1024 * 1024:
                 flash('Archivo muy grande, max 15 MB.', 'warning')
                 return redirect(url_for('gestion_rotaria'))
             archivo_b64 = base64.b64encode(contenido).decode('utf-8')
             archivo_tipo = 'PDF'
+    if origen_form == 'SISTEMA' and not contenido_sistema:
+        flash('Para crear documento en sistema, debe escribir el contenido.', 'warning')
+        return redirect(url_for('gestion_rotaria'))
+    if not archivo_b64 and not contenido_sistema:
+        flash('Debe subir un PDF o crear el contenido en el sistema.', 'warning')
+        return redirect(url_for('gestion_rotaria'))
+    if archivo_b64 and contenido_sistema:
+        origen_final = 'MIXTO'
+    elif archivo_b64:
+        origen_final = 'PDF'
+    else:
+        origen_final = 'SISTEMA'
     doc = GestionRotaria(
         tipo=tipo,
         titulo=to_upper(titulo),
@@ -1184,11 +1211,21 @@ def subir_documento_rotaria():
         archivo_base64=archivo_b64,
         archivo_tipo=archivo_tipo,
         subido_por=session.get('username', 'SISTEMA'),
-        estado=estado
+        estado=estado,
+        contenido_sistema=contenido_sistema,
+        origen=origen_final,
+        lugar=to_upper(lugar) if lugar else None,
+        participantes=participantes,
+        acuerdos_lista=acuerdos_lista
     )
     db.session.add(doc)
     db.session.commit()
-    flash(f'Documento {tipo} - {titulo} subido correctamente.', 'success')
+    if origen_final == 'SISTEMA':
+        flash(f'Documento {tipo} - {titulo} CREADO EN SISTEMA correctamente.', 'success')
+    elif origen_final == 'MIXTO':
+        flash(f'Documento {tipo} - {titulo} creado con contenido + PDF.', 'success')
+    else:
+        flash(f'Documento {tipo} - {titulo} subido PDF correctamente.', 'success')
     return redirect(url_for('gestion_rotaria'))
 
 @app.route('/gestion-rotaria/ver/<int:doc_id>')
@@ -1199,8 +1236,19 @@ def ver_documento_rotaria(doc_id):
         flash('Acceso denegado a Gestion Rotaria.', 'danger')
         return redirect(url_for('menu_principal'))
     doc = GestionRotaria.query.get_or_404(doc_id)
+    if doc.origen == 'SISTEMA' or (doc.contenido_sistema and not doc.archivo_base64):
+        return redirect(url_for('ver_documento_sistema', doc_id=doc.id))
     if not doc.archivo_base64:
+        if doc.contenido_sistema:
+            return redirect(url_for('ver_documento_sistema', doc_id=doc.id))
         flash('Documento sin archivo PDF adjunto.', 'warning')
+        return redirect(url_for('gestion_rotaria'))
+    try:
+        pdf_bytes = base64.b64decode(doc.archivo_base64)
+        from flask import Response
+        return Response(pdf_bytes, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename={doc.archivo_nombre or "documento.pdf"}'})
+    except Exception as e:
+        flash(f'Error al mostrar PDF: {e}', 'danger')
         return redirect(url_for('gestion_rotaria'))
     try:
         pdf_bytes = base64.b64decode(doc.archivo_base64)
@@ -1250,6 +1298,10 @@ def editar_documento_rotaria(doc_id):
     doc.descripcion = request.form.get('descripcion', doc.descripcion)
     doc.tipo = request.form.get('tipo', doc.tipo).strip().upper()
     doc.estado = request.form.get('estado', doc.estado).strip().upper()
+    doc.lugar = to_upper(request.form.get('lugar', doc.lugar or ''))
+    doc.participantes = request.form.get('participantes', doc.participantes)
+    doc.contenido_sistema = request.form.get('contenido_sistema', doc.contenido_sistema)
+    doc.acuerdos_lista = request.form.get('acuerdos_lista', doc.acuerdos_lista)
     fecha_str = request.form.get('fecha_documento')
     if fecha_str:
         try:
@@ -1265,9 +1317,30 @@ def editar_documento_rotaria(doc_id):
                 if len(contenido) <= 15 * 1024 * 1024:
                     doc.archivo_nombre = file.filename
                     doc.archivo_base64 = base64.b64encode(contenido).decode('utf-8')
+                    # Actualiza origen
+                    if doc.contenido_sistema:
+                        doc.origen = 'MIXTO'
+                    else:
+                        doc.origen = 'PDF'
+    else:
+        # Si no hay PDF pero si contenido sistema, origen SISTEMA
+        if doc.contenido_sistema and not doc.archivo_base64:
+            doc.origen = 'SISTEMA'
+        elif doc.contenido_sistema and doc.archivo_base64:
+            doc.origen = 'MIXTO'
     db.session.commit()
     flash('Documento actualizado.', 'success')
     return redirect(url_for('gestion_rotaria'))
+
+@app.route('/gestion-rotaria/ver-sistema/<int:doc_id>')
+def ver_documento_sistema(doc_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if session.get('rol') == 'RCREEL':
+        flash('Acceso denegado a Gestion Rotaria.', 'danger')
+        return redirect(url_for('menu_principal'))
+    doc = GestionRotaria.query.get_or_404(doc_id)
+    return render_template('gestion_documento_sistema.html', doc=doc)
 
 @app.route('/logout')
 def logout():
