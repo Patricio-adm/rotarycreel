@@ -4,197 +4,111 @@
 <meta charset="UTF-8">
 <title>Gestión Rotaria - Rotary Creel</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 11px; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
 .card-header-rotary { background:#17458F; color:white; font-weight:700; font-size:11px; }
-.card-tipo { border:none; border-radius:10px; border-top:4px solid #17458F; transition:0.2s; cursor:pointer; }
-.card-tipo:hover { transform:translateY(-2px); box-shadow:0 6px 15px rgba(0,0,0,0.12); }
-.badge-tipo-ACTA { background:#0d6efd; }
-.badge-tipo-ACUERDO { background:#dc3545; }
-.badge-tipo-PRESIDENCIA { background:#17458F; }
-.badge-tipo-SECRETARIA { background:#0dcaf0; color:#000; }
-.badge-tipo-FUNDACION { background:#198754; }
-.badge-tipo-SERVICIOS { background:#fd7e14; }
-.badge-tipo-TESORERIA { background:#6f42c1; }
-.badge-tipo-MEMBRESIA { background:#d63384; }
-.badge-tipo-OTRO { background:#6c757d; }
 .tabla-docs { border:2px solid #000; border-collapse:collapse; }
 .tabla-docs th { font-size:9px; background:#17458F; color:white; text-align:center; border:1px solid #000; padding:5px 3px; }
 .tabla-docs td { font-size:9px; text-align:center; padding:4px 3px; border:1px solid #000; vertical-align:middle; }
-.titulo-col { text-align:left !important; font-weight:700; min-width:200px; max-width:300px; white-space: normal; }
-.pdf-icon { font-size:18px; color:#dc3545; }
-.filtro-activo { background:#17458F !important; color:white !important; border-color:#17458F !important; }
+.titulo-col { text-align:left !important; min-width:220px; text-transform:none; }
 </style>
 </head>
 <body>
 <div class="header-rotary d-flex justify-content-between align-items-center">
-<div><h6 class="mb-0 fw-bold" style="font-size:14px;">📚 GESTIÓN ROTARIA - ERP</h6><small style="font-size:9px;">ACTAS, ACUERDOS, PRESIDENCIA, SECRETARIA, FUNDACION, SERVICIOS</small></div>
+<div><h6 class="mb-0 fw-bold" style="font-size:14px;">📚 GESTIÓN ROTARIA - ERP</h6><small style="font-size:9px;">PDF O CREACION EN SISTEMA</small></div>
 <div class="d-flex gap-2">
-<a href="/menu" class="btn btn-outline-light btn-sm fw-bold" style="font-size:10px;">MENÚ PRINCIPAL</a>
+<a href="/menu" class="btn btn-outline-light btn-sm fw-bold" style="font-size:10px;">MENÚ</a>
 <a href="/logout" class="btn btn-warning btn-sm fw-bold" style="font-size:10px;">SALIR</a>
 </div>
 </div>
-
 <div class="container-fluid py-3">
-
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 {% for category, message in messages %}
-<div class="alert alert-{{ category }} alert-dismissible fade show py-2" style="font-size:11px; text-transform:none;">
-{{ message }}
-<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+<div class="alert alert-{{ category }} py-2" style="font-size:11px; text-transform:none;">{{ message }}</div>
 {% endfor %}
 {% endif %}
 {% endwith %}
 
-<!-- RESUMEN CONTADORES -->
-<div class="row g-2 mb-3">
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('ACTA')"><strong style="font-size:16px; color:#0d6efd;">{{ total_actas }}</strong><br><small style="font-size:8px;">ACTAS</small></div></div>
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('ACUERDO')" style="border-top-color:#dc3545;"><strong style="font-size:16px; color:#dc3545;">{{ total_acuerdos }}</strong><br><small style="font-size:8px;">ACUERDOS</small></div></div>
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('PRESIDENCIA')" style="border-top-color:#17458F;"><strong style="font-size:16px; color:#17458F;">{{ total_presidencia }}</strong><br><small style="font-size:8px;">PRESIDENCIA</small></div></div>
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('SECRETARIA')" style="border-top-color:#0dcaf0;"><strong style="font-size:16px; color:#0dcaf0;">{{ total_secretaria }}</strong><br><small style="font-size:8px;">SECRETARIA</small></div></div>
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('FUNDACION')" style="border-top-color:#198754;"><strong style="font-size:16px; color:#198754;">{{ total_fundacion }}</strong><br><small style="font-size:8px;">FUNDACION</small></div></div>
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('SERVICIOS')" style="border-top-color:#fd7e14;"><strong style="font-size:16px; color:#fd7e14;">{{ total_servicios }}</strong><br><small style="font-size:8px;">SERVICIOS</small></div></div>
-</div>
-
-<!-- FILTROS Y BOTON SUBIR -->
 <div class="card mb-3" style="border:2px solid #17458F;">
-<div class="card-header card-header-rotary d-flex justify-content-between align-items-center">
-<span>📁 DOCUMENTOS - GESTION ROTARIA ERP - FILTRO: {{ tipo_filtro }} | ESTADO: {{ estado_filtro }}</span>
-<button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalSubir" style="font-size:10px;"><i class="bi bi-cloud-upload"></i> SUBIR ACTA / ACUERDO PDF</button>
+<div class="card-header card-header-rotary d-flex justify-content-between">
+<span>DOCUMENTOS - {{ tipo_filtro }} | TOTAL: {{ documentos|length }}</span>
+<div class="d-flex gap-2">
+<button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalCrearSistema" style="font-size:10px;">CREAR EN SISTEMA</button>
+<button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalSubir" style="font-size:10px;">SUBIR PDF</button>
+</div>
 </div>
 <div class="card-body py-2" style="background:#f8f9fa;">
-<div class="d-flex gap-2 flex-wrap align-items-center">
-<small class="fw-bold">TIPO:</small>
-<a href="/gestion-rotaria?tipo=TODOS&estado={{ estado_filtro }}" class="btn btn-sm {{ 'filtro-activo' if tipo_filtro=='TODOS' else 'btn-outline-primary' }}" style="font-size:8px;">TODOS</a>
+<div class="d-flex gap-2 flex-wrap">
 {% for t in tipos %}
-<a href="/gestion-rotaria?tipo={{ t }}&estado={{ estado_filtro }}" class="btn btn-sm {{ 'filtro-activo' if tipo_filtro==t else 'btn-outline-dark' }}" style="font-size:8px;">{{ t }}</a>
+<a href="/gestion-rotaria?tipo={{ t }}" class="btn btn-sm {{ 'btn-primary' if tipo_filtro==t else 'btn-outline-dark' }}" style="font-size:8px;">{{ t }}</a>
 {% endfor %}
-<span class="ms-3 fw-bold">ESTADO:</span>
-<a href="/gestion-rotaria?tipo={{ tipo_filtro }}&estado=TODOS" class="btn btn-sm {{ 'filtro-activo' if estado_filtro=='TODOS' else 'btn-outline-secondary' }}" style="font-size:8px;">TODOS</a>
-<a href="/gestion-rotaria?tipo={{ tipo_filtro }}&estado=VIGENTE" class="btn btn-sm {{ 'btn-success' if estado_filtro=='VIGENTE' else 'btn-outline-success' }}" style="font-size:8px;">VIGENTE</a>
-<a href="/gestion-rotaria?tipo={{ tipo_filtro }}&estado=ARCHIVADO" class="btn btn-sm {{ 'btn-secondary' if estado_filtro=='ARCHIVADO' else 'btn-outline-secondary' }}" style="font-size:8px;">ARCHIVADO</a>
+<a href="/gestion-rotaria?tipo=TODOS" class="btn btn-sm {{ 'btn-dark' if tipo_filtro=='TODOS' else 'btn-outline-secondary' }}" style="font-size:8px;">TODOS</a>
 </div>
 </div>
 </div>
 
-<!-- TABLA DOCUMENTOS -->
 <div class="table-responsive">
-<table class="table tabla-docs table-hover bg-white">
-<thead>
-<tr>
-<th style="width:40px;">ID</th>
-<th style="width:70px;">TIPO</th>
-<th>TITULO / DESCRIPCION</th>
-<th style="width:90px;">FECHA DOC</th>
-<th style="width:100px;">ARCHIVO PDF</th>
-<th style="width:70px;">ESTADO</th>
-<th style="width:60px;">SUBIDO POR</th>
-<th style="width:140px;">ACCIONES</th>
-</tr>
-</thead>
+<table class="table tabla-docs bg-white">
+<thead><tr><th>ID</th><th>TIPO</th><th>ORIGEN</th><th>TITULO</th><th>FECHA</th><th>CONTENIDO</th><th>ACCIONES</th></tr></thead>
 <tbody>
 {% for doc in documentos %}
 <tr>
-<td class="fw-bold">{{ doc.id }}</td>
-<td><span class="badge badge-tipo-{{ doc.tipo }}" style="font-size:7px;">{{ doc.tipo }}</span></td>
-<td class="titulo-col">
-<strong style="font-size:9px;">{{ doc.titulo }}</strong><br>
-<small style="font-size:7px; text-transform:none; color:#666;">{{ doc.descripcion[:120] if doc.descripcion else '' }}</small>
-</td>
-<td style="font-size:8px;">{{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '-' }}<br><small style="font-size:6px;">Subida: {{ doc.fecha_subida.strftime('%d/%m %H:%M') if doc.fecha_subida else '' }}</small></td>
+<td>{{ doc.id }}</td>
+<td>{{ doc.tipo }}</td>
+<td><span class="badge {{ 'bg-success' if doc.origen=='SISTEMA' else 'bg-danger' }}" style="font-size:7px;">{{ doc.origen or 'PDF' }}</span></td>
+<td class="titulo-col"><strong>{{ doc.titulo }}</strong><br><small>{{ doc.lugar or '' }} - {{ doc.descripcion[:80] if doc.descripcion else '' }}</small></td>
+<td>{{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '' }}</td>
+<td>{% if doc.archivo_base64 %}PDF {% endif %}{% if doc.contenido_sistema %}SISTEMA{% endif %}</td>
 <td>
-{% if doc.archivo_base64 %}
-<span class="pdf-icon">📄</span><br><small style="font-size:6px;">{{ doc.archivo_nombre or 'PDF' }}</small>
-{% else %}
-<small style="font-size:7px; color:#999;">SIN PDF</small>
-{% endif %}
-</td>
-<td><span class="badge {{ 'bg-success' if doc.estado=='VIGENTE' else 'bg-secondary' }}" style="font-size:7px;">{{ doc.estado }}</span></td>
-<td style="font-size:7px;">{{ doc.subido_por or '-' }}</td>
-<td>
-<div class="btn-group-vertical gap-1" style="width:100%;">
-{% if doc.archivo_base64 %}
-<a href="/gestion-rotaria/ver/{{ doc.id }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:7px; padding:2px 4px;"><i class="bi bi-eye"></i> VER PDF</a>
-<a href="/gestion-rotaria/descargar/{{ doc.id }}" class="btn btn-success btn-sm" style="font-size:7px; padding:2px 4px;"><i class="bi bi-download"></i> DESCARGAR</a>
-{% endif %}
-<button class="btn btn-warning btn-sm" style="font-size:7px; padding:2px 4px;" data-bs-toggle="modal" data-bs-target="#modalEditar{{ doc.id }}"><i class="bi bi-pencil"></i> EDITAR</button>
-<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar documento {{ doc.titulo }}?')" style="display:inline;">
-<button type="submit" class="btn btn-danger btn-sm w-100" style="font-size:7px; padding:2px 4px;"><i class="bi bi-trash"></i> ELIMINAR</button>
-</form>
-</div>
+{% if doc.contenido_sistema %}<a href="/gestion-rotaria/ver-sistema/{{ doc.id }}" class="btn btn-success btn-sm" style="font-size:7px;">VER SISTEMA</a>{% endif %}
+{% if doc.archivo_base64 %}<a href="/gestion-rotaria/ver/{{ doc.id }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:7px;">VER PDF</a>{% endif %}
 </td>
 </tr>
-
-<!-- MODAL EDITAR -->
-<div class="modal fade" id="modalEditar{{ doc.id }}" tabindex="-1">
-<div class="modal-dialog">
-<div class="modal-content">
-<form method="POST" action="/gestion-rotaria/editar/{{ doc.id }}" enctype="multipart/form-data">
-<div class="modal-header" style="background:#ffc107; color:#000;">
-<h6 class="modal-title" style="font-size:11px;">✏️ EDITAR DOCUMENTO - {{ doc.tipo }}</h6>
-<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-</div>
-<div class="modal-body" style="font-size:10px; text-transform:none;">
-<div class="mb-2"><label class="fw-bold">TIPO:</label><select name="tipo" class="form-select form-select-sm">{% for t in tipos %}<option value="{{ t }}" {{ 'selected' if doc.tipo==t else '' }}>{{ t }}</option>{% endfor %}</select></div>
-<div class="mb-2"><label class="fw-bold">TITULO:</label><input type="text" name="titulo" class="form-control form-control-sm" value="{{ doc.titulo }}" required></div>
-<div class="mb-2"><label class="fw-bold">DESCRIPCION:</label><textarea name="descripcion" class="form-control form-control-sm" rows="2">{{ doc.descripcion or '' }}</textarea></div>
-<div class="row"><div class="col-6"><label class="fw-bold">FECHA DOC:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" value="{{ doc.fecha_documento.strftime('%Y-%m-%d') if doc.fecha_documento else '' }}"></div><div class="col-6"><label class="fw-bold">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE" {{ 'selected' if doc.estado=='VIGENTE' else '' }}>VIGENTE</option><option value="ARCHIVADO" {{ 'selected' if doc.estado=='ARCHIVADO' else '' }}>ARCHIVADO</option><option value="BORRADOR" {{ 'selected' if doc.estado=='BORRADOR' else '' }}>BORRADOR</option></select></div></div>
-<div class="mt-2"><label class="fw-bold">REEMPLAZAR PDF (opcional):</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf"></div>
-{% if doc.archivo_nombre %}<small style="font-size:8px;">Actual: {{ doc.archivo_nombre }}</small>{% endif %}
-</div>
-<div class="modal-footer py-1"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">GUARDAR</button></div>
-</form>
-</div>
-</div>
-</div>
-
 {% endfor %}
-{% if not documentos %}
-<tr><td colspan="8" class="text-center py-4" style="font-size:11px; color:#999;">NO HAY DOCUMENTOS EN ESTE FILTRO - SUBE UNA ACTA O ACUERDO EN PDF</td></tr>
-{% endif %}
 </tbody>
 </table>
 </div>
-
 </div>
 
-<!-- MODAL SUBIR DOCUMENTO -->
 <div class="modal fade" id="modalSubir" tabindex="-1">
+<div class="modal-dialog">
+<div class="modal-content">
+<form method="POST" action="/gestion-rotaria/subir" enctype="multipart/form-data">
+<div class="modal-header" style="background:#dc3545; color:white;"><h6 class="modal-title" style="font-size:11px;">SUBIR PDF</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" style="font-size:10px; text-transform:none;">
+<input type="hidden" name="origen" value="PDF">
+<div class="row"><div class="col-md-6"><label>TIPO:</label><select name="tipo" class="form-select form-select-sm" required><option value="ACTA">ACTA</option><option value="ACUERDO">ACUERDO</option><option value="PRESIDENCIA">PRESIDENCIA</option><option value="SECRETARIA">SECRETARIA</option><option value="FUNDACION">FUNDACION</option><option value="SERVICIOS">SERVICIOS</option><option value="OTRO">OTRO</option></select></div><div class="col-md-6"><label>FECHA:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" required></div></div>
+<div class="mt-2"><label>TITULO:</label><input type="text" name="titulo" class="form-control form-control-sm" required></div>
+<div class="mt-2"><label>PDF:</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf" required></div>
+</div>
+<div class="modal-footer"><button type="submit" class="btn btn-danger btn-sm">SUBIR PDF</button></div>
+</form>
+</div>
+</div>
+</div>
+
+<div class="modal fade" id="modalCrearSistema" tabindex="-1">
 <div class="modal-dialog modal-lg">
 <div class="modal-content">
 <form method="POST" action="/gestion-rotaria/subir" enctype="multipart/form-data">
-<div class="modal-header" style="background:#17458F; color:white;">
-<h6 class="modal-title" style="font-size:12px;">📤 SUBIR DOCUMENTO - GESTION ROTARIA ERP - ACTA / ACUERDO PDF</h6>
-<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<div class="modal-header" style="background:#198754; color:white;"><h6 class="modal-title" style="font-size:11px;">CREAR EN SISTEMA - SIN PDF</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" style="font-size:10px; text-transform:none; max-height:70vh; overflow-y:auto;">
+<input type="hidden" name="origen" value="SISTEMA">
+<div class="row"><div class="col-md-4"><label>TIPO:</label><select name="tipo" class="form-select form-select-sm" required><option value="ACTA">ACTA DE SESION</option><option value="ACUERDO">ACUERDO</option><option value="PRESIDENCIA">PRESIDENCIA</option><option value="SECRETARIA">SECRETARIA</option><option value="FUNDACION">FUNDACION</option><option value="SERVICIOS">SERVICIOS</option><option value="OTRO">OTRO</option></select></div><div class="col-md-4"><label>FECHA:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" required></div><div class="col-md-4"><label>LUGAR:</label><input type="text" name="lugar" class="form-control form-control-sm" placeholder="CASA CLUB"></div></div>
+<div class="mt-2"><label>TITULO *:</label><input type="text" name="titulo" class="form-control form-control-sm fw-bold" required placeholder="EJ: ACTA SESION ORDINARIA 15 NOV 2026"></div>
+<div class="mt-2"><label>PARTICIPANTES:</label><input type="text" name="participantes" class="form-control form-control-sm" placeholder="PRESIDENTE, SECRETARIO..."></div>
+<div class="mt-2"><label>CONTENIDO COMPLETO:</label><textarea name="contenido_sistema" class="form-control form-control-sm" rows="10" placeholder="Escribe el acta completa aquí..."></textarea></div>
+<div class="mt-2"><label>ACUERDOS:</label><textarea name="acuerdos_lista" class="form-control form-control-sm" rows="4" placeholder="1. ..."></textarea></div>
+<div class="mt-2"><label>PDF OPCIONAL:</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf"></div>
 </div>
-<div class="modal-body" style="font-size:11px; text-transform:none;">
-<div class="row">
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px; text-transform:uppercase;">TIPO DOCUMENTO:</label><select name="tipo" class="form-select form-select-sm fw-bold" required><option value="ACTA">📄 ACTA DE SESION</option><option value="ACUERDO">🤝 ACUERDO DE REUNION</option><option value="PRESIDENCIA">👑 PRESIDENCIA</option><option value="SECRETARIA">📝 SECRETARIA</option><option value="FUNDACION">💚 FUNDACION ROTARIA</option><option value="SERVICIOS">🛠️ SERVICIOS / PROYECTOS</option><option value="TESORERIA">💰 TESORERIA</option><option value="MEMBRESIA">👥 MEMBRESIA</option><option value="OTRO">📁 OTRO</option></select></div>
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px;">FECHA DOCUMENTO:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" value="{{ '' }}" required></div>
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px;">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE">VIGENTE</option><option value="BORRADOR">BORRADOR</option><option value="ARCHIVADO">ARCHIVADO</option></select></div>
-</div>
-<div class="mb-2"><label class="fw-bold" style="font-size:10px;">TITULO (OBLIGATORIO):</label><input type="text" name="titulo" class="form-control form-control-sm fw-bold" placeholder="EJ: ACTA SESION ORDINARIA 15 NOV 2026 - ACUERDO PROYECTO BOMBERA" required></div>
-<div class="mb-2"><label class="fw-bold" style="font-size:10px;">DESCRIPCION / ACUERDOS TOMADOS:</label><textarea name="descripcion" class="form-control form-control-sm" rows="3" placeholder="Describe los puntos tratados, acuerdos, responsables, fechas compromiso..."></textarea></div>
-<div class="mb-2"><label class="fw-bold" style="font-size:10px;">ARCHIVO PDF (MAX 15MB):</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf" required><small style="font-size:8px; color:#666;">Solo PDF. El acta firmada, escaneada o documento oficial.</small></div>
-<div class="alert alert-info py-2" style="font-size:9px; text-transform:none; border:1px dashed #17458F;">
-<strong>ERP GESTION ROTARIA:</strong> Sube aquí todas las actas de sesiones, acuerdos de reuniones, documentos de presidencia, secretaria, fundación rotaria, servicios, membresía, etc. Todo queda centralizado y consultable por fecha y tipo.
-</div>
-</div>
-<div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">📤 SUBIR DOCUMENTO PDF</button></div>
+<div class="modal-footer"><button type="submit" class="btn btn-success btn-sm fw-bold">CREAR EN SISTEMA</button></div>
 </form>
 </div>
 </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-function filtrarTipo(tipo) {
-  window.location.href = '/gestion-rotaria?tipo=' + tipo + '&estado={{ estado_filtro }}';
-}
-</script>
 </body>
 </html>

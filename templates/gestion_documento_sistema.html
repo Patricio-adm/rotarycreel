@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Documento Sistema - {{ doc.titulo }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body { font-family: 'Segoe UI', sans-serif; background:#f4f6f9; }
+.header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
+.doc-paper { background:white; border:2px solid #000; border-radius:8px; padding:30px; max-width:900px; margin:20px auto; box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+.titulo-acta { color:#17458F; font-weight:900; font-size:18px; text-align:center; border-bottom:3px double #17458F; padding-bottom:10px; margin-bottom:20px; }
+.seccion-label { font-weight:900; color:#17458F; font-size:11px; background:#e3f2fd; padding:4px 8px; border-left:4px solid #17458F; margin-top:15px; margin-bottom:5px; }
+.contenido-text { white-space: pre-wrap; font-size:11px; line-height:1.6; text-transform:none; font-family:'Courier New', monospace; background:#fdfdfd; border:1px solid #ddd; padding:15px; border-radius:5px; }
+.badge-tipo { font-size:10px; }
+@media print { .no-print { display:none; } .doc-paper { border:none; box-shadow:none; } }
+</style>
+</head>
+<body>
+<div class="header-rotary d-flex justify-content-between align-items-center no-print">
+<div><h6 class="mb-0 fw-bold" style="font-size:14px;">📝 DOCUMENTO - GESTIÓN ROTARIA ERP</h6><small style="font-size:9px;">{{ doc.tipo }} - {{ doc.origen }} - CREADO EN SISTEMA</small></div>
+<div class="d-flex gap-2">
+<a href="/gestion-rotaria" class="btn btn-outline-light btn-sm fw-bold" style="font-size:10px;">VOLVER</a>
+<button onclick="window.print()" class="btn btn-warning btn-sm fw-bold" style="font-size:10px;">🖨️ IMPRIMIR</button>
+</div>
+</div>
+
+<div class="doc-paper">
+<div class="text-center mb-2">
+<img src="https://www.rotary.org/sites/all/themes/rotary_rotaryorg/images/rotary-logo-color-2019-simplified.svg" style="height:40px; display:none;" alt="Rotary">
+<small style="font-size:9px; color:#666;">CLUB ROTARIO CREEL - DISTRITO 4110 - SISTEMA INTEGRAL DE GESTIÓN</small>
+</div>
+
+<div class="titulo-acta">
+{{ doc.tipo }}: {{ doc.titulo }}
+</div>
+
+<div class="row" style="font-size:10px;">
+<div class="col-6"><strong>FECHA DOCUMENTO:</strong> {{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '' }}</div>
+<div class="col-6"><strong>LUGAR:</strong> {{ doc.lugar or 'NO ESPECIFICADO' }}</div>
+<div class="col-6 mt-2"><strong>ORIGEN:</strong> <span class="badge bg-success badge-tipo">{{ doc.origen }}</span></div>
+<div class="col-6 mt-2"><strong>ESTADO:</strong> <span class="badge bg-primary badge-tipo">{{ doc.estado }}</span></div>
+<div class="col-12 mt-2"><strong>SUBIDO POR:</strong> {{ doc.subido_por or '' }} | <strong>FECHA SUBIDA:</strong> {{ doc.fecha_subida.strftime('%d/%m/%Y %H:%M') if doc.fecha_subida else '' }}</div>
+</div>
+
+{% if doc.descripcion %}
+<div class="seccion-label">📋 DESCRIPCION / RESUMEN</div>
+<div class="contenido-text">{{ doc.descripcion }}</div>
+{% endif %}
+
+{% if doc.participantes %}
+<div class="seccion-label">👥 PARTICIPANTES / ASISTENCIA</div>
+<div class="contenido-text">{{ doc.participantes }}</div>
+{% endif %}
+
+{% if doc.contenido_sistema %}
+<div class="seccion-label">📝 CONTENIDO COMPLETO - {{ doc.tipo }} CREADO EN SISTEMA</div>
+<div class="contenido-text" style="min-height:200px; font-size:12px;">{{ doc.contenido_sistema }}</div>
+{% endif %}
+
+{% if doc.acuerdos_lista %}
+<div class="seccion-label">🤝 ACUERDOS TOMADOS / RESOLUCIONES</div>
+<div class="contenido-text" style="background:#e8f5e9; border-left:4px solid #198754;">{{ doc.acuerdos_lista }}</div>
+{% endif %}
+
+{% if doc.archivo_base64 %}
+<div class="seccion-label no-print">📄 PDF ADJUNTO DISPONIBLE</div>
+<div class="alert alert-info py-2 no-print" style="font-size:10px; text-transform:none;">
+Este documento también tiene PDF escaneado adjunto. 
+<a href="/gestion-rotaria/ver/{{ doc.id }}" target="_blank" class="btn btn-danger btn-sm fw-bold" style="font-size:9px;">VER PDF</a>
+<a href="/gestion-rotaria/descargar/{{ doc.id }}" class="btn btn-primary btn-sm fw-bold" style="font-size:9px;">DESCARGAR PDF</a>
+</div>
+{% endif %}
+
+<div class="mt-4 pt-3 border-top" style="font-size:9px; color:#666; text-align:center;">
+Documento generado por Sistema Integral de Gestión - Rotary Club Creel - Distrito 4110<br>
+{{ doc.fecha_subida.strftime('%d/%m/%Y %H:%M') if doc.fecha_subida else '' }} - Usuario: {{ doc.subido_por or '' }} - Origen: {{ doc.origen }}<br>
+<small style="font-size:7px;">ESTE DOCUMENTO ES OFICIAL Y FORMA PARTE DEL ARCHIVO HISTORICO DEL CLUB ROTARIO CREEL</small>
+</div>
+
+<div class="mt-4 d-flex justify-content-around no-print" style="font-size:10px;">
+<div class="text-center"><br><br>_________________________<br><strong>PRESIDENTE</strong></div>
+<div class="text-center"><br><br>_________________________<br><strong>SECRETARIO</strong></div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
