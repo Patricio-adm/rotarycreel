@@ -116,6 +116,20 @@ class Socio(db.Model):
     pagos = db.relationship('PagoCuota', backref='socio', lazy=True, cascade="all, delete-orphan", passive_deletes=True)
 
 # ==================== NUEVOS MODELOS GASTOS Y PROYECTOS ====================
+class GestionRotaria(db.Model):
+    __tablename__ = 'gestion_rotaria'
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(50), nullable=False)  # ACTA, ACUERDO, PRESIDENCIA, SECRETARIA, FUNDACION, SERVICIOS, TESORERIA, MEMBRESIA, OTRO
+    titulo = db.Column(db.String(200), nullable=False)
+    descripcion = db.Column(db.Text, nullable=True)
+    fecha_documento = db.Column(db.Date, nullable=True)
+    fecha_subida = db.Column(db.DateTime, default=datetime.utcnow)
+    archivo_nombre = db.Column(db.String(300), nullable=True)
+    archivo_base64 = db.Column(db.Text, nullable=True)  # PDF en base64
+    archivo_tipo = db.Column(db.String(20), default='PDF')
+    subido_por = db.Column(db.String(100), nullable=True)
+    estado = db.Column(db.String(20), default='VIGENTE')  # VIGENTE, ARCHIVADO, BORRADOR
+
 class Proyecto(db.Model):
     __tablename__ = 'proyectos'
     id = db.Column(db.Integer, primary_key=True)
@@ -181,6 +195,7 @@ with app.app_context():
     try:
         PagoCuota.__table__.create(db.engine, checkfirst=True)
         ConfiguracionTesoreria.__table__.create(db.engine, checkfirst=True)
+        GestionRotaria.__table__.create(db.engine, checkfirst=True)
         Proyecto.__table__.create(db.engine, checkfirst=True)
         EventoProyecto.__table__.create(db.engine, checkfirst=True)
         Gasto.__table__.create(db.engine, checkfirst=True)
@@ -195,15 +210,18 @@ with app.app_context():
         db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS notas TEXT;"))
         db.session.execute(db.text("ALTER TABLE pagos_cuotas ADD COLUMN IF NOT EXISTS grupo_recibo VARCHAR(50);"))
         db.session.execute(db.text("ALTER TABLE pagos_cuotas ADD COLUMN IF NOT EXISTS fecha_pago TIMESTAMP;"))
+        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS archivo_base64 TEXT;"))
         db.session.commit()
     except Exception as e:
         db.session.rollback()
     pass_hash = generate_password_hash('rotary2026')
+    pass_rcreel = generate_password_hash('rcreel2026')
     credenciales = [
         ('admin', pass_hash, 'ADMIN'),
         ('presidente', pass_hash, 'PRESIDENTE'),
         ('tesorero', pass_hash, 'TESORERO'),
-        ('rccreel', pass_hash, 'SOCIO')
+        ('rccreel', pass_hash, 'SOCIO'),
+        ('rcreel', pass_rcreel, 'RCREEL')
     ]
     for usr, phash, r in credenciales:
         u_db = Usuario.query.filter_by(username=usr).first()
@@ -300,7 +318,7 @@ def gestion_socios():
 
 @app.route('/socios/agregar', methods=['POST'])
 def agregar_socio():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         flash('Acceso denegado.', 'danger')
         return redirect(url_for('gestion_socios'))
     def parse_date(date_str):
@@ -350,7 +368,7 @@ def agregar_socio():
 
 @app.route('/socios/editar/<int:socio_id>', methods=['POST'])
 def editar_socio(socio_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         flash('Acceso denegado.', 'danger')
         return redirect(url_for('gestion_socios'))
     socio = Socio.query.get_or_404(socio_id)
@@ -409,6 +427,8 @@ def cumpleanos_mes():
 def gestion_autoridades():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    if session.get('rol') == 'RCREEL':
+        pass  # RCREEL tiene acceso permitido
     autoridades = AutoridadRotaria.query.order_by(AutoridadRotaria.nivel.asc()).all()
     return render_template('autoridades.html', autoridades=autoridades)
 
@@ -469,7 +489,7 @@ def cuotas_sociales():
 
 @app.route('/tesoreria/actualizar-saldo-inicial', methods=['POST'])
 def actualizar_saldo_inicial():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         flash('No autorizado.', 'danger')
         return redirect(url_for('menu_principal'))
     password = request.form.get('password')
@@ -494,7 +514,7 @@ def actualizar_saldo_inicial():
 
 @app.route('/tesoreria/registrar-pago', methods=['POST'])
 def registrar_pago_cuota():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         flash('No autorizado.', 'danger')
         return redirect(url_for('menu_principal'))
     socio_id = request.form.get('socio_id')
@@ -558,7 +578,7 @@ def editar_pago_cuota(pago_id):
 
 @app.route('/tesoreria/recibo/<int:pago_id>')
 def ver_recibo(pago_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     pago = PagoCuota.query.get_or_404(pago_id)
     pagos_relacionados = request.args.get('ids')
@@ -579,7 +599,7 @@ def ver_recibo(pago_id):
 
 @app.route('/tesoreria/estado-cuenta-pdf/<int:socio_id>')
 def estado_cuenta_pdf(socio_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     socio = Socio.query.get_or_404(socio_id)
     meses_es = {"January": "ENERO", "February": "FEBRERO", "March": "MARZO", "April": "ABRIL", "May": "MAYO", "June": "JUNIO", "July": "JULIO", "August": "AGOSTO", "September": "SEPTIEMBRE", "October": "OCTUBRE", "November": "NOVIEMBRE", "December": "DICIEMBRE"}
@@ -591,7 +611,7 @@ def estado_cuenta_pdf(socio_id):
 # ==================== NUEVO MODULO GASTOS ====================
 @app.route('/tesoreria/gastos')
 def tesoreria_gastos():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     gastos_mes = Gasto.query.filter_by(mes_anio=mes_filtro).order_by(Gasto.fecha.desc()).all()
@@ -625,7 +645,7 @@ def tesoreria_gastos():
 
 @app.route('/tesoreria/gastos/nuevo', methods=['POST'])
 def nuevo_gasto():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     fecha_str = request.form.get('fecha')
     fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.now().date()
@@ -688,7 +708,7 @@ def tesoreria_proyectos():
 
 @app.route('/tesoreria/proyecto/nuevo', methods=['POST'])
 def nuevo_proyecto():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     nombre = request.form.get('nombre').upper()
     proyecto = Proyecto(nombre=nombre, descripcion=request.form.get('descripcion'))
@@ -711,7 +731,7 @@ def ver_proyecto(proyecto_id):
 
 @app.route('/tesoreria/ingreso/nuevo', methods=['POST'])
 def nuevo_ingreso_proyecto():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     proyecto_id = request.form.get('proyecto_id')
     if not proyecto_id:
@@ -734,7 +754,7 @@ def nuevo_ingreso_proyecto():
 
 @app.route('/tesoreria/proyecto/<int:proyecto_id>/evento/nuevo', methods=['POST'])
 def nuevo_evento_proyecto(proyecto_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     proyecto = Proyecto.query.get_or_404(proyecto_id)
     evento = EventoProyecto(
@@ -774,7 +794,7 @@ def eliminar_evento(evento_id):
 # ==================== ESTADO DE CUENTA MENSUAL ====================
 @app.route('/tesoreria/estado-cuenta-mensual')
 def estado_cuenta_mensual():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     # meses lista
@@ -870,7 +890,7 @@ def estado_cuenta_mensual():
 
 @app.route('/tesoreria/estado-cuenta-pdf-mensual')
 def estado_cuenta_pdf_mensual():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     config = ConfiguracionTesoreria.query.first()
@@ -914,7 +934,7 @@ def estado_cuenta_pdf_mensual():
 
 @app.route('/tesoreria/recaudacion-mensual')
 def recaudacion_mensual():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     total_socios = Socio.query.filter_by(es_activo=True).count()
     if total_socios == 0:
@@ -1003,7 +1023,7 @@ def recaudacion_mensual():
 # ==================== MODULO INGRESOS EXTRAORDINARIOS / DONACIONES ====================
 @app.route('/tesoreria/ingresos-extraordinarios')
 def ingresos_extraordinarios():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     tipo_filtro = request.args.get('tipo', 'TODOS')
@@ -1030,7 +1050,7 @@ def ingresos_extraordinarios():
 
 @app.route('/tesoreria/ingresos-extraordinarios/crear', methods=['POST'])
 def crear_ingreso_extraordinario():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         return redirect(url_for('login'))
     try:
         fecha_str = request.form.get('fecha')
@@ -1078,6 +1098,176 @@ def eliminar_ingreso_extraordinario(id):
     db.session.commit()
     flash(f'INGRESO ELIMINADO: {ingreso.concepto}', 'warning')
     return redirect(url_for('ingresos_extraordinarios'))
+
+# ==================== GESTION ROTARIA - ERP ====================
+@app.route('/gestion-rotaria')
+def gestion_rotaria():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    # RCREEL no tiene acceso a gestion rotaria
+    if session.get('rol') == 'RCREEL':
+        flash('Acceso denegado. Usuario rcreel solo tiene acceso a Directorio de Socios y Autoridades Rotarias.', 'danger')
+        return redirect(url_for('menu_principal'))
+    tipo_filtro = request.args.get('tipo', 'TODOS')
+    estado_filtro = request.args.get('estado', 'TODOS')
+    query = GestionRotaria.query.order_by(GestionRotaria.fecha_documento.desc(), GestionRotaria.fecha_subida.desc())
+    if tipo_filtro != 'TODOS':
+        query = query.filter_by(tipo=tipo_filtro)
+    if estado_filtro != 'TODOS':
+        query = query.filter_by(estado=estado_filtro)
+    documentos = query.all()
+    # Contadores por tipo
+    total_actas = GestionRotaria.query.filter_by(tipo='ACTA').count()
+    total_acuerdos = GestionRotaria.query.filter_by(tipo='ACUERDO').count()
+    total_presidencia = GestionRotaria.query.filter_by(tipo='PRESIDENCIA').count()
+    total_secretaria = GestionRotaria.query.filter_by(tipo='SECRETARIA').count()
+    total_fundacion = GestionRotaria.query.filter_by(tipo='FUNDACION').count()
+    total_servicios = GestionRotaria.query.filter_by(tipo='SERVICIOS').count()
+    tipos = ['ACTA', 'ACUERDO', 'PRESIDENCIA', 'SECRETARIA', 'FUNDACION', 'SERVICIOS', 'TESORERIA', 'MEMBRESIA', 'OTRO']
+    return render_template('gestion_rotaria.html',
+                           documentos=documentos,
+                           tipos=tipos,
+                           tipo_filtro=tipo_filtro,
+                           estado_filtro=estado_filtro,
+                           total_actas=total_actas,
+                           total_acuerdos=total_acuerdos,
+                           total_presidencia=total_presidencia,
+                           total_secretaria=total_secretaria,
+                           total_fundacion=total_fundacion,
+                           total_servicios=total_servicios)
+
+@app.route('/gestion-rotaria/subir', methods=['POST'])
+def subir_documento_rotaria():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE', 'TESORERO', 'SECRETARIO']:
+        if session.get('rol') == 'RCREEL':
+            flash('Usuario rcreel no tiene acceso a Gestion Rotaria', 'danger')
+            return redirect(url_for('menu_principal'))
+        flash('No autorizado para subir documentos.', 'danger')
+        return redirect(url_for('gestion_rotaria'))
+    tipo = request.form.get('tipo', 'OTRO').strip().upper()
+    titulo = request.form.get('titulo', '').strip()
+    descripcion = request.form.get('descripcion', '').strip()
+    fecha_doc_str = request.form.get('fecha_documento')
+    estado = request.form.get('estado', 'VIGENTE').strip().upper()
+    if not titulo:
+        flash('El titulo es obligatorio.', 'warning')
+        return redirect(url_for('gestion_rotaria'))
+    fecha_doc = None
+    if fecha_doc_str:
+        try:
+            fecha_doc = datetime.strptime(fecha_doc_str, '%Y-%m-%d').date()
+        except:
+            fecha_doc = datetime.now().date()
+    archivo_nombre = None
+    archivo_b64 = None
+    archivo_tipo = 'PDF'
+    if 'archivo' in request.files:
+        file = request.files['archivo']
+        if file and file.filename:
+            archivo_nombre = file.filename
+            # Validar PDF
+            if not archivo_nombre.lower().endswith('.pdf'):
+                flash('Solo se permiten archivos PDF.', 'warning')
+                return redirect(url_for('gestion_rotaria'))
+            contenido = file.read()
+            if len(contenido) > 15 * 1024 * 1024:  # 15 MB max
+                flash('Archivo muy grande, max 15 MB.', 'warning')
+                return redirect(url_for('gestion_rotaria'))
+            archivo_b64 = base64.b64encode(contenido).decode('utf-8')
+            archivo_tipo = 'PDF'
+    doc = GestionRotaria(
+        tipo=tipo,
+        titulo=to_upper(titulo),
+        descripcion=descripcion,
+        fecha_documento=fecha_doc or datetime.now().date(),
+        archivo_nombre=archivo_nombre,
+        archivo_base64=archivo_b64,
+        archivo_tipo=archivo_tipo,
+        subido_por=session.get('username', 'SISTEMA'),
+        estado=estado
+    )
+    db.session.add(doc)
+    db.session.commit()
+    flash(f'Documento {tipo} - {titulo} subido correctamente.', 'success')
+    return redirect(url_for('gestion_rotaria'))
+
+@app.route('/gestion-rotaria/ver/<int:doc_id>')
+def ver_documento_rotaria(doc_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if session.get('rol') == 'RCREEL':
+        flash('Acceso denegado a Gestion Rotaria.', 'danger')
+        return redirect(url_for('menu_principal'))
+    doc = GestionRotaria.query.get_or_404(doc_id)
+    if not doc.archivo_base64:
+        flash('Documento sin archivo PDF adjunto.', 'warning')
+        return redirect(url_for('gestion_rotaria'))
+    try:
+        pdf_bytes = base64.b64decode(doc.archivo_base64)
+        from flask import Response
+        return Response(pdf_bytes, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename={doc.archivo_nombre or "documento.pdf"}'})
+    except Exception as e:
+        flash(f'Error al mostrar PDF: {e}', 'danger')
+        return redirect(url_for('gestion_rotaria'))
+
+@app.route('/gestion-rotaria/descargar/<int:doc_id>')
+def descargar_documento_rotaria(doc_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if session.get('rol') == 'RCREEL':
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('menu_principal'))
+    doc = GestionRotaria.query.get_or_404(doc_id)
+    if not doc.archivo_base64:
+        flash('Sin archivo.', 'warning')
+        return redirect(url_for('gestion_rotaria'))
+    try:
+        pdf_bytes = base64.b64decode(doc.archivo_base64)
+        from flask import Response
+        return Response(pdf_bytes, mimetype='application/pdf', headers={'Content-Disposition': f'attachment; filename={doc.archivo_nombre or "documento.pdf"}'})
+    except Exception as e:
+        flash(f'Error: {e}', 'danger')
+        return redirect(url_for('gestion_rotaria'))
+
+@app.route('/gestion-rotaria/eliminar/<int:doc_id>', methods=['POST'])
+def eliminar_documento_rotaria(doc_id):
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE']:
+        flash('Solo ADMIN o PRESIDENTE puede eliminar.', 'danger')
+        return redirect(url_for('gestion_rotaria'))
+    doc = GestionRotaria.query.get_or_404(doc_id)
+    db.session.delete(doc)
+    db.session.commit()
+    flash(f'Documento {doc.titulo} eliminado.', 'warning')
+    return redirect(url_for('gestion_rotaria'))
+
+@app.route('/gestion-rotaria/editar/<int:doc_id>', methods=['POST'])
+def editar_documento_rotaria(doc_id):
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE', 'TESORERO', 'SECRETARIO']:
+        flash('No autorizado.', 'danger')
+        return redirect(url_for('gestion_rotaria'))
+    doc = GestionRotaria.query.get_or_404(doc_id)
+    doc.titulo = to_upper(request.form.get('titulo', doc.titulo))
+    doc.descripcion = request.form.get('descripcion', doc.descripcion)
+    doc.tipo = request.form.get('tipo', doc.tipo).strip().upper()
+    doc.estado = request.form.get('estado', doc.estado).strip().upper()
+    fecha_str = request.form.get('fecha_documento')
+    if fecha_str:
+        try:
+            doc.fecha_documento = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        except:
+            pass
+    # Si sube nuevo PDF
+    if 'archivo' in request.files:
+        file = request.files['archivo']
+        if file and file.filename:
+            if file.filename.lower().endswith('.pdf'):
+                contenido = file.read()
+                if len(contenido) <= 15 * 1024 * 1024:
+                    doc.archivo_nombre = file.filename
+                    doc.archivo_base64 = base64.b64encode(contenido).decode('utf-8')
+    db.session.commit()
+    flash('Documento actualizado.', 'success')
+    return redirect(url_for('gestion_rotaria'))
 
 @app.route('/logout')
 def logout():
