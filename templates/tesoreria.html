@@ -121,42 +121,53 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 
 </div>
 
-<!-- MODAL RECIBO - CON BOTONES IMPRIMIR Y CAPTURA WHATSAPP -->
+<!-- MODAL RECIBO - UN SOLO COMPROBANTE PARA MULTIPLES MESES -->
 <div class="modal fade" id="modalRecibo" tabindex="-1">
-<div class="modal-dialog">
+<div class="modal-dialog modal-lg">
 <div class="modal-content">
 <div class="modal-header modal-header-rotary py-2">
-<h6 class="modal-title" style="font-size:12px;">🧾 RECIBO DE PAGO - CUOTA SOCIAL</h6>
+<h6 class="modal-title" style="font-size:12px;">🧾 RECIBO DE PAGO - CUOTA SOCIAL - COMPROBANTE UNICO</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" id="reciboCaptura">
-<div class="recibo-card" id="reciboCardContent">
-<div class="text-center border-bottom pb-2 mb-2">
-<h6 class="fw-bold" style="color:#17458F; font-size:16px; margin:0;">ROTARY CLUB CREEL</h6>
-<small style="font-size:10px;">RECIBO DE PAGO CUOTA SOCIAL</small><br>
-<small style="font-size:8px;" id="reciboNumero">No. RECIBO: - | FECHA: -</small>
+<div class="recibo-card" id="reciboCardContent" style="border:2px solid #17458F; background:white; padding:14px; border-radius:8px;">
+<div class="text-center border-bottom pb-2 mb-2" style="border-bottom:3px solid #17458F !important;">
+<h6 class="fw-bold" style="color:#17458F; font-size:18px; margin:0;">ROTARY CLUB CREEL</h6>
+<small style="font-size:11px; font-weight:700;">RECIBO DE PAGO CUOTA SOCIAL</small><br>
+<small style="font-size:9px;" id="reciboNumero">No. RECIBO: - | FECHA: -</small>
 </div>
-<table class="table table-sm table-borderless mb-1" style="font-size:11px;">
-<tr><td class="fw-bold" style="width:35%;">SOCIO:</td><td id="reciboSocio">-</td></tr>
+<table class="table table-sm table-borderless mb-2" style="font-size:11px;">
+<tr><td class="fw-bold" style="width:30%;">SOCIO:</td><td id="reciboSocio" class="fw-bold">-</td></tr>
 <tr><td class="fw-bold">No. SOCIO:</td><td id="reciboNoSocio">-</td></tr>
-<tr><td class="fw-bold">MES PAGADO:</td><td class="fw-bold" style="color:#17458F;" id="reciboMes">-</td></tr>
-<tr><td class="fw-bold">MONTO:</td><td class="fw-bold text-success" style="font-size:16px;" id="reciboMonto">-</td></tr>
 <tr><td class="fw-bold">MÉTODO:</td><td id="reciboMetodo">-</td></tr>
 <tr><td class="fw-bold">REFERENCIA:</td><td id="reciboReferencia">-</td></tr>
 </table>
+
+<div style="background:#e3f2fd; border:1.5px solid #17458F; border-radius:6px; padding:8px; margin-bottom:10px;">
+<div class="fw-bold" style="font-size:11px; color:#17458F;">MESES PAGADOS EN ESTE COMPROBANTE:</div>
+<div id="reciboMesesLista" style="font-size:11px; margin-top:4px;"></div>
+</div>
+
+<table class="table table-sm table-bordered mb-1" style="font-size:11px; border:2px solid #000;">
+<thead class="table-light"><tr><th style="font-size:9px;">#</th><th style="font-size:9px;">MES</th><th style="font-size:9px;">MONTO</th></tr></thead>
+<tbody id="reciboDetalleMeses"></tbody>
+<tfoot><tr style="background:#d4edda;"><td colspan="2" class="text-end fw-bold">TOTAL:</td><td id="reciboMonto" class="fw-bold text-success" style="font-size:14px;">-</td></tr></tfoot>
+</table>
+
 <div class="text-center mt-3">
-<p style="font-size:9px; margin:0;" id="reciboConcepto">CONCEPTO: PAGO CUOTA SOCIAL</p>
+<p style="font-size:10px; margin:0; font-weight:700;" id="reciboConcepto">CONCEPTO: PAGO CUOTA SOCIAL</p>
+<small style="font-size:8px; text-transform:none; color:#666;" id="reciboConceptoDetalle">Incluye los meses listados arriba</small>
 <hr style="margin:10px 0;">
 <div class="row">
-<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA TESORERO</small></div>
-<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA SOCIO</small></div>
+<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA TESORERO</small><br><small style="font-size:7px;">Tesorería 2026-2027</small></div>
+<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA SOCIO</small><br><small style="font-size:7px;" id="reciboSocioFirma">-</small></div>
 </div>
 </div>
 </div>
 </div>
 <div class="modal-footer py-2">
 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-<button type="button" class="btn btn-primary btn-sm fw-bold" onclick="imprimirRecibo()"><i class="bi bi-printer"></i> 🖨️ IMPRIMIR</button>
+<button type="button" class="btn btn-primary btn-sm fw-bold" onclick="imprimirRecibo()"><i class="bi bi-printer"></i> 🖨️ IMPRIMIR COMPROBANTE UNICO</button>
 <button type="button" class="btn btn-success btn-sm fw-bold" onclick="capturaWhatsapp()"><i class="bi bi-whatsapp"></i> 📸 CAPTURA WHATSAPP</button>
 </div>
 </div>
@@ -417,16 +428,58 @@ const mesesLista = {{ meses|tojson }};
 let socioActualId = null;
 
 function abrirModalRecibo(pagoId) {
+  // Puede ser un solo ID o un array de IDs para comprobante unico
+  if (Array.isArray(pagoId)) {
+    abrirModalReciboMultiple(pagoId);
+    return;
+  }
   const pago = pagosData[pagoId];
   if (!pago) return;
-  document.getElementById('reciboNumero').textContent = `No. RECIBO: ${pago.id} | FECHA: ${pago.fecha}`;
-  document.getElementById('reciboSocio').textContent = pago.socio_nombre;
-  document.getElementById('reciboNoSocio').textContent = pago.socio_numero;
-  document.getElementById('reciboMes').textContent = pago.mes_anio;
-  document.getElementById('reciboMonto').textContent = `$${pago.monto} MXN`;
-  document.getElementById('reciboMetodo').textContent = `${pago.metodo_corto} - ${pago.metodo}`;
-  document.getElementById('reciboReferencia').textContent = pago.referencia;
-  document.getElementById('reciboConcepto').textContent = `CONCEPTO: PAGO CUOTA SOCIAL CORRESPONDIENTE A ${pago.mes_anio}`;
+  abrirModalReciboMultiple([pagoId]);
+}
+
+function abrirModalReciboMultiple(pagosIds) {
+  if (!pagosIds || pagosIds.length === 0) return;
+  const pagos = pagosIds.map(id => pagosData[id]).filter(Boolean);
+  if (pagos.length === 0) return;
+  
+  const primerPago = pagos[0];
+  const mesesPagados = pagos.map(p => p.mes_anio);
+  const totalMonto = pagos.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+  
+  // Generar numero de recibo unico: si son multiples, usa el primer ID + cantidad
+  const numeroRecibo = pagos.length === 1 ? primerPago.id : `${primerPago.id} (+${pagos.length-1})`;
+  
+  document.getElementById('reciboNumero').textContent = `No. RECIBO: ${numeroRecibo} | FECHA: ${primerPago.fecha} | ${pagos.length} MES(ES)`;
+  document.getElementById('reciboSocio').textContent = primerPago.socio_nombre;
+  document.getElementById('reciboNoSocio').textContent = primerPago.socio_numero;
+  document.getElementById('reciboMetodo').textContent = `${primerPago.metodo_corto} - ${primerPago.metodo}`;
+  document.getElementById('reciboReferencia').textContent = primerPago.referencia;
+  document.getElementById('reciboSocioFirma').textContent = primerPago.socio_nombre;
+  
+  // Lista de meses en texto
+  const mesesTexto = mesesPagados.join(', ');
+  const mesesListaEl = document.getElementById('reciboMesesLista');
+  if (mesesListaEl) mesesListaEl.innerHTML = `<strong style="color:#17458F;">${mesesTexto}</strong> <span style="font-size:9px; color:#666;">(${pagos.length} mes x $500 = $${totalMonto.toFixed(2)})</span>`;
+  
+  // Tabla detalle
+  let detalleHtml = '';
+  pagos.forEach((p, idx) => {
+    detalleHtml += `<tr><td>${idx+1}</td><td class="fw-bold">${p.mes_anio}</td><td>$${p.monto}</td></tr>`;
+  });
+  const detalleBody = document.getElementById('reciboDetalleMeses');
+  if (detalleBody) detalleBody.innerHTML = detalleHtml;
+  
+  document.getElementById('reciboMonto').textContent = `$${totalMonto.toFixed(2)} MXN`;
+  
+  if (pagos.length === 1) {
+    document.getElementById('reciboConcepto').textContent = `CONCEPTO: PAGO CUOTA SOCIAL CORRESPONDIENTE A ${mesesPagados[0]}`;
+    document.getElementById('reciboConceptoDetalle').textContent = `Pago individual - ${mesesPagados[0]}`;
+  } else {
+    document.getElementById('reciboConcepto').textContent = `CONCEPTO: PAGO CUOTAS SOCIALES CORRESPONDIENTES A ${mesesPagados.length} MESES`;
+    document.getElementById('reciboConceptoDetalle').textContent = `${mesesTexto} - COMPROBANTE UNICO POR ${pagos.length} MESES - Total $${totalMonto.toFixed(2)}`;
+  }
+  
   var modal = new bootstrap.Modal(document.getElementById('modalRecibo'));
   modal.show();
 }
@@ -677,6 +730,26 @@ document.addEventListener('DOMContentLoaded', function() {
       const info = document.getElementById('infoPagados');
       if (info) info.textContent = '';
     });
+  }
+});
+
+
+
+// AUTO-MOSTRAR RECIBO UNICO CUANDO SE REGISTRA PAGO MULTIPLE
+document.addEventListener('DOMContentLoaded', function() {
+  // Datos de pagos recien creados desde backend
+  const pagosReciboBackend = [
+    {% for p in pagos_recibo %}
+    {{ p.id }},
+    {% endfor %}
+  ];
+  
+  if (pagosReciboBackend.length > 0) {
+    // Esperar un poco para que se carguen los datos
+    setTimeout(() => {
+      // Si hay pagos, mostrar comprobante unico
+      abrirModalReciboMultiple(pagosReciboBackend);
+    }, 500);
   }
 });
 
