@@ -121,58 +121,79 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 
 </div>
 
-<!-- MODAL RECIBO - UN SOLO COMPROBANTE PARA MULTIPLES MESES -->
+<!-- MODAL RECIBO - COMPACTO Y RESPONSIVE - SE AJUSTA A PANTALLA -->
 <div class="modal fade" id="modalRecibo" tabindex="-1">
-<div class="modal-dialog modal-lg">
-<div class="modal-content">
-<div class="modal-header modal-header-rotary py-2">
-<h6 class="modal-title" style="font-size:12px;">🧾 RECIBO DE PAGO - CUOTA SOCIAL - COMPROBANTE UNICO</h6>
-<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 420px; width: 95vw; margin: 1vh auto;">
+<div class="modal-content" style="border-radius:10px; max-height: 92vh;">
+<div class="modal-header modal-header-rotary py-2" style="padding:8px 12px !important;">
+<h6 class="modal-title fw-bold" style="font-size:11px;">🧾 RECIBO CUOTA SOCIAL - COMPROBANTE UNICO</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="font-size:10px;"></button>
 </div>
-<div class="modal-body" id="reciboCaptura">
-<div class="recibo-card" id="reciboCardContent" style="border:2px solid #17458F; background:white; padding:14px; border-radius:8px;">
-<div class="text-center border-bottom pb-2 mb-2" style="border-bottom:3px solid #17458F !important;">
-<h6 class="fw-bold" style="color:#17458F; font-size:18px; margin:0;">ROTARY CLUB CREEL</h6>
-<small style="font-size:11px; font-weight:700;">RECIBO DE PAGO CUOTA SOCIAL</small><br>
-<small style="font-size:9px;" id="reciboNumero">No. RECIBO: - | FECHA: -</small>
+<div class="modal-body" id="reciboCaptura" style="padding:8px !important; overflow-y:auto; max-height: calc(92vh - 110px);">
+<div class="recibo-card" id="reciboCardContent" style="border:1.5px solid #17458F; background:white; padding:10px; border-radius:8px; font-size:10px;">
+<div class="text-center border-bottom pb-1 mb-2" style="border-bottom:2px solid #17458F !important;">
+<h6 class="fw-bold" style="color:#17458F; font-size:14px; margin:0; line-height:1.1;">ROTARY CLUB CREEL</h6>
+<small style="font-size:9px; font-weight:700;">RECIBO PAGO CUOTA SOCIAL</small><br>
+<small style="font-size:7px;" id="reciboNumero">No. RECIBO: - | FECHA: -</small>
 </div>
-<table class="table table-sm table-borderless mb-2" style="font-size:11px;">
-<tr><td class="fw-bold" style="width:30%;">SOCIO:</td><td id="reciboSocio" class="fw-bold">-</td></tr>
-<tr><td class="fw-bold">No. SOCIO:</td><td id="reciboNoSocio">-</td></tr>
-<tr><td class="fw-bold">MÉTODO:</td><td id="reciboMetodo">-</td></tr>
-<tr><td class="fw-bold">REFERENCIA:</td><td id="reciboReferencia">-</td></tr>
+<table class="table table-sm table-borderless mb-1" style="font-size:9px; margin-bottom:4px !important;">
+<tr style="line-height:1.2;"><td class="fw-bold" style="width:28%; padding:2px 4px !important;">SOCIO:</td><td id="reciboSocio" class="fw-bold" style="padding:2px 4px !important;">-</td></tr>
+<tr style="line-height:1.2;"><td class="fw-bold" style="padding:2px 4px !important;">No. SOCIO:</td><td id="reciboNoSocio" style="padding:2px 4px !important;">-</td></tr>
+<tr style="line-height:1.2;"><td class="fw-bold" style="padding:2px 4px !important;">MÉTODO:</td><td id="reciboMetodo" style="padding:2px 4px !important;">-</td></tr>
+<tr style="line-height:1.2;"><td class="fw-bold" style="padding:2px 4px !important;">REF:</td><td id="reciboReferencia" style="padding:2px 4px !important; font-size:8px;">-</td></tr>
 </table>
 
-<div style="background:#e3f2fd; border:1.5px solid #17458F; border-radius:6px; padding:8px; margin-bottom:10px;">
-<div class="fw-bold" style="font-size:11px; color:#17458F;">MESES PAGADOS EN ESTE COMPROBANTE:</div>
-<div id="reciboMesesLista" style="font-size:11px; margin-top:4px;"></div>
+<div style="background:#e3f2fd; border:1px solid #17458F; border-radius:5px; padding:5px; margin-bottom:6px;">
+<div class="fw-bold" style="font-size:8px; color:#17458F; margin-bottom:2px;">MESES PAGADOS:</div>
+<div id="reciboMesesLista" style="font-size:9px; margin-top:2px; line-height:1.2;"></div>
 </div>
 
-<table class="table table-sm table-bordered mb-1" style="font-size:11px; border:2px solid #000;">
-<thead class="table-light"><tr><th style="font-size:9px;">#</th><th style="font-size:9px;">MES</th><th style="font-size:9px;">MONTO</th></tr></thead>
-<tbody id="reciboDetalleMeses"></tbody>
-<tfoot><tr style="background:#d4edda;"><td colspan="2" class="text-end fw-bold">TOTAL:</td><td id="reciboMonto" class="fw-bold text-success" style="font-size:14px;">-</td></tr></tfoot>
+<table class="table table-sm table-bordered mb-1" style="font-size:9px; border:1px solid #000; margin-bottom:4px !important;">
+<thead class="table-light"><tr><th style="font-size:7px; padding:2px 4px !important;">#</th><th style="font-size:7px; padding:2px 4px !important;">MES</th><th style="font-size:7px; padding:2px 4px !important;">MONTO</th></tr></thead>
+<tbody id="reciboDetalleMeses" style="font-size:8px;"></tbody>
+<tfoot><tr style="background:#d4edda;"><td colspan="2" class="text-end fw-bold" style="font-size:8px; padding:2px 4px !important;">TOTAL:</td><td id="reciboMonto" class="fw-bold text-success" style="font-size:11px; padding:2px 4px !important;">-</td></tr></tfoot>
 </table>
 
-<div class="text-center mt-3">
-<p style="font-size:10px; margin:0; font-weight:700;" id="reciboConcepto">CONCEPTO: PAGO CUOTA SOCIAL</p>
-<small style="font-size:8px; text-transform:none; color:#666;" id="reciboConceptoDetalle">Incluye los meses listados arriba</small>
-<hr style="margin:10px 0;">
-<div class="row">
-<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA TESORERO</small><br><small style="font-size:7px;">Tesorería 2026-2027</small></div>
-<div class="col-6 text-center"><br><br><hr style="width:80%; margin:0 auto;"><small style="font-size:8px;">FIRMA SOCIO</small><br><small style="font-size:7px;" id="reciboSocioFirma">-</small></div>
+<div class="text-center mt-2">
+<p style="font-size:8px; margin:0; font-weight:700; line-height:1.2;" id="reciboConcepto">CONCEPTO: PAGO CUOTA SOCIAL</p>
+<small style="font-size:6px; text-transform:none; color:#666; line-height:1.1; display:block; margin-top:2px;" id="reciboConceptoDetalle">Incluye los meses listados arriba</small>
+<hr style="margin:6px 0;">
+<div class="row" style="margin-top:4px;">
+<div class="col-6 text-center"><div style="border-top:1px solid #000; width:75%; margin:12px auto 2px;"></div><small style="font-size:6px;">FIRMA TESORERO</small><br><small style="font-size:5px;">Tesorería 2026-2027</small></div>
+<div class="col-6 text-center"><div style="border-top:1px solid #000; width:75%; margin:12px auto 2px;"></div><small style="font-size:6px;">FIRMA SOCIO</small><br><small style="font-size:5px;" id="reciboSocioFirma">-</small></div>
 </div>
 </div>
 </div>
 </div>
-<div class="modal-footer py-2">
-<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-<button type="button" class="btn btn-primary btn-sm fw-bold" onclick="imprimirRecibo()"><i class="bi bi-printer"></i> 🖨️ IMPRIMIR COMPROBANTE UNICO</button>
-<button type="button" class="btn btn-success btn-sm fw-bold" onclick="capturaWhatsapp()"><i class="bi bi-whatsapp"></i> 📸 CAPTURA WHATSAPP</button>
+<div class="modal-footer py-1" style="padding:6px 8px !important; gap:4px; flex-wrap:nowrap;">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" style="font-size:8px; padding:4px 8px;">Cerrar</button>
+<button type="button" class="btn btn-primary btn-sm fw-bold" onclick="imprimirRecibo()" style="font-size:8px; padding:4px 8px;"><i class="bi bi-printer"></i> 🖨️ IMPRIMIR</button>
+<button type="button" class="btn btn-success btn-sm fw-bold" onclick="capturaWhatsapp()" style="font-size:8px; padding:4px 8px;"><i class="bi bi-whatsapp"></i> 📸 WHATSAPP</button>
 </div>
 </div>
 </div>
 </div>
+
+<style>
+/* RESPONSIVE RECIBO - SE AJUSTA A RESOLUCION */
+@media (max-width: 576px) {
+  #modalRecibo .modal-dialog { max-width: 96vw !important; width: 96vw !important; margin: 1vh auto !important; }
+  #reciboCardContent { padding: 6px !important; }
+  #modalRecibo .modal-body { max-height: 88vh !important; }
+}
+@media (min-width: 577px) and (max-width: 768px) {
+  #modalRecibo .modal-dialog { max-width: 450px !important; }
+}
+@media (min-width: 769px) {
+  #modalRecibo .modal-dialog { max-width: 420px !important; }
+}
+@media (max-height: 600px) {
+  #modalRecibo .modal-body { max-height: 80vh !important; }
+  #reciboCardContent { font-size: 9px !important; }
+}
+#modalRecibo .table td, #modalRecibo .table th { word-break: break-word; }
+#reciboMesesLista strong { word-break: break-word; }
+</style>
 
 <!-- MODAL SOCIO INFO -->
 <div class="modal fade" id="modalSocio" tabindex="-1">
