@@ -79,8 +79,9 @@ class PagoCuota(db.Model):
     mes_anio = db.Column(db.String(20), nullable=False)
     monto = db.Column(db.Float, default=500.0)
     metodo_pago = db.Column(db.String(50))
-    fecha_pago = db.Column(db.Date, default=datetime.utcnow)
+    fecha_pago = db.Column(db.DateTime, default=datetime.utcnow)
     referencia = db.Column(db.String(100))
+    grupo_recibo = db.Column(db.String(50), nullable=True)  # ID unico para pagos multi-mes en un solo comprobante
 
 class ConfiguracionTesoreria(db.Model):
     __tablename__ = 'configuracion_tesoreria'
@@ -192,6 +193,8 @@ with app.app_context():
         db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS foto_comprobante TEXT;"))
         db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS comprobante VARCHAR(300);"))
         db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS notas TEXT;"))
+        db.session.execute(db.text("ALTER TABLE pagos_cuotas ADD COLUMN IF NOT EXISTS grupo_recibo VARCHAR(50);"))
+        db.session.execute(db.text("ALTER TABLE pagos_cuotas ADD COLUMN IF NOT EXISTS fecha_pago TIMESTAMP;"))
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -501,23 +504,36 @@ def registrar_pago_cuota():
     if not socio_id or not meses_pagados:
         flash('Debe seleccionar al menos un mes y un socio.', 'warning')
         return redirect(url_for('cuotas_sociales'))
+    # Genera un ID unico para este comprobante (mismo para todos los meses de este pago)
+    import uuid
+    grupo_id = f"RC-{socio_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}-{str(uuid.uuid4())[:6].upper()}"
     pagos_creados_ids = []
+    pagos_creados_meses = []
     for m in meses_pagados:
         mes_limpio = m.strip().upper()
         existente = PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=mes_limpio).first()
         if not existente:
-            pago = PagoCuota(socio_id=socio_id, mes_anio=mes_limpio, monto=500.0, metodo_pago=metodo, referencia=referencia)
+            pago = PagoCuota(
+                socio_id=socio_id, 
+                mes_anio=mes_limpio, 
+                monto=500.0, 
+                metodo_pago=metodo, 
+                referencia=referencia,
+                grupo_recibo=grupo_id,
+                fecha_pago=datetime.now()
+            )
             db.session.add(pago)
             db.session.flush()
             pagos_creados_ids.append(str(pago.id))
+            pagos_creados_meses.append(mes_limpio)
     db.session.commit()
     if pagos_creados_ids:
-        # COMPROBANTE UNICO: si son varios meses, genera un solo comprobante con todos
-        meses_str = ', '.join(meses_pagados)
+        # COMPROBANTE UNICO: si son varios meses, genera un solo comprobante con todos - mismo grupo_id
+        meses_str = ', '.join(pagos_creados_meses)
         if len(pagos_creados_ids) == 1:
-            flash(f'Pago registrado: {meses_str} - ${len(pagos_creados_ids)*500:.2f} - COMPROBANTE UNICO GENERADO', 'success')
+            flash(f'Pago registrado: {meses_str} - ${len(pagos_creados_ids)*500:.2f} - COMPROBANTE {grupo_id} GENERADO', 'success')
         else:
-            flash(f'{len(pagos_creados_ids)} meses pagados en UN SOLO COMPROBANTE: {meses_str} - Total ${len(pagos_creados_ids)*500:.2f}', 'success')
+            flash(f'{len(pagos_creados_ids)} meses pagados en UN SOLO COMPROBANTE {grupo_id}: {meses_str} - Total ${len(pagos_creados_ids)*500:.2f} - El mismo recibo aparece en los {len(pagos_creados_ids)} meses', 'success')
         return redirect(url_for('cuotas_sociales', recibo_ids=','.join(pagos_creados_ids)))
     else:
         flash('Ya estaban pagados (meses tachados en modal).', 'info')
