@@ -445,7 +445,8 @@ def cuotas_sociales():
     socios = Socio.query.filter_by(es_activo=True).order_by(Socio.nombre_completo.asc()).all()
     config_teso = ConfiguracionTesoreria.query.first()
     saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
-    total_recaudado = PagoCuota.query.filter(PagoCuota.mes_anio.in_(MESES_CONTROL)).with_entities(func.sum(PagoCuota.monto)).scalar() or 0.0
+    # CUADRE DE CAJA: total real en caja por fecha de pago, no por mes de cuota
+    total_recaudado = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0.0
     saldo_total_general = saldo_inicial + total_recaudado
     recibo_ids = request.args.get('recibo_ids')
     pagos_recibo = []
@@ -577,9 +578,19 @@ def tesoreria_gastos():
     total_proyecto = sum([g.monto for g in gastos_mes if g.centro_costo == 'PROYECTO'])
     proyectos = Proyecto.query.filter_by(activo=True).all()
     try:
-        total_cuotas_mes = db.session.query(func.sum(PagoCuota.monto)).filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).scalar() or 0
+        # CUADRE DE CAJA: cuotas por fecha de pago real
+        mes_abrev = mes_filtro.split()[0]
+        anio_num = int(mes_filtro.split()[1])
+        mes_num = MESES_NOMBRES.index(mes_abrev) + 1
+        total_cuotas_mes = db.session.query(func.sum(PagoCuota.monto)).filter(
+            func.extract('month', PagoCuota.fecha_pago) == mes_num,
+            func.extract('year', PagoCuota.fecha_pago) == anio_num
+        ).scalar() or 0
     except:
-        total_cuotas_mes = 0
+        try:
+            total_cuotas_mes = db.session.query(func.sum(PagoCuota.monto)).filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).scalar() or 0
+        except:
+            total_cuotas_mes = 0
     meses_lista = []
     now = datetime.now()
     for i in range(18):
@@ -759,8 +770,18 @@ def estado_cuenta_mensual():
     config = ConfiguracionTesoreria.query.first()
     saldo_inicial = config.saldo_inicial if config else 0.0
 
-    # CUOTAS MES
-    pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
+    # CUOTAS MES - POR FECHA DE PAGO (cuadre de caja) - el dinero que realmente entró en caja ese mes
+    try:
+        mes_abrev = mes_filtro.split()[0]
+        anio_num = int(mes_filtro.split()[1])
+        mes_num = MESES_NOMBRES.index(mes_abrev) + 1
+        pagos_cuotas = PagoCuota.query.filter(
+            func.extract('month', PagoCuota.fecha_pago) == mes_num,
+            func.extract('year', PagoCuota.fecha_pago) == anio_num
+        ).all()
+    except:
+        # Fallback si falla parseo, usa mes_anio
+        pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
     total_cuotas_mes = sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0
 
     # GASTOS MES
@@ -887,7 +908,19 @@ def recaudacion_mensual():
         resultado = []
         total_recibido = 0
         for mes in lista_meses:
-            pagos_mes = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes.strip().upper()).all()
+            # CUADRE DE CAJA: contar por fecha_pago real, no por mes_anio (cuota que se pagó)
+            # Si alguien paga en NOV 2026 la cuota de JUN 2025, el dinero entra en NOV 2026
+            try:
+                mes_abrev = mes.split()[0]
+                anio = int(mes.split()[1])
+                mes_num = MESES_NOMBRES.index(mes_abrev) + 1
+                pagos_mes = PagoCuota.query.filter(
+                    func.extract('month', PagoCuota.fecha_pago) == mes_num,
+                    func.extract('year', PagoCuota.fecha_pago) == anio
+                ).all()
+            except:
+                # Fallback por mes_anio si no hay fecha_pago
+                pagos_mes = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes.strip().upper()).all()
             recibido = sum([p.monto for p in pagos_mes]) if pagos_mes else 0
             esperado = esperado_por_mes
             diferencia = esperado - recibido
