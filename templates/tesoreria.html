@@ -401,7 +401,8 @@ const pagosData = {
   metodo: "{{ pago.metodo_pago or 'EFECTIVO' }}",
   metodo_corto: "{% if pago.metodo_pago and 'TRANSF' in pago.metodo_pago %}T{% elif pago.metodo_pago and 'EFECT' in pago.metodo_pago %}E{% else %}{{ pago.metodo_pago[:1] if pago.metodo_pago else 'E' }}{% endif %}",
   referencia: "{{ (pago.referencia or '-')|e }}",
-  fecha: "{{ pago.fecha_pago.strftime('%d/%m/%Y %H:%M') if pago.fecha_pago else '' }}"
+  fecha: "{{ pago.fecha_pago.strftime('%d/%m/%Y %H:%M') if pago.fecha_pago else '' }}",
+  grupo_recibo: "{{ pago.grupo_recibo or '' }}"
 },
 {% endfor %}
 {% endfor %}
@@ -415,7 +416,7 @@ const sociosData = {
   numero: "{{ socio.numero_socio or socio.id }}",
   pagos: [
   {% for pago in socio.pagos %}
-  { mes: "{{ pago.mes_anio }}", monto: {{ pago.monto }}, metodo: "{{ pago.metodo_pago or '' }}", id: {{ pago.id }} },
+  { mes: "{{ pago.mes_anio }}", monto: {{ pago.monto }}, metodo: "{{ pago.metodo_pago or '' }}", id: {{ pago.id }}, grupo: "{{ pago.grupo_recibo or '' }}" },
   {% endfor %}
   ],
   total_pagado: {{ socio.pagos|sum(attribute='monto') if socio.pagos else 0 }},
@@ -435,22 +436,58 @@ function abrirModalRecibo(pagoId) {
   }
   const pago = pagosData[pagoId];
   if (!pago) return;
+  
+  // Si el pago tiene grupo_recibo, busca TODOS los pagos con el mismo grupo (mismo comprobante)
+  // Asi si pagaste $1000 por 2 meses, al dar clic en cualquiera de los 2 meses muestra el recibo completo con los 2
+  if (pago.grupo_recibo && pago.grupo_recibo !== '') {
+    const pagosMismoGrupo = Object.values(pagosData).filter(p => p.grupo_recibo === pago.grupo_recibo);
+    if (pagosMismoGrupo.length > 1) {
+      const ids = pagosMismoGrupo.map(p => p.id);
+      abrirModalReciboMultiple(ids);
+      return;
+    }
+  }
+  
   abrirModalReciboMultiple([pagoId]);
 }
 
 function abrirModalReciboMultiple(pagosIds) {
   if (!pagosIds || pagosIds.length === 0) return;
-  const pagos = pagosIds.map(id => pagosData[id]).filter(Boolean);
+  // Si pagosIds son objetos, extrae IDs
+  let ids = pagosIds;
+  if (typeof pagosIds[0] === 'object') {
+    ids = pagosIds.map(p => p.id || p);
+  }
+  const pagos = ids.map(id => pagosData[id]).filter(Boolean);
   if (pagos.length === 0) return;
   
-  const primerPago = pagos[0];
-  const mesesPagados = pagos.map(p => p.mes_anio);
-  const totalMonto = pagos.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+  // Si alguno tiene grupo, expande a todo el grupo
+  let todosPagos = [...pagos];
+  const grupos = [...new Set(pagos.map(p => p.grupo_recibo).filter(g => g && g !== ''))];
+  if (grupos.length > 0) {
+    // Agrega todos los pagos que compartan cualquiera de esos grupos
+    Object.values(pagosData).forEach(p => {
+      if (grupos.includes(p.grupo_recibo) && !todosPagos.find(tp => tp.id === p.id)) {
+        todosPagos.push(p);
+      }
+    });
+  }
+  // Ordena por mes_anio o por ID
+  todosPagos.sort((a,b) => a.id - b.id);
   
-  // Generar numero de recibo unico: si son multiples, usa el primer ID + cantidad
-  const numeroRecibo = pagos.length === 1 ? primerPago.id : `${primerPago.id} (+${pagos.length-1})`;
+  const primerPago = todosPagos[0];
+  const mesesPagados = todosPagos.map(p => p.mes_anio);
+  const totalMonto = todosPagos.reduce((sum, p) => sum + parseFloat(p.monto), 0);
   
-  document.getElementById('reciboNumero').textContent = `No. RECIBO: ${numeroRecibo} | FECHA: ${primerPago.fecha} | ${pagos.length} MES(ES)`;
+  // Generar numero de recibo unico: si son multiples, usa grupo_recibo o primer ID
+  let numeroRecibo = primerPago.id;
+  if (primerPago.grupo_recibo && primerPago.grupo_recibo !== '') {
+    numeroRecibo = primerPago.grupo_recibo;
+  } else if (todosPagos.length > 1) {
+    numeroRecibo = `${primerPago.id} (+${todosPagos.length-1})`;
+  }
+  
+  document.getElementById('reciboNumero').textContent = `No. RECIBO: ${numeroRecibo} | FECHA: ${primerPago.fecha} | ${todosPagos.length} MES(ES)`;
   document.getElementById('reciboSocio').textContent = primerPago.socio_nombre;
   document.getElementById('reciboNoSocio').textContent = primerPago.socio_numero;
   document.getElementById('reciboMetodo').textContent = `${primerPago.metodo_corto} - ${primerPago.metodo}`;
@@ -460,11 +497,11 @@ function abrirModalReciboMultiple(pagosIds) {
   // Lista de meses en texto
   const mesesTexto = mesesPagados.join(', ');
   const mesesListaEl = document.getElementById('reciboMesesLista');
-  if (mesesListaEl) mesesListaEl.innerHTML = `<strong style="color:#17458F;">${mesesTexto}</strong> <span style="font-size:9px; color:#666;">(${pagos.length} mes x $500 = $${totalMonto.toFixed(2)})</span>`;
+  if (mesesListaEl) mesesListaEl.innerHTML = `<strong style="color:#17458F;">${mesesTexto}</strong> <span style="font-size:9px; color:#666;">(${todosPagos.length} mes x $500 = $${totalMonto.toFixed(2)})</span>`;
   
   // Tabla detalle
   let detalleHtml = '';
-  pagos.forEach((p, idx) => {
+  todosPagos.forEach((p, idx) => {
     detalleHtml += `<tr><td>${idx+1}</td><td class="fw-bold">${p.mes_anio}</td><td>$${p.monto}</td></tr>`;
   });
   const detalleBody = document.getElementById('reciboDetalleMeses');
@@ -472,12 +509,12 @@ function abrirModalReciboMultiple(pagosIds) {
   
   document.getElementById('reciboMonto').textContent = `$${totalMonto.toFixed(2)} MXN`;
   
-  if (pagos.length === 1) {
+  if (todosPagos.length === 1) {
     document.getElementById('reciboConcepto').textContent = `CONCEPTO: PAGO CUOTA SOCIAL CORRESPONDIENTE A ${mesesPagados[0]}`;
     document.getElementById('reciboConceptoDetalle').textContent = `Pago individual - ${mesesPagados[0]}`;
   } else {
-    document.getElementById('reciboConcepto').textContent = `CONCEPTO: PAGO CUOTAS SOCIALES CORRESPONDIENTES A ${mesesPagados.length} MESES`;
-    document.getElementById('reciboConceptoDetalle').textContent = `${mesesTexto} - COMPROBANTE UNICO POR ${pagos.length} MESES - Total $${totalMonto.toFixed(2)}`;
+    document.getElementById('reciboConcepto').textContent = `CONCEPTO: PAGO CUOTAS SOCIALES CORRESPONDIENTES A ${todosPagos.length} MESES - COMPROBANTE UNICO`;
+    document.getElementById('reciboConceptoDetalle').textContent = `${mesesTexto} - COMPROBANTE UNICO ${numeroRecibo} POR ${todosPagos.length} MESES - Total $${totalMonto.toFixed(2)} - Este mismo recibo aparece en los ${todosPagos.length} meses pagados`;
   }
   
   var modal = new bootstrap.Modal(document.getElementById('modalRecibo'));
