@@ -24,6 +24,14 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 .metodo-T { font-size:8px; font-weight:900; color:#0d6efd; }
 .metodo-E { font-size:8px; font-weight:900; color:#28a745; }
 .modal-header-rotary { background:#17458F; color:white; }
+
+/* FIX CUOTAS - MESES PAGADOS TACHADOS Y DESHABILITADOS */
+.mes-item.pagado-mes { background:#d4edda; border-radius:4px; opacity:0.6; }
+.mes-item.pagado-mes label { text-decoration: line-through; text-decoration-thickness: 2px; color:#155724; font-weight:900; }
+.mes-item.pagado-mes::after { content:"✅ PAGADO"; font-size:6px; background:#155724; color:white; padding:1px 3px; border-radius:3px; margin-left:2px; }
+.mes-item.adeudo-mes { background:#fff3cd; border-radius:4px; border:1px dashed #ffc107; }
+.mes-checkbox:disabled { cursor:not-allowed; }
+
 </style>
 </head>
 <body>
@@ -314,16 +322,24 @@ CLUB ROTARIO CREEL - INFORMACIÓN DE DEPÓSITO - POR FAVOR REALIZA TU PAGO A LA 
 </div>
 </div>
 <div class="mt-2">
-<label class="fw-bold" style="font-size:10px;">MESES A PAGAR:</label>
-<div class="row g-1" style="max-height:180px; overflow-y:auto; border:1.5px solid #000; padding:8px; border-radius:6px; background:#fff;">
+<label class="fw-bold" style="font-size:10px;">MESES A PAGAR: <span id="contadorSeleccionados" class="badge bg-primary">0 seleccionados</span> <span id="infoPagados" class="badge bg-secondary ms-2"></span></label>
+<div class="alert alert-info py-1 mt-1" style="font-size:8px; text-transform:none; border:1px dashed #17458F;">
+<span id="textoAyudaMeses">Selecciona un socio para ver sus meses adeudados. Los meses pagados aparecerán tachados y deshabilitados.</span>
+</div>
+<div class="row g-1" id="contenedorMeses" style="max-height:200px; overflow-y:auto; border:1.5px solid #000; padding:8px; border-radius:6px; background:#fff;">
 {% for mes in meses %}
-<div class="col-3 col-md-2">
+<div class="col-3 col-md-2 mes-item" data-mes="{{ mes }}">
 <div class="form-check" style="font-size:8px;">
-<input class="form-check-input" type="checkbox" name="meses" value="{{ mes }}" id="mes_{{ loop.index }}" style="border:1px solid #000;">
-<label class="form-check-label fw-bold" for="mes_{{ loop.index }}" style="font-size:8px;">{{ mes }}</label>
+<input class="form-check-input mes-checkbox" type="checkbox" name="meses" value="{{ mes }}" id="mes_{{ loop.index }}" style="border:1.5px solid #000;">
+<label class="form-check-label fw-bold" for="mes_{{ loop.index }}" style="font-size:8px; cursor:pointer;">{{ mes }}</label>
 </div>
 </div>
 {% endfor %}
+</div>
+<div class="mt-2 d-flex gap-2">
+<button type="button" class="btn btn-outline-primary btn-sm" style="font-size:9px;" onclick="seleccionarSoloAdeudos()">✅ SOLO ADEUDOS</button>
+<button type="button" class="btn btn-outline-secondary btn-sm" style="font-size:9px;" onclick="limpiarSeleccion()">❌ LIMPIAR</button>
+<button type="button" class="btn btn-outline-success btn-sm" style="font-size:9px;" onclick="seleccionarTodosNoPagados()">📋 TODOS NO PAGADOS</button>
 </div>
 </div>
 </div>
@@ -564,6 +580,106 @@ function imprimirAdeudos() {
   ventana.focus();
   setTimeout(() => { ventana.print(); ventana.close(); }, 500);
 }
+
+
+// ===== FIX: FILTRAR MESES PAGADOS EN MODAL REGISTRO PAGO =====
+function actualizarModalPagoCuotas() {
+  const select = document.getElementById('selectSocioPago');
+  const socioId = select ? select.value : null;
+  const infoPagados = document.getElementById('infoPagados');
+  const textoAyuda = document.getElementById('textoAyudaMeses');
+  const contenedor = document.getElementById('contenedorMeses');
+  if (!contenedor) return;
+  
+  // Reset todos
+  contenedor.querySelectorAll('.mes-item').forEach(item => {
+    item.classList.remove('pagado-mes','adeudo-mes');
+    item.style.display = 'block';
+    const cb = item.querySelector('input[type=checkbox]');
+    if (cb) { cb.disabled = false; cb.checked = false; }
+  });
+  
+  if (!socioId) {
+    if (infoPagados) infoPagados.textContent = '';
+    if (textoAyuda) textoAyuda.textContent = 'Selecciona un socio para ver sus meses adeudados. Los meses pagados aparecerán tachados y deshabilitados.';
+    actualizarContadorSeleccionados();
+    return;
+  }
+  
+  const socio = sociosData[socioId];
+  if (!socio) return;
+  const mesesPagados = socio.pagos.map(p => p.mes);
+  
+  let numPagados = 0;
+  let numAdeudos = 0;
+  contenedor.querySelectorAll('.mes-item').forEach(item => {
+    const mes = item.getAttribute('data-mes');
+    const cb = item.querySelector('input[type=checkbox]');
+    if (mesesPagados.includes(mes)) {
+      item.classList.add('pagado-mes');
+      if (cb) { cb.disabled = true; cb.checked = false; }
+      numPagados++;
+    } else {
+      item.classList.add('adeudo-mes');
+      numAdeudos++;
+    }
+  });
+  
+  if (infoPagados) infoPagados.textContent = `${numPagados} PAGADOS / ${numAdeudos} ADEUDOS`;
+  if (textoAyuda) textoAyuda.innerHTML = `<strong>${socio.nombre}</strong> - Tiene <span style="color:green; font-weight:900;">${numPagados} meses pagados (tachados, deshabilitados)</span> y <span style="color:red; font-weight:900;">${numAdeudos} adeudos disponibles</span>. Los pagados no se pueden seleccionar.`;
+  
+  actualizarContadorSeleccionados();
+}
+
+function actualizarContadorSeleccionados() {
+  const cbs = document.querySelectorAll('#contenedorMeses input[type=checkbox]:checked');
+  const badge = document.getElementById('contadorSeleccionados');
+  if (badge) badge.textContent = `${cbs.length} seleccionados - $${(cbs.length*500).toFixed(2)}`;
+}
+
+function seleccionarSoloAdeudos() {
+  const select = document.getElementById('selectSocioPago');
+  if (!select || !select.value) { alert('Primero selecciona un socio'); return; }
+  document.querySelectorAll('#contenedorMeses .mes-item.adeudo-mes input[type=checkbox]').forEach(cb => cb.checked = true);
+  actualizarContadorSeleccionados();
+}
+
+function seleccionarTodosNoPagados() {
+  seleccionarSoloAdeudos();
+}
+
+function limpiarSeleccion() {
+  document.querySelectorAll('#contenedorMeses input[type=checkbox]').forEach(cb => cb.checked = false);
+  actualizarContadorSeleccionados();
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  const selectSocio = document.getElementById('selectSocioPago');
+  if (selectSocio) {
+    selectSocio.addEventListener('change', actualizarModalPagoCuotas);
+  }
+  // Contador en tiempo real
+  document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('mes-checkbox')) {
+      actualizarContadorSeleccionados();
+    }
+  });
+  // Cuando se abre modal registrar pago
+  const modalRegistrar = document.getElementById('modalRegistrarPago');
+  if (modalRegistrar) {
+    modalRegistrar.addEventListener('shown.bs.modal', function() {
+      actualizarModalPagoCuotas();
+    });
+    modalRegistrar.addEventListener('hidden.bs.modal', function() {
+      limpiarSeleccion();
+      if (selectSocio) selectSocio.value = '';
+      const info = document.getElementById('infoPagados');
+      if (info) info.textContent = '';
+    });
+  }
+});
+
 
 function capturaAdeudosWhatsapp() {
   const elemento = document.getElementById('modalAdeudos').querySelector('.modal-content');
