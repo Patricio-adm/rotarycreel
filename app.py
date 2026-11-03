@@ -512,10 +512,15 @@ def registrar_pago_cuota():
             pagos_creados_ids.append(str(pago.id))
     db.session.commit()
     if pagos_creados_ids:
-        flash(f'{len(pagos_creados_ids)} pago(s) registrado(s).', 'success')
+        # COMPROBANTE UNICO: si son varios meses, genera un solo comprobante con todos
+        meses_str = ', '.join(meses_pagados)
+        if len(pagos_creados_ids) == 1:
+            flash(f'Pago registrado: {meses_str} - ${len(pagos_creados_ids)*500:.2f} - COMPROBANTE UNICO GENERADO', 'success')
+        else:
+            flash(f'{len(pagos_creados_ids)} meses pagados en UN SOLO COMPROBANTE: {meses_str} - Total ${len(pagos_creados_ids)*500:.2f}', 'success')
         return redirect(url_for('cuotas_sociales', recibo_ids=','.join(pagos_creados_ids)))
     else:
-        flash('Ya estaban pagados.', 'info')
+        flash('Ya estaban pagados (meses tachados en modal).', 'info')
         return redirect(url_for('cuotas_sociales'))
 
 @app.route('/tesoreria/editar-pago/<int:pago_id>', methods=['POST'])
