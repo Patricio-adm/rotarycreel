@@ -77,7 +77,6 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 <div class="icono">📚</div>
 <h6 class="fw-bold mb-1" style="font-size:13px; color:#000;">GESTIÓN ROTARIA</h6>
 <small style="font-size:9px; color:#666;">ERP - ACTAS Y ACUERDOS</small>
-<small style="font-size:7px; color:#6f42c1; font-weight:700; margin-top:4px; display:block;">ACTAS PDF • ACUERDOS • PRESIDENCIA • SECRETARIA • FUNDACION • SERVICIOS</small>
 <span class="badge bg-primary mt-2" style="font-size:7px;">NUEVO MODULO</span>
 </div>
 </a>
@@ -107,26 +106,6 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 </div>
 
 </div>
-
-{% if session.get('rol') != 'RCREEL' %}
-<div class="row mt-4">
-<div class="col-12">
-<div class="card" style="border:2px solid #17458F; border-radius:10px;">
-<div class="card-header" style="background:#17458F; color:white; font-size:11px; font-weight:700;">📊 RESUMEN RAPIDO - GESTION ROTARIA ERP</div>
-<div class="card-body" style="font-size:10px;">
-<div class="row text-center">
-<div class="col-2"><strong style="font-size:14px; color:#6f42c1;">ACTAS</strong><br><small>PDF Sesiones</small></div>
-<div class="col-2"><strong style="font-size:14px; color:#dc3545;">ACUERDOS</strong><br><small>Reuniones</small></div>
-<div class="col-2"><strong style="font-size:14px; color:#17458F;">PRESIDENCIA</strong><br><small>Gestión</small></div>
-<div class="col-2"><strong style="font-size:14px; color:#0d6efd;">SECRETARIA</strong><br><small>Documentos</small></div>
-<div class="col-2"><strong style="font-size:14px; color:#28a745;">FUNDACION</strong><br><small>Rotaria</small></div>
-<div class="col-2"><strong style="font-size:14px; color:#F7A81B;">SERVICIOS</strong><br><small>Proyectos</small></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-{% endif %}
 
 </div>
 
