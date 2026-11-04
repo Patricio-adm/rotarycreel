@@ -432,8 +432,12 @@ def cuotas_sociales():
     socios = Socio.query.filter_by(es_activo=True).order_by(Socio.nombre_completo.asc()).all()
     config_teso = ConfiguracionTesoreria.query.first()
     saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
-    total_recaudado = PagoCuota.query.filter(PagoCuota.mes_anio.in_(MESES_CONTROL)).with_entities(func.sum(PagoCuota.monto)).scalar() or 0.0
-    saldo_total_general = saldo_inicial + total_recaudado
+    total_recaudado = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0.0
+    total_ingresos_proyectos = db.session.query(func.sum(EventoProyecto.monto_recaudado)).scalar() or 0.0
+    total_ingresos_extra = db.session.query(func.sum(IngresoExtraordinario.monto)).scalar() or 0.0
+    total_gastos_admin = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='ADMINISTRATIVO').scalar() or 0.0
+    total_gastos_proy = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='PROYECTO').scalar() or 0.0
+    saldo_total_general = saldo_inicial + total_recaudado + total_ingresos_proyectos + total_ingresos_extra - total_gastos_admin - total_gastos_proy
     recibo_ids = request.args.get('recibo_ids')
     pagos_recibo = []
     if recibo_ids:
