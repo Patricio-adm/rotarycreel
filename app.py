@@ -187,8 +187,22 @@ with app.app_context():
     try:
         db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(50) DEFAULT 'SOCIO';"))
         db.session.execute(db.text("ALTER TABLE socios DROP CONSTRAINT IF EXISTS socios_numero_socio_key;"))
+        # MIGRACION TABLA INGRESOS_EXTRAORDINARIOS - agregar columnas si faltan (fix UndefinedColumn origen)
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS fecha DATE;"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS mes_anio VARCHAR(20);"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS concepto VARCHAR(300);"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS monto FLOAT;"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS tipo VARCHAR(50) DEFAULT 'DONACION';"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS origen VARCHAR(200);"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS referencia VARCHAR(300);"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS comprobante_nombre VARCHAR(300);"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS comprobante_base64 TEXT;"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS registrado_por VARCHAR(100);"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT NOW();"))
+        db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS notas TEXT;"))
         db.session.commit()
     except Exception as e:
+        print(f"Migracion ingresos_extraordinarios: {e}")
         db.session.rollback()
     pass_hash = generate_password_hash('rotary2026')
     credenciales = [
