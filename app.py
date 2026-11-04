@@ -324,7 +324,7 @@ def menu_principal():
         if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual_num:
             festividades.append({'dia': socio.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}"})
         if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual_num:
-            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CÓNYUGE', 'persona': socio.nombre_esposa or 'CÓNYUGE', 'detalle': f"CÓNYUGE DE: {socio.nombre_completo}"})
+            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CONYUGE', 'persona': socio.nombre_esposa or 'CONYUGE', 'detalle': f"CONYUGE DE: {socio.nombre_completo}"})
         if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual_num:
             festividades.append({'dia': socio.aniversario_matrimonio.day, 'tipo': 'ANIVERSARIO DE BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CÓNYUGE'}", 'detalle': "ANIVERSARIO MATRIMONIAL"})
         if socio.hijos:
@@ -347,7 +347,7 @@ def gestion_socios():
         if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual_num:
             festividades.append({'dia': socio.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO: {socio.nombre_completo}"})
         if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual_num:
-            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CONYUGE', 'persona': socio.nombre_esposa or 'CONYUGE', 'detalle': f"CONYUGE DE: {socio.nombre_completo} - F.NAC: {socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y')}"})
+            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CONYUGE', 'persona': socio.nombre_esposa or 'CONYUGE', 'detalle': f"CONYUGE DE: {socio.nombre_completo}"})
         if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual_num:
             festividades.append({'dia': socio.aniversario_matrimonio.day, 'tipo': 'ANIVERSARIO BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CONYUGE'}", 'detalle': "ANIVERSARIO MATRIMONIAL"})
         if socio.hijos:
