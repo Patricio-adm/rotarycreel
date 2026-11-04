@@ -61,11 +61,14 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 {% endif %}
 {% endwith %}
 
-<!-- SALDOS -->
-<div class="row mb-2 no-print">
-<div class="col-md-4"><div class="card border-success"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:8px;">SALDO INICIAL</small><strong class="text-success" style="font-size:14px;">${{ "%.2f"|format(saldo_inicial) }}</strong><button class="btn btn-outline-success btn-sm ms-2" style="font-size:9px;" data-bs-toggle="modal" data-bs-target="#modalSaldo">✏️</button></div></div></div>
-<div class="col-md-4"><div class="card border-primary"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:8px;">RECAUDADO CUOTAS</small><strong class="text-primary" style="font-size:14px;">${{ "%.2f"|format(saldo_total_general - saldo_inicial) }}</strong></div></div></div>
-<div class="col-md-4"><div class="card border-dark"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:8px;">SALDO TOTAL</small><strong style="font-size:14px;">${{ "%.2f"|format(saldo_total_general) }}</strong></div></div></div>
+<!-- SALDOS ACTUALIZADO CON DONACIONES E INGRESOS EXTRAORDINARIOS -->
+<div class="row mb-2 no-print g-2">
+<div class="col-md-2"><div class="card border-success h-100"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:7px;">SALDO INICIAL</small><strong class="text-success" style="font-size:13px;">${{ "%.2f"|format(saldo_inicial) }}</strong><button class="btn btn-outline-success btn-sm ms-1" style="font-size:8px; padding:1px 4px;" data-bs-toggle="modal" data-bs-target="#modalSaldo">✏️</button></div></div></div>
+<div class="col-md-2"><div class="card border-primary h-100"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:7px;">CUOTAS SOCIALES</small><strong class="text-primary" style="font-size:13px;">${{ "%.2f"|format(total_recaudado) }}</strong><br><small style="font-size:6px; color:#666;">HISTORICO</small></div></div></div>
+<div class="col-md-2"><div class="card h-100" style="border:2px solid #28a745;"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:7px;">INGRESOS PROYECTOS</small><strong style="font-size:13px; color:#28a745;">${{ "%.2f"|format(total_ingresos_proyectos) }}</strong><br><small style="font-size:6px; color:#28a745;">CENTRO COSTOS</small></div></div></div>
+<div class="col-md-2"><div class="card h-100" style="border:2px solid #17a2b8;"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:7px;">🎁 DONACIONES / EXTRA</small><strong style="font-size:13px; color:#17a2b8;">${{ "%.2f"|format(total_ingresos_extra) }}</strong><br><small style="font-size:6px; color:#17a2b8;">UNICA VEZ</small></div></div></div>
+<div class="col-md-2"><div class="card h-100" style="border:2px solid #dc3545;"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:7px;">GASTOS TOTALES</small><strong style="font-size:13px; color:#dc3545;">- ${{ "%.2f"|format(total_gastos_admin + total_gastos_proy) }}</strong><br><small style="font-size:6px; color:#666;">ADMIN + PROY</small></div></div></div>
+<div class="col-md-2"><div class="card border-dark h-100" style="background:#e3f7ff;"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:7px; font-weight:900;">SALDO TOTAL EN CAJA</small><strong style="font-size:14px;">${{ "%.2f"|format(saldo_total_general) }}</strong><br><small style="font-size:6px; color:#17458F;">INICIAL+INGRESOS-GASTOS</small></div></div></div>
 </div>
 
 <!-- TABLA CONTROL MENSUAL -->

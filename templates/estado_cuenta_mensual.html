@@ -60,6 +60,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <tr><td>SALDO INICIAL (Acumulado anterior)</td><td class="text-end monto-pos">+ ${{ "%.2f"|format(saldo_inicial) }}</td></tr>
 <tr><td>CUOTAS SOCIALES RECAUDADAS {{ mes_actual }} ({{ num_pagos_cuotas }} pagos)</td><td class="text-end monto-pos">+ ${{ "%.2f"|format(total_cuotas_mes) }}</td></tr>
 <tr><td>INGRESOS POR PROYECTOS / APORTES {{ mes_actual }} ({{ num_eventos_mes }} eventos)</td><td class="text-end monto-pos">+ ${{ "%.2f"|format(total_ingresos_proyectos_mes) }}</td></tr>
+<tr><td>🎁 DONACIONES E INGRESOS EXTRAORDINARIOS {{ mes_actual }} ({{ ingresos_extra_mes|length }} ingresos)</td><td class="text-end monto-pos" style="color:#17a2b8; font-weight:900;">+ ${{ "%.2f"|format(total_ingresos_extra_mes) }}</td></tr>
 <tr class="table-success fw-bold"><td>TOTAL INGRESOS {{ mes_actual }}</td><td class="text-end">${{ "%.2f"|format(total_ingresos) }}</td></tr>
 <tr><td colspan="2" style="height:8px; background:#f4f6f9; border:none;"></td></tr>
 <tr class="table-light"><td colspan="2" class="fw-bold text-center" style="background:#dc3545; color:white;">EGRESOS DEL MES</td></tr>
@@ -80,10 +81,12 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="card-body p-2" style="font-size:10px;">
 <div class="d-flex justify-content-between mb-1"><span>Saldo Cuotas (Cuotas - Gastos Admin):</span><strong class="{% if saldo_cuotas>=0 %}monto-pos{% else %}monto-neg{% endif %}">${{ "%.2f"|format(saldo_cuotas) }}</strong></div>
 <div class="d-flex justify-content-between mb-1"><span>Saldo Proyectos (Ingresos - Gastos Proy):</span><strong class="{% if saldo_proyectos>=0 %}monto-pos{% else %}monto-neg{% endif %}">${{ "%.2f"|format(saldo_proyectos) }}</strong></div>
+<div class="d-flex justify-content-between mb-1"><span>Saldo Extra (Donaciones):</span><strong class="monto-pos" style="color:#17a2b8;">+ ${{ "%.2f"|format(total_ingresos_extra_mes) }}</strong></div>
 <hr class="my-2">
 <div class="d-flex justify-content-between"><span>Total Cuotas Históricas:</span><strong>${{ "%.2f"|format(total_cuotas_historico) }}</strong></div>
 <div class="d-flex justify-content-between"><span>Total Gastos Admin Históricos:</span><strong class="monto-neg">- ${{ "%.2f"|format(total_gastos_admin_hist) }}</strong></div>
 <div class="d-flex justify-content-between"><span>Total Ingresos Proy Hist:</span><strong class="monto-pos">+ ${{ "%.2f"|format(total_ingresos_proy_hist) }}</strong></div>
+<div class="d-flex justify-content-between"><span>Total Ingresos Extra Hist:</span><strong class="monto-pos" style="color:#17a2b8;">+ ${{ "%.2f"|format(total_ingresos_extra_hist) }}</strong></div>
 <div class="d-flex justify-content-between"><span>Total Gastos Proy Hist:</span><strong class="monto-neg">- ${{ "%.2f"|format(total_gastos_proy_hist) }}</strong></div>
 <hr class="my-2">
 <div class="alert {% if balance_acumulado>=0 %}alert-success{% else %}alert-danger{% endif %} py-2 mb-0 text-center">
@@ -195,6 +198,37 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </tr>
 {% else %}
 <tr><td colspan="5" class="text-muted py-2">Sin gastos de proyectos en {{ mes_actual }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<!-- DETALLE INGRESOS EXTRAORDINARIOS -->
+<div class="row mt-3">
+<div class="col-12">
+<div class="card shadow-sm">
+<div class="card-header text-white fw-bold d-flex justify-content-between" style="background:#17a2b8; font-size:11px;">
+<span>🎁 DONACIONES E INGRESOS EXTRAORDINARIOS {{ mes_actual }} - {{ ingresos_extra_mes|length }} INGRESOS</span>
+<span class="badge bg-light" style="color:#17a2b8;">+ ${{ "%.2f"|format(total_ingresos_extra_mes) }}</span>
+</div>
+<div class="card-body p-0" style="max-height:300px; overflow-y:auto;">
+<table class="table table-sm table-bordered mb-0 table-small text-center">
+<thead class="table-light sticky-top"><tr><th>FECHA</th><th>TIPO</th><th>CONCEPTO</th><th>ORIGEN</th><th>MONTO</th><th>REF</th></tr></thead>
+<tbody>
+{% for ing in ingresos_extra_mes %}
+<tr>
+<td>{{ ing.fecha.strftime('%d/%m') if ing.fecha else '-' }}</td>
+<td><span class="badge bg-info" style="font-size:7px;">{{ ing.tipo }}</span></td>
+<td class="text-start" style="font-size:9px;">{{ ing.concepto }}</td>
+<td style="font-size:8px;">{{ ing.origen or '-' }}</td>
+<td class="monto-pos" style="color:#17a2b8; font-weight:900;">${{ "%.2f"|format(ing.monto) }}</td>
+<td style="font-size:7px;">{{ ing.referencia or '-' }}</td>
+</tr>
+{% else %}
+<tr><td colspan="6" class="text-muted py-2">Sin donaciones / ingresos extraordinarios en {{ mes_actual }}</td></tr>
 {% endfor %}
 </tbody>
 </table>

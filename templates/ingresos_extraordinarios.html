@@ -2,244 +2,33 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Donaciones e Ingresos Extraordinarios - Rotary Creel</title>
+<title>Donaciones e Ingresos Extraordinarios</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
-body { font-family:'Segoe UI', sans-serif; text-transform:uppercase; font-size:11px; background:#f4f6f9; }
-.header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
-.card-header-rotary { background:#17a2b8; color:white; font-weight:700; font-size:11px; }
-.tipo-DONACION { background:#d1ecf1 !important; border-left:4px solid #17a2b8; }
-.tipo-INGRESO_EXTRAORDINARIO { background:#fff3cd !important; border-left:4px solid #ffc107; }
-.tipo-PATROCINIO { background:#d4edda !important; border-left:4px solid #28a745; }
-.tipo-APORTACION { background:#e2d9f3 !important; border-left:4px solid #6f42c1; }
+body{font-family:'Segoe UI',sans-serif;text-transform:uppercase;font-size:11px;background:#f4f6f9;}
+.header-rotary{background:#17458F;color:white;padding:10px 20px;border-bottom:4px solid #F7A81B;}
+.tabla-ing{border:2px solid #000;border-collapse:collapse;}
+.tabla-ing th{font-size:8px;background:#17458F;color:white;text-align:center;border:1px solid #000;padding:5px 3px;}
+.tabla-ing td{font-size:8px;text-align:center;padding:4px 3px;border:1px solid #000;vertical-align:middle;}
 </style>
 </head>
 <body>
 <div class="header-rotary d-flex justify-content-between align-items-center">
-<div>
-<h5 class="mb-0 fw-bold" style="font-size:14px;">🎁 DONACIONES E INGRESOS EXTRAORDINARIOS</h5>
-<small style="font-size:9px;">INGRESO POR ÚNICA VEZ - NO NECESARIAMENTE VA A UN PROYECTO - DONACIONES, PATROCINIOS, APORTACIONES</small>
+<div><h6 class="mb-0 fw-bold" style="font-size:14px;">🎁 DONACIONES E INGRESOS EXTRAORDINARIOS</h6><small style="font-size:9px;">INGRESOS POR UNICA VEZ - NO REQUIERE PROYECTO</small></div>
+<div class="d-flex gap-2"><a href="/tesoreria" class="btn btn-outline-light btn-sm fw-bold">TESORERIA</a><a href="/menu" class="btn btn-warning btn-sm fw-bold">MENU</a></div>
 </div>
-<div class="d-flex align-items-center">
-<a href="/tesoreria" class="btn btn-light btn-sm fw-bold">← TESORERÍA</a>
-<a href="/menu" class="btn btn-warning btn-sm fw-bold ms-1">MENÚ</a>
-<button class="btn btn-success btn-sm fw-bold ms-2" data-bs-toggle="modal" data-bs-target="#modalCrearIngreso">+ REGISTRAR INGRESO</button>
+<div class="container-fluid py-3">
+<div class="row g-2 mb-3">
+<div class="col-md-3"><div class="card text-center" style="border:2px solid #17a2b8;"><div class="card-body py-2"><small>TOTAL MES {{ mes_actual }}</small><br><strong style="font-size:18px;color:#17a2b8;">${{ "%.2f"|format(total_mes) }}</strong></div></div></div>
+<div class="col-md-3"><div class="card text-center" style="border:2px solid #28a745;"><div class="card-body py-2"><small>TOTAL HISTORICO EXTRA</small><br><strong style="font-size:18px;">${{ "%.2f"|format(total_historico) }}</strong></div></div></div>
 </div>
+<div class="card mb-3" style="border:2px solid #17a2b8;">
+<div class="card-header d-flex justify-content-between" style="background:#17a2b8;color:white;"><span>INGRESOS EXTRAORDINARIOS - {{ mes_actual }} | TOTAL: ${{ "%.2f"|format(total_mes) }}</span><button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoIngreso">+ NUEVO INGRESO</button></div>
+<div class="card-body py-2"><form method="GET" class="d-flex gap-2"><select name="mes" class="form-select form-select-sm" style="width:150px;" onchange="this.form.submit()">{% for m in meses_lista %}<option value="{{ m }}" {% if m==mes_actual %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></form></div>
 </div>
-
-<div class="container-fluid p-3">
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
-{% for category, message in messages %}
-<div class="alert alert-{{ category }} alert-dismissible fade show py-2" style="font-size:11px;">
-{{ message }}
-<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<div class="table-responsive"><table class="table tabla-ing bg-white"><thead><tr><th>ID</th><th>FECHA</th><th>TIPO</th><th>CONCEPTO</th><th>ORIGEN</th><th>MONTO</th><th>COMPROBANTE</th><th>ACCIONES</th></tr></thead><tbody>{% for ing in ingresos %}<tr><td>{{ ing.id }}</td><td>{{ ing.fecha.strftime('%d/%m/%Y') if ing.fecha else '' }}</td><td><span class="badge bg-info" style="font-size:7px;">{{ ing.tipo }}</span></td><td style="text-align:left;">{{ ing.concepto }}</td><td>{{ ing.origen or '-' }}</td><td style="font-weight:900;color:#17a2b8;">${{ "%.2f"|format(ing.monto) }}</td><td>{% if ing.comprobante_base64 %}<a href="/tesoreria/ingresos-extraordinarios/ver/{{ ing.id }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:6px;">VER</a>{% else %}SIN{% endif %}</td><td><form method="POST" action="/tesoreria/ingresos-extraordinarios/eliminar/{{ ing.id }}" onsubmit="return confirm('Eliminar?')"><button class="btn btn-danger btn-sm" style="font-size:6px;">ELIMINAR</button></form></td></tr>{% else %}<tr><td colspan="8" class="text-center">NO HAY INGRESOS EN {{ mes_actual }}</td></tr>{% endfor %}</tbody></table></div>
 </div>
-{% endfor %}
-{% endif %}
-{% endwith %}
-
-<!-- RESUMEN -->
-<div class="row mb-3">
-<div class="col-md-3"><div class="card border-info"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:8px;">TOTAL INGRESOS EXTRA</small><strong class="text-info" style="font-size:16px;">${{ "%.2f"|format(total_ingresos) }}</strong></div></div></div>
-<div class="col-md-3"><div class="card border-primary"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:8px;">TOTAL DONACIONES</small><strong class="text-primary" style="font-size:16px;">${{ "%.2f"|format(total_donaciones) }}</strong></div></div></div>
-<div class="col-md-3"><div class="card border-warning"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:8px;">ING. EXTRAORDINARIOS</small><strong class="text-warning" style="font-size:16px;">${{ "%.2f"|format(total_extra) }}</strong></div></div></div>
-<div class="col-md-3"><div class="card border-dark"><div class="card-body py-2 text-center"><small class="text-muted d-block" style="font-size:8px;">REGISTROS</small><strong style="font-size:16px;">{{ ingresos|length }}</strong></div></div></div>
-</div>
-
-<!-- FILTROS -->
-<div class="card shadow-sm mb-3" style="border:1px solid #000;">
-<div class="card-body py-2">
-<form method="GET" class="row g-2 align-items-end" style="font-size:10px;">
-<div class="col-md-3">
-<label class="fw-bold" style="font-size:9px;">MES:</label>
-<select name="mes" class="form-select form-select-sm" style="font-size:10px;">
-<option value="TODOS" {% if mes_filtro=='TODOS' %}selected{% endif %}>TODOS LOS MESES</option>
-{% for m in meses %}
-<option value="{{ m }}" {% if mes_filtro==m %}selected{% endif %}>{{ m }}</option>
-{% endfor %}
-</select>
-</div>
-<div class="col-md-3">
-<label class="fw-bold" style="font-size:9px;">TIPO:</label>
-<select name="tipo" class="form-select form-select-sm" style="font-size:10px;">
-<option value="TODOS" {% if tipo_filtro=='TODOS' %}selected{% endif %}>TODOS</option>
-<option value="DONACION" {% if tipo_filtro=='DONACION' %}selected{% endif %}>DONACIÓN</option>
-<option value="INGRESO EXTRAORDINARIO" {% if tipo_filtro=='INGRESO EXTRAORDINARIO' %}selected{% endif %}>INGRESO EXTRAORDINARIO</option>
-<option value="PATROCINIO" {% if tipo_filtro=='PATROCINIO' %}selected{% endif %}>PATROCINIO</option>
-<option value="APORTACION" {% if tipo_filtro=='APORTACION' %}selected{% endif %}>APORTACIÓN</option>
-<option value="OTRO" {% if tipo_filtro=='OTRO' %}selected{% endif %}>OTRO</option>
-</select>
-</div>
-<div class="col-md-2">
-<button type="submit" class="btn btn-primary btn-sm w-100 fw-bold" style="font-size:10px;">FILTRAR</button>
-</div>
-<div class="col-md-2">
-<a href="/tesoreria/ingresos-extraordinarios" class="btn btn-secondary btn-sm w-100 fw-bold" style="font-size:10px;">LIMPIAR</a>
-</div>
-</form>
-</div>
-</div>
-
-<!-- TABLA -->
-<div class="card shadow-sm" style="border:2px solid #000;">
-<div class="card-header card-header-rotary d-flex justify-content-between" style="border-bottom:2px solid #000;">
-<span>📋 LISTADO DE DONACIONES E INGRESOS EXTRAORDINARIOS - {{ mes_filtro }} - POR ÚNICA VEZ</span>
-<small>{{ ingresos|length }} registros</small>
-</div>
-<div class="card-body p-0">
-<div class="table-responsive">
-<table class="table table-hover mb-0" style="font-size:10px; border-collapse:collapse;">
-<thead style="background:#17458F; color:white;">
-<tr>
-<th style="border:1px solid #000; font-size:9px;">FECHA</th>
-<th style="border:1px solid #000; font-size:9px;">MES</th>
-<th style="border:1px solid #000; font-size:9px;">TIPO</th>
-<th style="border:1px solid #000; font-size:9px; min-width:180px;">CONCEPTO</th>
-<th style="border:1px solid #000; font-size:9px;">MONTO</th>
-<th style="border:1px solid #000; font-size:9px;">MÉTODO</th>
-<th style="border:1px solid #000; font-size:9px;">PROYECTO (OPCIONAL)</th>
-<th style="border:1px solid #000; font-size:9px;">REFERENCIA</th>
-<th style="border:1px solid #000; font-size:9px;">ACCIONES</th>
-</tr>
-</thead>
-<tbody>
-{% for ingreso in ingresos %}
-<tr class="tipo-{{ ingreso.tipo }}" style="border:1px solid #000;">
-<td style="border:1px solid #ccc; font-size:9px;">{{ ingreso.fecha.strftime('%d/%m/%Y') if ingreso.fecha else '' }}</td>
-<td style="border:1px solid #ccc; font-weight:700;">{{ ingreso.mes_anio }}</td>
-<td style="border:1px solid #ccc;"><span class="badge bg-info" style="font-size:8px;">{{ ingreso.tipo }}</span></td>
-<td style="border:1px solid #ccc; text-align:left; font-weight:700; font-size:10px;">{{ ingreso.concepto }}<br><small style="font-size:7px; color:#666; text-transform:none;">{{ ingreso.descripcion or '' }}</small></td>
-<td style="border:1px solid #ccc; font-weight:900; color:#155724; font-size:12px;">${{ "%.2f"|format(ingreso.monto) }}</td>
-<td style="border:1px solid #ccc; font-size:8px;">{{ ingreso.metodo_pago }}<br><small style="font-size:7px;">{{ ingreso.referencia or '' }}</small></td>
-<td style="border:1px solid #ccc; font-size:8px;">{{ ingreso.proyecto.nombre if ingreso.proyecto else 'SIN PROYECTO - CAJA GENERAL' }}</td>
-<td style="border:1px solid #ccc; font-size:8px;">{{ ingreso.referencia or '-' }}</td>
-<td style="border:1px solid #ccc;">
-<a href="/tesoreria/ingresos-extraordinarios/eliminar/{{ ingreso.id }}" class="btn btn-danger btn-sm" style="font-size:8px;" onclick="return confirm('¿ELIMINAR ESTE INGRESO DE {{ ingreso.concepto }}?')">🗑️</a>
-</td>
-</tr>
-{% else %}
-<tr><td colspan="9" class="text-center py-3 text-muted">SIN INGRESOS REGISTRADOS EN ESTE PERIODO - USA EL BOTÓN + REGISTRAR INGRESO PARA AGREGAR DONACIONES O INGRESOS EXTRAORDINARIOS POR ÚNICA VEZ</td></tr>
-{% endfor %}
-</tbody>
-<tfoot>
-<tr style="background:#e9ecef; border-top:2px solid #000;">
-<td colspan="4" class="text-end fw-bold" style="font-size:11px;">TOTAL:</td>
-<td class="fw-bold" style="font-size:12px; color:#155724;">${{ "%.2f"|format(total_ingresos) }}</td>
-<td colspan="4"></td>
-</tr>
-</tfoot>
-</table>
-</div>
-</div>
-</div>
-
-</div>
-
-<!-- MODAL CREAR INGRESO -->
-<div class="modal fade" id="modalCrearIngreso" tabindex="-1">
-<div class="modal-dialog modal-lg">
-<div class="modal-content">
-<form method="POST" action="/tesoreria/ingresos-extraordinarios/crear">
-<div class="modal-header" style="background:#17a2b8; color:white;">
-<h6 class="modal-title fw-bold" style="font-size:12px;">🎁 REGISTRAR DONACIÓN / INGRESO EXTRAORDINARIO - POR ÚNICA VEZ</h6>
-<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-</div>
-<div class="modal-body" style="font-size:11px;">
-
-<div class="alert alert-info py-2" style="font-size:9px; text-transform:none;">
-<strong>Este ingreso es por única vez y no necesariamente va a un proyecto.</strong> Úsalo para donaciones, patrocinios, aportaciones extraordinarias, ingresos por eventos especiales, etc. Si va a un proyecto, puedes seleccionarlo opcionalmente. Si no, se va directo a caja general.
-</div>
-
-<div class="row">
-<div class="col-md-4 mb-2">
-<label class="fw-bold" style="font-size:10px;">TIPO DE INGRESO *:</label>
-<select name="tipo" class="form-select form-select-sm fw-bold" required style="font-size:11px;">
-<option value="DONACION">🎁 DONACIÓN</option>
-<option value="INGRESO EXTRAORDINARIO" selected>💵 INGRESO EXTRAORDINARIO</option>
-<option value="PATROCINIO">🤝 PATROCINIO</option>
-<option value="APORTACION">💰 APORTACIÓN</option>
-<option value="OTRO">📦 OTRO</option>
-</select>
-</div>
-<div class="col-md-4 mb-2">
-<label class="fw-bold" style="font-size:10px;">FECHA *:</label>
-<input type="date" name="fecha" class="form-control form-control-sm" value="{{ mes_actual.split()[1] if False else '' }}" required>
-</div>
-<div class="col-md-4 mb-2">
-<label class="fw-bold" style="font-size:10px;">MES CONTABLE *:</label>
-<select name="mes_anio" class="form-select form-select-sm fw-bold" required>
-{% for m in meses %}
-<option value="{{ m }}" {% if m==mes_actual %}selected{% endif %}>{{ m }}</option>
-{% endfor %}
-</select>
-</div>
-</div>
-
-<div class="row">
-<div class="col-md-8 mb-2">
-<label class="fw-bold" style="font-size:10px;">CONCEPTO * (QUIÉN DONA / QUÉ INGRESO):</label>
-<input type="text" name="concepto" class="form-control form-control-sm fw-bold" placeholder="EJ: DONACIÓN EMPRESA XYZ, DONACIÓN ANÓNIMA, INGRESO RIFA EXTRA, PATROCINIO EVENTO..." required style="font-size:11px;">
-</div>
-<div class="col-md-4 mb-2">
-<label class="fw-bold" style="font-size:10px;">MONTO *:</label>
-<div class="input-group input-group-sm">
-<span class="input-group-text fw-bold">$</span>
-<input type="number" step="0.01" name="monto" class="form-control form-control-sm fw-bold" placeholder="0.00" required style="font-size:14px;">
-</div>
-</div>
-</div>
-
-<div class="row">
-<div class="col-md-4 mb-2">
-<label class="fw-bold" style="font-size:10px;">MÉTODO PAGO:</label>
-<select name="metodo_pago" class="form-select form-select-sm">
-<option value="EFECTIVO">E - EFECTIVO</option>
-<option value="TRANSFERENCIA">T - TRANSFERENCIA</option>
-<option value="CHEQUE">C - CHEQUE</option>
-<option value="OTRO">O - OTRO</option>
-</select>
-</div>
-<div class="col-md-4 mb-2">
-<label class="fw-bold" style="font-size:10px;">REFERENCIA / FOLIO:</label>
-<input type="text" name="referencia" class="form-control form-control-sm" placeholder="EJ: TRANSF 1234, FOLIO 567">
-</div>
-<div class="col-md-4 mb-2">
-<label class="fw-bold" style="font-size:10px;">PROYECTO (OPCIONAL):</label>
-<select name="proyecto_id" class="form-select form-select-sm" style="font-size:10px;">
-<option value="">-- SIN PROYECTO - VA A CAJA GENERAL --</option>
-{% for p in proyectos %}
-<option value="{{ p.id }}">{{ p.nombre }}</option>
-{% endfor %}
-</select>
-<small style="font-size:7px; color:#666; text-transform:none;">Dejar vacío si no va a proyecto</small>
-</div>
-</div>
-
-<div class="mb-2">
-<label class="fw-bold" style="font-size:10px;">DESCRIPCIÓN / DETALLES:</label>
-<textarea name="descripcion" class="form-control form-control-sm" rows="2" placeholder="Detalles del ingreso, quién entregó, motivo, etc." style="font-size:10px; text-transform:none;"></textarea>
-</div>
-
-</div>
-<div class="modal-footer py-2">
-<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-<button type="submit" class="btn btn-success btn-sm fw-bold">💾 REGISTRAR INGRESO</button>
-</div>
-</form>
-</div>
-</div>
-</div>
-
+<div class="modal fade" id="modalNuevoIngreso" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><form method="POST" action="/tesoreria/ingresos-extraordinarios/nuevo" enctype="multipart/form-data"><div class="modal-header" style="background:#17a2b8;color:white;"><h6 class="modal-title fw-bold">NUEVO INGRESO EXTRAORDINARIO</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body" style="font-size:10px;text-transform:none;"><div class="row"><div class="col-md-4"><label>MES *:</label><select name="mes_anio" class="form-select form-select-sm" required>{% for m in meses_lista %}<option value="{{ m }}" {% if m==mes_actual %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div><div class="col-md-4"><label>FECHA *:</label><input type="date" name="fecha" class="form-control form-control-sm" required></div><div class="col-md-4"><label>TIPO *:</label><select name="tipo" class="form-select form-select-sm" required><option value="DONACION">DONACION</option><option value="PATROCINIO">PATROCINIO</option><option value="VENTA">VENTA</option><option value="APORTACION">APORTACION</option><option value="RIFA">RIFA</option><option value="OTRO">OTRO</option></select></div></div><div class="row mt-2"><div class="col-md-8"><label>CONCEPTO *:</label><input type="text" name="concepto" class="form-control form-control-sm" required></div><div class="col-md-4"><label>MONTO *:</label><input type="number" step="0.01" name="monto" class="form-control form-control-sm" required></div></div><div class="row mt-2"><div class="col-md-6"><label>ORIGEN / QUIEN DONA:</label><input type="text" name="origen" class="form-control form-control-sm"></div><div class="col-md-6"><label>REFERENCIA:</label><input type="text" name="referencia" class="form-control form-control-sm"></div></div><div class="mt-2"><label>COMPROBANTE:</label><input type="file" name="comprobante" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">CANCELAR</button><button type="submit" class="btn btn-success btn-sm fw-bold">REGISTRAR INGRESO</button></div></form></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-// Auto-poner fecha de hoy
-document.addEventListener('DOMContentLoaded', function() {
-  const hoy = new Date().toISOString().split('T')[0];
-  const inputFecha = document.querySelector('input[name=fecha]');
-  if (inputFecha && !inputFecha.value) inputFecha.value = hoy;
-});
-</script>
 </body>
 </html>
