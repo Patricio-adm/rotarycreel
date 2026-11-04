@@ -173,6 +173,19 @@ class IngresoExtraordinario(db.Model):
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
     notas = db.Column(db.Text, nullable=True)
 
+class DocumentoRotario(db.Model):
+    __tablename__ = 'documentos_rotarios'
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(50), nullable=False, default='ACTA')  # ACTA, ACUERDO, PRESIDENCIA, SECRETARIA, FUNDACION, SERVICIOS, TESORERIA, MEMBRESIA, OTRO
+    titulo = db.Column(db.String(300), nullable=False)
+    descripcion = db.Column(db.Text, nullable=True)
+    fecha_documento = db.Column(db.Date, nullable=True)
+    estado = db.Column(db.String(20), nullable=False, default='VIGENTE')  # VIGENTE, ARCHIVADO, BORRADOR
+    archivo_nombre = db.Column(db.String(300), nullable=True)
+    archivo_base64 = db.Column(db.Text, nullable=True)
+    subido_por = db.Column(db.String(100), nullable=True)
+    fecha_subida = db.Column(db.DateTime, default=datetime.utcnow)
+
 with app.app_context():
     db.create_all()
     try:
@@ -182,6 +195,7 @@ with app.app_context():
         EventoProyecto.__table__.create(db.engine, checkfirst=True)
         Gasto.__table__.create(db.engine, checkfirst=True)
         IngresoExtraordinario.__table__.create(db.engine, checkfirst=True)
+        DocumentoRotario.__table__.create(db.engine, checkfirst=True)
     except Exception as e:
         print(f"Info tablas: {e}")
     try:
@@ -388,6 +402,154 @@ def cumpleanos_mes():
             festividades.append({'fecha_str': f"{socio.fecha_nacimiento.day:02d}/{socio.fecha_nacimiento.month:02d}", 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}", 'dia': socio.fecha_nacimiento.day})
     festividades = sorted(festividades, key=lambda x: x['dia'])
     return render_template('cumpleanos.html', festividades=festividades, mes_actual=mes_actual_nombre)
+
+
+@app.route('/gestion-rotaria')
+def gestion_rotaria():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    tipo_filtro = request.args.get('tipo', 'TODOS')
+    estado_filtro = request.args.get('estado', 'TODOS')
+    
+    query = DocumentoRotario.query
+    if tipo_filtro != 'TODOS':
+        query = query.filter_by(tipo=tipo_filtro)
+    if estado_filtro != 'TODOS':
+        query = query.filter_by(estado=estado_filtro)
+    
+    documentos = query.order_by(DocumentoRotario.fecha_documento.desc(), DocumentoRotario.id.desc()).all()
+    
+    tipos = ['ACTA','ACUERDO','PRESIDENCIA','SECRETARIA','FUNDACION','SERVICIOS','TESORERIA','MEMBRESIA','OTRO']
+    
+    total_actas = DocumentoRotario.query.filter_by(tipo='ACTA').count()
+    total_acuerdos = DocumentoRotario.query.filter_by(tipo='ACUERDO').count()
+    total_presidencia = DocumentoRotario.query.filter_by(tipo='PRESIDENCIA').count()
+    total_secretaria = DocumentoRotario.query.filter_by(tipo='SECRETARIA').count()
+    total_fundacion = DocumentoRotario.query.filter_by(tipo='FUNDACION').count()
+    total_servicios = DocumentoRotario.query.filter_by(tipo='SERVICIOS').count()
+    
+    return render_template('gestion_rotaria.html',
+                           documentos=documentos,
+                           tipos=tipos,
+                           tipo_filtro=tipo_filtro,
+                           estado_filtro=estado_filtro,
+                           total_actas=total_actas,
+                           total_acuerdos=total_acuerdos,
+                           total_presidencia=total_presidencia,
+                           total_secretaria=total_secretaria,
+                           total_fundacion=total_fundacion,
+                           total_servicios=total_servicios)
+
+@app.route('/gestion-rotaria/subir', methods=['POST'])
+def subir_documento_rotario():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    tipo = request.form.get('tipo','ACTA').strip().upper()
+    titulo = request.form.get('titulo','').strip().upper()
+    descripcion = request.form.get('descripcion','').strip()
+    estado = request.form.get('estado','VIGENTE').strip().upper()
+    fecha_str = request.form.get('fecha_documento')
+    try:
+        fecha_doc = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.now().date()
+    except:
+        fecha_doc = datetime.now().date()
+    
+    archivo_nombre = None
+    archivo_b64 = None
+    if 'archivo' in request.files:
+        f = request.files['archivo']
+        if f and f.filename and f.filename.lower().endswith('.pdf'):
+            data = f.read()
+            if len(data) <= 20 * 1024 * 1024:
+                archivo_nombre = f.filename
+                archivo_b64 = base64.b64encode(data).decode('utf-8')
+    
+    if not archivo_b64:
+        flash('Debes subir un PDF.', 'danger')
+        return redirect(url_for('gestion_rotaria'))
+    
+    doc = DocumentoRotario(
+        tipo=tipo,
+        titulo=titulo,
+        descripcion=descripcion,
+        fecha_documento=fecha_doc,
+        estado=estado,
+        archivo_nombre=archivo_nombre,
+        archivo_base64=archivo_b64,
+        subido_por=session.get('username','SISTEMA')
+    )
+    db.session.add(doc)
+    db.session.commit()
+    flash(f'Documento {titulo} subido correctamente.', 'success')
+    return redirect(url_for('gestion_rotaria', tipo=tipo))
+
+@app.route('/gestion-rotaria/ver/<int:doc_id>')
+def ver_documento_rotario(doc_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    doc = DocumentoRotario.query.get_or_404(doc_id)
+    if not doc.archivo_base64:
+        flash('Sin archivo.', 'warning')
+        return redirect(url_for('gestion_rotaria'))
+    try:
+        pdf_bytes = base64.b64decode(doc.archivo_base64)
+        from flask import Response
+        return Response(pdf_bytes, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename={doc.archivo_nombre or "documento.pdf"}'})
+    except Exception as e:
+        flash(f'Error: {e}', 'danger')
+        return redirect(url_for('gestion_rotaria'))
+
+@app.route('/gestion-rotaria/descargar/<int:doc_id>')
+def descargar_documento_rotario(doc_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    doc = DocumentoRotario.query.get_or_404(doc_id)
+    if not doc.archivo_base64:
+        flash('Sin archivo.', 'warning')
+        return redirect(url_for('gestion_rotaria'))
+    try:
+        pdf_bytes = base64.b64decode(doc.archivo_base64)
+        from flask import Response
+        return Response(pdf_bytes, mimetype='application/pdf', headers={'Content-Disposition': f'attachment; filename={doc.archivo_nombre or "documento.pdf"}'})
+    except Exception as e:
+        flash(f'Error: {e}', 'danger')
+        return redirect(url_for('gestion_rotaria'))
+
+@app.route('/gestion-rotaria/eliminar/<int:doc_id>', methods=['POST'])
+def eliminar_documento_rotario(doc_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    doc = DocumentoRotario.query.get_or_404(doc_id)
+    db.session.delete(doc)
+    db.session.commit()
+    flash(f'Documento {doc.titulo} eliminado.', 'warning')
+    return redirect(url_for('gestion_rotaria'))
+
+@app.route('/gestion-rotaria/editar/<int:doc_id>', methods=['POST'])
+def editar_documento_rotario(doc_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    doc = DocumentoRotario.query.get_or_404(doc_id)
+    doc.tipo = request.form.get('tipo','ACTA').strip().upper()
+    doc.titulo = request.form.get('titulo','').strip().upper()
+    doc.descripcion = request.form.get('descripcion','').strip()
+    doc.estado = request.form.get('estado','VIGENTE').strip().upper()
+    fecha_str = request.form.get('fecha_documento')
+    try:
+        if fecha_str:
+            doc.fecha_documento = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+    except:
+        pass
+    if 'archivo' in request.files:
+        f = request.files['archivo']
+        if f and f.filename and f.filename.lower().endswith('.pdf'):
+            data = f.read()
+            if data:
+                doc.archivo_nombre = f.filename
+                doc.archivo_base64 = base64.b64encode(data).decode('utf-8')
+    db.session.commit()
+    flash('Documento actualizado.', 'success')
+    return redirect(url_for('gestion_rotaria'))
 
 @app.route('/autoridades')
 def gestion_autoridades():
@@ -819,11 +981,14 @@ def estado_cuenta_pdf_mensual():
         anio_num = int(mes_filtro.split()[1])
         eventos_mes = EventoProyecto.query.filter(func.extract('month', EventoProyecto.fecha_evento) == mes_num, func.extract('year', EventoProyecto.fecha_evento) == anio_num).all()
     except:
-        eventos_mes = EventoProyecto.query.all()
+        eventos_mes = []
     total_ingresos_proyectos_mes = sum([e.monto_recaudado for e in eventos_mes]) if eventos_mes else 0
-    total_ingresos = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes
+    # INGRESOS EXTRAORDINARIOS / DONACIONES
+    ingresos_extra_mes = IngresoExtraordinario.query.filter_by(mes_anio=mes_filtro).order_by(IngresoExtraordinario.fecha.desc()).all()
+    total_ingresos_extra_mes = sum([i.monto for i in ingresos_extra_mes]) if ingresos_extra_mes else 0
+    total_ingresos = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes + total_ingresos_extra_mes
     total_egresos = total_gastos_admin_mes + total_gastos_proy_mes
-    balance_final = total_cuotas_mes + total_ingresos_proyectos_mes - total_egresos
+    balance_final = total_cuotas_mes + total_ingresos_proyectos_mes + total_ingresos_extra_mes - total_egresos
     balance_acumulado = saldo_inicial + balance_final
     fecha_gen = datetime.now().strftime('%d/%m/%Y %H:%M')
     return render_template('estado_cuenta_mensual_pdf.html',
@@ -838,6 +1003,8 @@ def estado_cuenta_pdf_mensual():
                            total_gastos_proy_mes=total_gastos_proy_mes,
                            eventos_mes=eventos_mes,
                            total_ingresos_proyectos_mes=total_ingresos_proyectos_mes,
+                           ingresos_extra_mes=ingresos_extra_mes,
+                           total_ingresos_extra_mes=total_ingresos_extra_mes,
                            total_ingresos=total_ingresos,
                            total_egresos=total_egresos,
                            balance_final=balance_final,
