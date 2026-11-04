@@ -456,6 +456,7 @@ def subir_documento_rotario():
     
     archivo_nombre = None
     archivo_b64 = None
+    modo = request.form.get('modo', 'PDF')  # PDF o SISTEMA
     if 'archivo' in request.files:
         f = request.files['archivo']
         if f and f.filename and f.filename.lower().endswith('.pdf'):
@@ -464,9 +465,14 @@ def subir_documento_rotario():
                 archivo_nombre = f.filename
                 archivo_b64 = base64.b64encode(data).decode('utf-8')
     
-    if not archivo_b64:
-        flash('Debes subir un PDF.', 'danger')
+    # Si modo es PDF, exigir archivo; si es SISTEMA, permitir sin PDF
+    if modo == 'PDF' and not archivo_b64:
+        flash('Debes subir un PDF en modo SUBIR PDF. Para crear sin PDF usa CREAR EN SISTEMA.', 'danger')
         return redirect(url_for('gestion_rotaria'))
+    
+    # Si es SISTEMA sin PDF, pon nombre generico
+    if not archivo_b64:
+        archivo_nombre = 'CREADO EN SISTEMA - SIN PDF'
     
     doc = DocumentoRotario(
         tipo=tipo,
