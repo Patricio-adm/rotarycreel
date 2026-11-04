@@ -19,20 +19,6 @@ def to_upper(val):
         return cleaned if cleaned else None
     return None
 
-def parse_fecha_robusta(date_str):
-    if not date_str:
-        return None
-    date_str = str(date_str).strip()
-    if not date_str:
-        return None
-    formatos = ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y', '%Y/%m/%d', '%d.%m.%Y']
-    for fmt in formatos:
-        try:
-            return datetime.strptime(date_str, fmt).date()
-        except:
-            continue
-    return None
-
 db_url = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
@@ -93,9 +79,8 @@ class PagoCuota(db.Model):
     mes_anio = db.Column(db.String(20), nullable=False)
     monto = db.Column(db.Float, default=500.0)
     metodo_pago = db.Column(db.String(50))
-    fecha_pago = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha_pago = db.Column(db.Date, default=datetime.utcnow)
     referencia = db.Column(db.String(100))
-    grupo_recibo = db.Column(db.String(50), nullable=True)  # ID unico para pagos multi-mes en un solo comprobante
 
 class ConfiguracionTesoreria(db.Model):
     __tablename__ = 'configuracion_tesoreria'
@@ -130,26 +115,6 @@ class Socio(db.Model):
     pagos = db.relationship('PagoCuota', backref='socio', lazy=True, cascade="all, delete-orphan", passive_deletes=True)
 
 # ==================== NUEVOS MODELOS GASTOS Y PROYECTOS ====================
-class GestionRotaria(db.Model):
-    __tablename__ = 'gestion_rotaria'
-    id = db.Column(db.Integer, primary_key=True)
-    tipo = db.Column(db.String(50), nullable=False)  # ACTA, ACUERDO, PRESIDENCIA, SECRETARIA, FUNDACION, SERVICIOS, TESORERIA, MEMBRESIA, OTRO
-    titulo = db.Column(db.String(200), nullable=False)
-    descripcion = db.Column(db.Text, nullable=True)
-    fecha_documento = db.Column(db.Date, nullable=True)
-    fecha_subida = db.Column(db.DateTime, default=datetime.utcnow)
-    archivo_nombre = db.Column(db.String(300), nullable=True)
-    archivo_base64 = db.Column(db.Text, nullable=True)  # PDF en base64
-    archivo_tipo = db.Column(db.String(20), default='PDF')
-    subido_por = db.Column(db.String(100), nullable=True)
-    estado = db.Column(db.String(20), default='VIGENTE')  # VIGENTE, ARCHIVADO, BORRADOR
-    # NUEVO: contenido creado directamente en sistema (sin PDF)
-    contenido_sistema = db.Column(db.Text, nullable=True)  # HTML o texto enriquecido del acta/acuerdo creado en sistema
-    origen = db.Column(db.String(20), default='PDF')  # PDF, SISTEMA, MIXTO
-    lugar = db.Column(db.String(150), nullable=True)  # Lugar de sesion
-    participantes = db.Column(db.Text, nullable=True)  # Lista participantes
-    acuerdos_lista = db.Column(db.Text, nullable=True)  # Acuerdos en formato lista
-
 class Proyecto(db.Model):
     __tablename__ = 'proyectos'
     id = db.Column(db.Integer, primary_key=True)
@@ -188,7 +153,6 @@ class Gasto(db.Model):
     centro_costo = db.Column(db.String(30), nullable=False)  # ADMINISTRATIVO o PROYECTO
     proyecto_id = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=True)
     comprobante = db.Column(db.String(300), nullable=True)
-    foto_comprobante = db.Column(db.Text, nullable=True)  # Base64 de foto del ticket/comprobante
     creado_por = db.Column(db.String(100), nullable=True)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
     notas = db.Column(db.Text, nullable=True)
@@ -198,24 +162,22 @@ class IngresoExtraordinario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fecha = db.Column(db.Date, nullable=False, default=datetime.utcnow)
     mes_anio = db.Column(db.String(20), nullable=False)  # NOV 2026
-    tipo = db.Column(db.String(50), nullable=False)  # DONACION, INGRESO EXTRAORDINARIO, PATROCINIO, APORTACION, OTRO
-    concepto = db.Column(db.String(300), nullable=False)  # Ej: DONACION EMPRESA X
+    concepto = db.Column(db.String(300), nullable=False)  # DONACION EMPRESA X, VENTA BOLETOS, etc
     monto = db.Column(db.Float, nullable=False)
-    metodo_pago = db.Column(db.String(50), default='EFECTIVO')  # EFECTIVO, TRANSFERENCIA
-    referencia = db.Column(db.String(200), nullable=True)
-    proyecto_id = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=True)  # Opcional, si va a proyecto
-    descripcion = db.Column(db.Text, nullable=True)
-    comprobante = db.Column(db.String(300), nullable=True)
-    creado_por = db.Column(db.String(100), nullable=True)
+    tipo = db.Column(db.String(50), nullable=False, default='DONACION')  # DONACION, PATROCINIO, VENTA, APORTACION, RIFA, OTRO
+    origen = db.Column(db.String(200), nullable=True)  # Quien dona / de donde viene
+    referencia = db.Column(db.String(300), nullable=True)
+    comprobante_nombre = db.Column(db.String(300), nullable=True)
+    comprobante_base64 = db.Column(db.Text, nullable=True)  # PDF o imagen en base64
+    registrado_por = db.Column(db.String(100), nullable=True)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    proyecto = db.relationship('Proyecto', backref='ingresos_extra', lazy=True)
+    notas = db.Column(db.Text, nullable=True)
 
 with app.app_context():
     db.create_all()
     try:
         PagoCuota.__table__.create(db.engine, checkfirst=True)
         ConfiguracionTesoreria.__table__.create(db.engine, checkfirst=True)
-        GestionRotaria.__table__.create(db.engine, checkfirst=True)
         Proyecto.__table__.create(db.engine, checkfirst=True)
         EventoProyecto.__table__.create(db.engine, checkfirst=True)
         Gasto.__table__.create(db.engine, checkfirst=True)
@@ -225,28 +187,15 @@ with app.app_context():
     try:
         db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(50) DEFAULT 'SOCIO';"))
         db.session.execute(db.text("ALTER TABLE socios DROP CONSTRAINT IF EXISTS socios_numero_socio_key;"))
-        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS foto_comprobante TEXT;"))
-        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS comprobante VARCHAR(300);"))
-        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS notas TEXT;"))
-        db.session.execute(db.text("ALTER TABLE pagos_cuotas ADD COLUMN IF NOT EXISTS grupo_recibo VARCHAR(50);"))
-        db.session.execute(db.text("ALTER TABLE pagos_cuotas ADD COLUMN IF NOT EXISTS fecha_pago TIMESTAMP;"))
-        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS archivo_base64 TEXT;"))
-        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS contenido_sistema TEXT;"))
-        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS origen VARCHAR(20);"))
-        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS lugar VARCHAR(150);"))
-        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS participantes TEXT;"))
-        db.session.execute(db.text("ALTER TABLE gestion_rotaria ADD COLUMN IF NOT EXISTS acuerdos_lista TEXT;"))
         db.session.commit()
     except Exception as e:
         db.session.rollback()
     pass_hash = generate_password_hash('rotary2026')
-    pass_rcreel = generate_password_hash('rcreel2026')
     credenciales = [
         ('admin', pass_hash, 'ADMIN'),
         ('presidente', pass_hash, 'PRESIDENTE'),
         ('tesorero', pass_hash, 'TESORERO'),
-        ('rccreel', pass_hash, 'SOCIO'),
-        ('rcreel', pass_rcreel, 'RCREEL')
+        ('rccreel', pass_hash, 'SOCIO')
     ]
     for usr, phash, r in credenciales:
         u_db = Usuario.query.filter_by(username=usr).first()
@@ -270,21 +219,11 @@ def get_mes_anio_actual():
 
 @app.route('/')
 def index_publico():
-    # FIX: Limpia flashes pegados que no deben aparecer en pagina publica
-    session.pop('_flashes', None)
     lista_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
     return render_template('publico.html', socios=lista_socios)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'GET':
-        # FIX DEFINITIVO: Borra TODOS los flashes de gastos/proyectos que quedaron pegados
-        # Tu captura muestra Gasto registrado en login - esto los limpia totalmente
-        session.pop('_flashes', None)
-        session.pop('_flashed_messages', None)
-        # Fuerza limpieza adicional
-        if '_flashes' in session:
-            del session['_flashes']
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
@@ -293,21 +232,9 @@ def login():
             session['user_id'] = user.id
             session['username'] = user.username
             session['rol'] = user.rol
-            session.pop('_flashes', None)  # Limpia flashes viejos al loguearse
-            session.pop('_flashed_messages', None)
             return redirect(url_for('menu_principal'))
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
-    # Limpia cualquier flash residual antes de mostrar login, excepto errores de login
-    # Solo permite flashes de categoria danger en login
-    flashes = session.get('_flashes', [])
-    if flashes:
-        # Filtra y deja solo errores de login
-        filtered = [f for f in flashes if 'incorrectos' in str(f).lower() or f[0] == 'danger']
-        if filtered:
-            session['_flashes'] = filtered
-        else:
-            session.pop('_flashes', None)
     return render_template('login.html')
 
 @app.route('/menu-principal')
@@ -324,7 +251,7 @@ def menu_principal():
         if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual_num:
             festividades.append({'dia': socio.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO ID: {socio.numero_socio or socio.id}"})
         if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual_num:
-            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CONYUGE', 'persona': socio.nombre_esposa or 'CONYUGE', 'detalle': f"CONYUGE DE: {socio.nombre_completo}"})
+            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CÓNYUGE', 'persona': socio.nombre_esposa or 'CÓNYUGE', 'detalle': f"CÓNYUGE DE: {socio.nombre_completo}"})
         if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual_num:
             festividades.append({'dia': socio.aniversario_matrimonio.day, 'tipo': 'ANIVERSARIO DE BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CÓNYUGE'}", 'detalle': "ANIVERSARIO MATRIMONIAL"})
         if socio.hijos:
@@ -339,50 +266,20 @@ def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     lista_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
-    meses_es = {1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO", 9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"}
-    mes_actual_num = datetime.now().month
-    mes_actual_nombre = meses_es.get(mes_actual_num, "MES")
-    festividades = []
-    for socio in lista_socios:
-        if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual_num:
-            festividades.append({'dia': socio.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO: {socio.nombre_completo}"})
-        if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual_num:
-            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CONYUGE', 'persona': socio.nombre_esposa or 'CONYUGE', 'detalle': f"CONYUGE DE: {socio.nombre_completo}"})
-        if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual_num:
-            festividades.append({'dia': socio.aniversario_matrimonio.day, 'tipo': 'ANIVERSARIO BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CONYUGE'}", 'detalle': "ANIVERSARIO MATRIMONIAL"})
-        if socio.hijos:
-            for hijo in socio.hijos:
-                if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual_num:
-                    festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
-    festividades = sorted(festividades, key=lambda x: x['dia'])
-    return render_template('socios.html', socios=lista_socios, festividades_mes=festividades, mes_actual_nombre=mes_actual_nombre, mes_actual_num=mes_actual_num)
-
-
-@app.route('/debug/festividades')
-def debug_festividades():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    socios = Socio.query.all()
-    html = "<h2>DEBUG FESTIVIDADES - TODOS LOS SOCIOS</h2>"
-    html += f"<p>Mes actual: {datetime.now().month} - {datetime.now().strftime('%d/%m/%Y')}</p>"
-    html += "<table border=1 style='font-size:10px; border-collapse:collapse;'><tr><th>SOCIO</th><th>F.NAC SOCIO</th><th>NOMBRE ESPOSA</th><th>F.NAC ESPOSA (RAW)</th><th>F.NAC ESPOSA PARSED</th><th>MES</th><th>ANIV</th></tr>"
-    for s in socios:
-        fnac_esposa = s.fecha_nacimiento_esposa
-        fnac_esposa_str = str(fnac_esposa) if fnac_esposa else 'None'
-        mes = fnac_esposa.month if fnac_esposa else 'None'
-        html += f"<tr><td>{s.nombre_completo}</td><td>{s.fecha_nacimiento}</td><td>{s.nombre_esposa}</td><td>{fnac_esposa_str}</td><td>{fnac_esposa}</td><td>{mes}</td><td>{s.aniversario_matrimonio}</td></tr>"
-    html += "</table>"
-    html += "<p><a href='/socios'>Volver a Socios</a></p>"
-    return html
+    return render_template('socios.html', socios=lista_socios)
 
 @app.route('/socios/agregar', methods=['POST'])
-
 def agregar_socio():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         flash('Acceso denegado.', 'danger')
         return redirect(url_for('gestion_socios'))
     def parse_date(date_str):
-        return parse_fecha_robusta(date_str)
+        if date_str:
+            try:
+                return datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return None
+        return None
     nuevo = Socio(
         numero_socio=to_upper(request.form.get('numero_socio')),
         nombre_completo=to_upper(request.form.get('nombre_completo')),
@@ -423,12 +320,17 @@ def agregar_socio():
 
 @app.route('/socios/editar/<int:socio_id>', methods=['POST'])
 def editar_socio(socio_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         flash('Acceso denegado.', 'danger')
         return redirect(url_for('gestion_socios'))
     socio = Socio.query.get_or_404(socio_id)
     def parse_date(date_str):
-        return parse_fecha_robusta(date_str)
+        if date_str:
+            try:
+                return datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return None
+        return None
     socio.numero_socio = to_upper(request.form.get('numero_socio')) or socio.numero_socio
     socio.nombre_completo = to_upper(request.form.get('nombre_completo')) or socio.nombre_completo
     socio.tipo_socio = to_upper(request.form.get('tipo_socio')) or socio.tipo_socio
@@ -477,8 +379,6 @@ def cumpleanos_mes():
 def gestion_autoridades():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if session.get('rol') == 'RCREEL':
-        pass  # RCREEL tiene acceso permitido
     autoridades = AutoridadRotaria.query.order_by(AutoridadRotaria.nivel.asc()).all()
     return render_template('autoridades.html', autoridades=autoridades)
 
@@ -518,8 +418,7 @@ def cuotas_sociales():
     socios = Socio.query.filter_by(es_activo=True).order_by(Socio.nombre_completo.asc()).all()
     config_teso = ConfiguracionTesoreria.query.first()
     saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
-    # CUADRE DE CAJA: total real en caja por fecha de pago, no por mes de cuota
-    total_recaudado = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0.0
+    total_recaudado = PagoCuota.query.filter(PagoCuota.mes_anio.in_(MESES_CONTROL)).with_entities(func.sum(PagoCuota.monto)).scalar() or 0.0
     saldo_total_general = saldo_inicial + total_recaudado
     recibo_ids = request.args.get('recibo_ids')
     pagos_recibo = []
@@ -535,11 +434,11 @@ def cuotas_sociales():
         if p:
             pagos_recibo = [p]
     ultimo_pago = pagos_recibo[-1] if pagos_recibo else None
-    return render_template('tesoreria.html', socios=socios, meses=MESES_CONTROL, ultimo_pago=ultimo_pago, pagos_recibo=pagos_recibo, saldo_inicial=saldo_inicial, saldo_total_general=saldo_total_general)
+    return render_template('tesoreria.html', socios=socios, meses=MESES_CONTROL, ultimo_pago=ultimo_pago, pagos_recibo=pagos_recibo, saldo_inicial=saldo_inicial, saldo_total_general=saldo_total_general, total_recaudado=total_recaudado, total_ingresos_proyectos=total_ingresos_proyectos, total_ingresos_extra=total_ingresos_extra, total_gastos_admin=total_gastos_admin, total_gastos_proy=total_gastos_proy)
 
 @app.route('/tesoreria/actualizar-saldo-inicial', methods=['POST'])
 def actualizar_saldo_inicial():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         flash('No autorizado.', 'danger')
         return redirect(url_for('menu_principal'))
     password = request.form.get('password')
@@ -564,7 +463,7 @@ def actualizar_saldo_inicial():
 
 @app.route('/tesoreria/registrar-pago', methods=['POST'])
 def registrar_pago_cuota():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         flash('No autorizado.', 'danger')
         return redirect(url_for('menu_principal'))
     socio_id = request.form.get('socio_id')
@@ -574,39 +473,21 @@ def registrar_pago_cuota():
     if not socio_id or not meses_pagados:
         flash('Debe seleccionar al menos un mes y un socio.', 'warning')
         return redirect(url_for('cuotas_sociales'))
-    # Genera un ID unico para este comprobante (mismo para todos los meses de este pago)
-    import uuid
-    grupo_id = f"RC-{socio_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}-{str(uuid.uuid4())[:6].upper()}"
     pagos_creados_ids = []
-    pagos_creados_meses = []
     for m in meses_pagados:
         mes_limpio = m.strip().upper()
         existente = PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=mes_limpio).first()
         if not existente:
-            pago = PagoCuota(
-                socio_id=socio_id, 
-                mes_anio=mes_limpio, 
-                monto=500.0, 
-                metodo_pago=metodo, 
-                referencia=referencia,
-                grupo_recibo=grupo_id,
-                fecha_pago=datetime.now()
-            )
+            pago = PagoCuota(socio_id=socio_id, mes_anio=mes_limpio, monto=500.0, metodo_pago=metodo, referencia=referencia)
             db.session.add(pago)
             db.session.flush()
             pagos_creados_ids.append(str(pago.id))
-            pagos_creados_meses.append(mes_limpio)
     db.session.commit()
     if pagos_creados_ids:
-        # COMPROBANTE UNICO: si son varios meses, genera un solo comprobante con todos - mismo grupo_id
-        meses_str = ', '.join(pagos_creados_meses)
-        if len(pagos_creados_ids) == 1:
-            flash(f'Pago registrado: {meses_str} - ${len(pagos_creados_ids)*500:.2f} - COMPROBANTE {grupo_id} GENERADO', 'success')
-        else:
-            flash(f'{len(pagos_creados_ids)} meses pagados en UN SOLO COMPROBANTE {grupo_id}: {meses_str} - Total ${len(pagos_creados_ids)*500:.2f} - El mismo recibo aparece en los {len(pagos_creados_ids)} meses', 'success')
+        flash(f'{len(pagos_creados_ids)} pago(s) registrado(s).', 'success')
         return redirect(url_for('cuotas_sociales', recibo_ids=','.join(pagos_creados_ids)))
     else:
-        flash('Ya estaban pagados (meses tachados en modal).', 'info')
+        flash('Ya estaban pagados.', 'info')
         return redirect(url_for('cuotas_sociales'))
 
 @app.route('/tesoreria/editar-pago/<int:pago_id>', methods=['POST'])
@@ -628,7 +509,7 @@ def editar_pago_cuota(pago_id):
 
 @app.route('/tesoreria/recibo/<int:pago_id>')
 def ver_recibo(pago_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     pago = PagoCuota.query.get_or_404(pago_id)
     pagos_relacionados = request.args.get('ids')
@@ -649,7 +530,7 @@ def ver_recibo(pago_id):
 
 @app.route('/tesoreria/estado-cuenta-pdf/<int:socio_id>')
 def estado_cuenta_pdf(socio_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     socio = Socio.query.get_or_404(socio_id)
     meses_es = {"January": "ENERO", "February": "FEBRERO", "March": "MARZO", "April": "ABRIL", "May": "MAYO", "June": "JUNIO", "July": "JULIO", "August": "AGOSTO", "September": "SEPTIEMBRE", "October": "OCTUBRE", "November": "NOVIEMBRE", "December": "DICIEMBRE"}
@@ -661,7 +542,7 @@ def estado_cuenta_pdf(socio_id):
 # ==================== NUEVO MODULO GASTOS ====================
 @app.route('/tesoreria/gastos')
 def tesoreria_gastos():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     gastos_mes = Gasto.query.filter_by(mes_anio=mes_filtro).order_by(Gasto.fecha.desc()).all()
@@ -669,19 +550,9 @@ def tesoreria_gastos():
     total_proyecto = sum([g.monto for g in gastos_mes if g.centro_costo == 'PROYECTO'])
     proyectos = Proyecto.query.filter_by(activo=True).all()
     try:
-        # CUADRE DE CAJA: cuotas por fecha de pago real
-        mes_abrev = mes_filtro.split()[0]
-        anio_num = int(mes_filtro.split()[1])
-        mes_num = MESES_NOMBRES.index(mes_abrev) + 1
-        total_cuotas_mes = db.session.query(func.sum(PagoCuota.monto)).filter(
-            func.extract('month', PagoCuota.fecha_pago) == mes_num,
-            func.extract('year', PagoCuota.fecha_pago) == anio_num
-        ).scalar() or 0
+        total_cuotas_mes = db.session.query(func.sum(PagoCuota.monto)).filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).scalar() or 0
     except:
-        try:
-            total_cuotas_mes = db.session.query(func.sum(PagoCuota.monto)).filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).scalar() or 0
-        except:
-            total_cuotas_mes = 0
+        total_cuotas_mes = 0
     meses_lista = []
     now = datetime.now()
     for i in range(18):
@@ -695,7 +566,7 @@ def tesoreria_gastos():
 
 @app.route('/tesoreria/gastos/nuevo', methods=['POST'])
 def nuevo_gasto():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     fecha_str = request.form.get('fecha')
     fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.now().date()
@@ -758,7 +629,7 @@ def tesoreria_proyectos():
 
 @app.route('/tesoreria/proyecto/nuevo', methods=['POST'])
 def nuevo_proyecto():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     nombre = request.form.get('nombre').upper()
     proyecto = Proyecto(nombre=nombre, descripcion=request.form.get('descripcion'))
@@ -779,32 +650,9 @@ def ver_proyecto(proyecto_id):
     total_gastos = sum([g.monto for g in gastos])
     return render_template('tesoreria_proyecto_detalle.html', proyecto=proyecto, eventos=eventos, gastos=gastos, total_recaudado=total_recaudado, total_meta=total_meta, total_gastos=total_gastos, balance=total_recaudado-total_gastos)
 
-@app.route('/tesoreria/ingreso/nuevo', methods=['POST'])
-def nuevo_ingreso_proyecto():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
-        return redirect(url_for('login'))
-    proyecto_id = request.form.get('proyecto_id')
-    if not proyecto_id:
-        flash('Debe seleccionar un proyecto / centro de costos', 'danger')
-        return redirect(url_for('tesoreria_proyectos'))
-    proyecto = Proyecto.query.get_or_404(int(proyecto_id))
-    evento = EventoProyecto(
-        proyecto_id=int(proyecto_id),
-        nombre=request.form.get('nombre').upper(),
-        descripcion=request.form.get('descripcion'),
-        monto_meta=float(request.form.get('monto_meta')),
-        monto_recaudado=float(request.form.get('monto_recaudado') or 0),
-        fecha_evento=datetime.strptime(request.form.get('fecha_evento'), '%Y-%m-%d').date() if request.form.get('fecha_evento') else None,
-        detalle_recaudado=request.form.get('detalle_recaudado')
-    )
-    db.session.add(evento)
-    db.session.commit()
-    flash(f'Ingreso registrado: {evento.nombre} - ${evento.monto_recaudado:,.2f} en {proyecto.nombre} - Centro Costos: PROYECTOS', 'success')
-    return redirect(url_for('tesoreria_proyectos'))
-
 @app.route('/tesoreria/proyecto/<int:proyecto_id>/evento/nuevo', methods=['POST'])
 def nuevo_evento_proyecto(proyecto_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     proyecto = Proyecto.query.get_or_404(proyecto_id)
     evento = EventoProyecto(
@@ -844,7 +692,7 @@ def eliminar_evento(evento_id):
 # ==================== ESTADO DE CUENTA MENSUAL ====================
 @app.route('/tesoreria/estado-cuenta-mensual')
 def estado_cuenta_mensual():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     # meses lista
@@ -861,18 +709,8 @@ def estado_cuenta_mensual():
     config = ConfiguracionTesoreria.query.first()
     saldo_inicial = config.saldo_inicial if config else 0.0
 
-    # CUOTAS MES - POR FECHA DE PAGO (cuadre de caja) - el dinero que realmente entró en caja ese mes
-    try:
-        mes_abrev = mes_filtro.split()[0]
-        anio_num = int(mes_filtro.split()[1])
-        mes_num = MESES_NOMBRES.index(mes_abrev) + 1
-        pagos_cuotas = PagoCuota.query.filter(
-            func.extract('month', PagoCuota.fecha_pago) == mes_num,
-            func.extract('year', PagoCuota.fecha_pago) == anio_num
-        ).all()
-    except:
-        # Fallback si falla parseo, usa mes_anio
-        pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
+    # CUOTAS MES
+    pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
     total_cuotas_mes = sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0
 
     # GASTOS MES
@@ -881,35 +719,38 @@ def estado_cuenta_mensual():
     total_gastos_admin_mes = sum([g.monto for g in gastos_admin]) if gastos_admin else 0
     total_gastos_proy_mes = sum([g.monto for g in gastos_proy]) if gastos_proy else 0
 
-    # INGRESOS PROYECTOS MES - eventos cuya fecha_evento cae en el mes, o creacion en ese mes
-    # Para simplificar: filtra por mes_anio si tienes, sino todos los eventos que tienen monto_recaudado y agrupamos
-    # Busca eventos con fecha_evento en ese mes
+    # INGRESOS PROYECTOS MES
     try:
         mes_num = MESES_NOMBRES.index(mes_filtro.split()[0]) + 1
         anio_num = int(mes_filtro.split()[1])
         eventos_mes = EventoProyecto.query.filter(func.extract('month', EventoProyecto.fecha_evento) == mes_num, func.extract('year', EventoProyecto.fecha_evento) == anio_num).all()
     except:
-        eventos_mes = EventoProyecto.query.all()
-        # fallback: muestra todos si no coincide mes
+        eventos_mes = []
 
     total_ingresos_proyectos_mes = sum([e.monto_recaudado for e in eventos_mes]) if eventos_mes else 0
+
+    # INGRESOS EXTRAORDINARIOS / DONACIONES MES - NUEVO
+    ingresos_extra_mes = IngresoExtraordinario.query.filter_by(mes_anio=mes_filtro).order_by(IngresoExtraordinario.fecha.desc()).all()
+    total_ingresos_extra_mes = sum([i.monto for i in ingresos_extra_mes]) if ingresos_extra_mes else 0
 
     # Si no hay eventos filtrados por fecha, intenta buscar por mes_anio no existe en eventos, entonces usa 0
     # Pero para que veas datos, si no hay eventos en ese mes, total_ingresos_proyectos_mes = 0, puedes ajustar luego
 
-    total_ingresos = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes
+    total_ingresos = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes + total_ingresos_extra_mes
     total_egresos = total_gastos_admin_mes + total_gastos_proy_mes
-    balance_final = total_cuotas_mes + total_ingresos_proyectos_mes - total_egresos
-    balance_acumulado = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes - total_gastos_admin_mes - total_gastos_proy_mes
+    balance_final = total_cuotas_mes + total_ingresos_proyectos_mes + total_ingresos_extra_mes - total_egresos
+    balance_acumulado = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes + total_ingresos_extra_mes - total_gastos_admin_mes - total_gastos_proy_mes
 
     # Historicos totales
     total_cuotas_historico = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0
     total_gastos_admin_hist = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='ADMINISTRATIVO').scalar() or 0
     total_gastos_proy_hist = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='PROYECTO').scalar() or 0
     total_ingresos_proy_hist = db.session.query(func.sum(EventoProyecto.monto_recaudado)).scalar() or 0
+    total_ingresos_extra_hist = db.session.query(func.sum(IngresoExtraordinario.monto)).scalar() or 0
 
     saldo_cuotas = total_cuotas_mes - total_gastos_admin_mes
     saldo_proyectos = total_ingresos_proyectos_mes - total_gastos_proy_mes
+    saldo_extra = total_ingresos_extra_mes
 
     return render_template('estado_cuenta_mensual.html',
                            mes_actual=mes_filtro,
@@ -927,20 +768,47 @@ def estado_cuenta_mensual():
                            eventos_mes=eventos_mes,
                            total_ingresos_proyectos_mes=total_ingresos_proyectos_mes,
                            num_eventos_mes=len(eventos_mes),
+                           ingresos_extra_mes=ingresos_extra_mes,
+                           total_ingresos_extra_mes=total_ingresos_extra_mes,
                            total_ingresos=total_ingresos,
                            total_egresos=total_egresos,
                            balance_final=balance_final,
                            balance_acumulado=balance_acumulado,
-                           saldo_cuotas=saldo_cuotas,
-                           saldo_proyectos=saldo_proyectos,
                            total_cuotas_historico=total_cuotas_historico,
                            total_gastos_admin_hist=total_gastos_admin_hist,
                            total_gastos_proy_hist=total_gastos_proy_hist,
-                           total_ingresos_proy_hist=total_ingresos_proy_hist)
+                           total_ingresos_proy_hist=total_ingresos_proy_hist,
+                           total_ingresos_extra_hist=total_ingresos_extra_hist,
+                           saldo_cuotas=saldo_cuotas,
+                           saldo_proyectos=saldo_proyectos,
+                           saldo_extra=saldo_extra),
+                           gastos_admin=gastos_admin,
+                           gastos_proy=gastos_proy,
+                           total_gastos_admin_mes=total_gastos_admin_mes,
+                           total_gastos_proy_mes=total_gastos_proy_mes,
+                           num_gastos_admin=len(gastos_admin),
+                           num_gastos_proy=len(gastos_proy),
+                           eventos_mes=eventos_mes,
+                           total_ingresos_proyectos_mes=total_ingresos_proyectos_mes,
+                           num_eventos_mes=len(eventos_mes),
+                           total_ingresos=total_ingresos,
+                           total_egresos=total_egresos,
+                           balance_final=balance_final,
+                           balance_acumulado=balance_acumulado,
+                           total_cuotas_historico=total_cuotas_historico,
+                           total_gastos_admin_hist=total_gastos_admin_hist,
+                           total_gastos_proy_hist=total_gastos_proy_hist,
+                           total_ingresos_proy_hist=total_ingresos_proy_hist,
+                           total_ingresos_extra_hist=total_ingresos_extra_hist,
+                           ingresos_extra_mes=ingresos_extra_mes,
+                           total_ingresos_extra_mes=total_ingresos_extra_mes,
+                           saldo_cuotas=saldo_cuotas,
+                           saldo_proyectos=saldo_proyectos,
+                           saldo_extra=saldo_extra)
 
 @app.route('/tesoreria/estado-cuenta-pdf-mensual')
 def estado_cuenta_pdf_mensual():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     config = ConfiguracionTesoreria.query.first()
@@ -984,7 +852,7 @@ def estado_cuenta_pdf_mensual():
 
 @app.route('/tesoreria/recaudacion-mensual')
 def recaudacion_mensual():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     total_socios = Socio.query.filter_by(es_activo=True).count()
     if total_socios == 0:
@@ -999,19 +867,7 @@ def recaudacion_mensual():
         resultado = []
         total_recibido = 0
         for mes in lista_meses:
-            # CUADRE DE CAJA: contar por fecha_pago real, no por mes_anio (cuota que se pagó)
-            # Si alguien paga en NOV 2026 la cuota de JUN 2025, el dinero entra en NOV 2026
-            try:
-                mes_abrev = mes.split()[0]
-                anio = int(mes.split()[1])
-                mes_num = MESES_NOMBRES.index(mes_abrev) + 1
-                pagos_mes = PagoCuota.query.filter(
-                    func.extract('month', PagoCuota.fecha_pago) == mes_num,
-                    func.extract('year', PagoCuota.fecha_pago) == anio
-                ).all()
-            except:
-                # Fallback por mes_anio si no hay fecha_pago
-                pagos_mes = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes.strip().upper()).all()
+            pagos_mes = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes.strip().upper()).all()
             recibido = sum([p.monto for p in pagos_mes]) if pagos_mes else 0
             esperado = esperado_por_mes
             diferencia = esperado - recibido
@@ -1070,318 +926,128 @@ def recaudacion_mensual():
                            comparacion_anual=comparacion_anual,
                            cuota_mensual=cuota_mensual)
 
-# ==================== MODULO INGRESOS EXTRAORDINARIOS / DONACIONES ====================
+
 @app.route('/tesoreria/ingresos-extraordinarios')
 def ingresos_extraordinarios():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
-    tipo_filtro = request.args.get('tipo', 'TODOS')
-    query = IngresoExtraordinario.query
-    if mes_filtro and mes_filtro != 'TODOS':
-        query = query.filter(func.upper(func.trim(IngresoExtraordinario.mes_anio)) == mes_filtro.strip().upper())
-    if tipo_filtro and tipo_filtro != 'TODOS':
-        query = query.filter(IngresoExtraordinario.tipo == tipo_filtro)
-    ingresos = query.order_by(IngresoExtraordinario.fecha.desc()).all()
-    total_ingresos = sum([i.monto for i in ingresos]) if ingresos else 0
-    total_donaciones = sum([i.monto for i in ingresos if i.tipo == 'DONACION']) if ingresos else 0
-    total_extra = sum([i.monto for i in ingresos if i.tipo == 'INGRESO EXTRAORDINARIO']) if ingresos else 0
-    proyectos = Proyecto.query.filter_by(activo=True).all()
+    meses_lista = []
+    now = datetime.now()
+    for i in range(18):
+        m = now.month - i
+        y = now.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        meses_lista.append(f"{MESES_NOMBRES[m-1]} {y}")
+    
+    ingresos = IngresoExtraordinario.query.filter_by(mes_anio=mes_filtro).order_by(IngresoExtraordinario.fecha.desc()).all()
+    total_mes = sum([i.monto for i in ingresos]) if ingresos else 0
+    
+    # Totales historicos
+    total_historico = db.session.query(func.sum(IngresoExtraordinario.monto)).scalar() or 0
+    total_donaciones = db.session.query(func.sum(IngresoExtraordinario.monto)).filter_by(tipo='DONACION').scalar() or 0
+    total_patrocinios = db.session.query(func.sum(IngresoExtraordinario.monto)).filter_by(tipo='PATROCINIO').scalar() or 0
+    
+    # Para saldo
+    config = ConfiguracionTesoreria.query.first()
+    saldo_inicial = config.saldo_inicial if config else 0.0
+    
     return render_template('ingresos_extraordinarios.html',
                            ingresos=ingresos,
-                           total_ingresos=total_ingresos,
+                           mes_actual=mes_filtro,
+                           meses_lista=meses_lista,
+                           total_mes=total_mes,
+                           total_historico=total_historico,
                            total_donaciones=total_donaciones,
-                           total_extra=total_extra,
-                           meses=MESES_CONTROL,
-                           mes_filtro=mes_filtro,
-                           tipo_filtro=tipo_filtro,
-                           proyectos=proyectos,
-                           mes_actual=get_mes_anio_actual())
+                           total_patrocinios=total_patrocinios,
+                           saldo_inicial=saldo_inicial)
 
-@app.route('/tesoreria/ingresos-extraordinarios/crear', methods=['POST'])
-def crear_ingreso_extraordinario():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
-        return redirect(url_for('login'))
-    try:
-        fecha_str = request.form.get('fecha')
-        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.now().date()
-        mes_anio = request.form.get('mes_anio') or get_mes_anio_actual()
-        tipo = to_upper(request.form.get('tipo')) or 'DONACION'
-        concepto = to_upper(request.form.get('concepto'))
-        monto = float(request.form.get('monto', 0))
-        metodo_pago = to_upper(request.form.get('metodo_pago')) or 'EFECTIVO'
-        referencia = to_upper(request.form.get('referencia'))
-        descripcion = to_upper(request.form.get('descripcion'))
-        proyecto_id = request.form.get('proyecto_id')
-        proyecto_id = int(proyecto_id) if proyecto_id and proyecto_id != '' else None
-
-        if not concepto or monto <= 0:
-            flash('CONCEPTO Y MONTO SON OBLIGATORIOS', 'danger')
-            return redirect(url_for('ingresos_extraordinarios'))
-
-        ingreso = IngresoExtraordinario(
-            fecha=fecha,
-            mes_anio=mes_anio,
-            tipo=tipo,
-            concepto=concepto,
-            monto=monto,
-            metodo_pago=metodo_pago,
-            referencia=referencia,
-            descripcion=descripcion,
-            proyecto_id=proyecto_id,
-            creado_por=session.get('username', 'TESORERO')
-        )
-        db.session.add(ingreso)
-        db.session.commit()
-        flash(f'INGRESO REGISTRADO: {concepto} - ${monto:.2f} ({tipo})', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'ERROR AL REGISTRAR INGRESO: {str(e)}', 'danger')
-    return redirect(url_for('ingresos_extraordinarios'))
-
-@app.route('/tesoreria/ingresos-extraordinarios/eliminar/<int:id>')
-def eliminar_ingreso_extraordinario(id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO']:
-        return redirect(url_for('login'))
-    ingreso = IngresoExtraordinario.query.get_or_404(id)
-    db.session.delete(ingreso)
-    db.session.commit()
-    flash(f'INGRESO ELIMINADO: {ingreso.concepto}', 'warning')
-    return redirect(url_for('ingresos_extraordinarios'))
-
-# ==================== GESTION ROTARIA - ERP ====================
-@app.route('/gestion-rotaria')
-def gestion_rotaria():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    # RCREEL no tiene acceso a gestion rotaria
-    if session.get('rol') == 'RCREEL':
-        flash('Acceso denegado. Usuario rcreel solo tiene acceso a Directorio de Socios y Autoridades Rotarias.', 'danger')
-        return redirect(url_for('menu_principal'))
-    tipo_filtro = request.args.get('tipo', 'TODOS')
-    estado_filtro = request.args.get('estado', 'TODOS')
-    query = GestionRotaria.query.order_by(GestionRotaria.fecha_documento.desc(), GestionRotaria.fecha_subida.desc())
-    if tipo_filtro != 'TODOS':
-        query = query.filter_by(tipo=tipo_filtro)
-    if estado_filtro != 'TODOS':
-        query = query.filter_by(estado=estado_filtro)
-    documentos = query.all()
-    # Contadores por tipo
-    total_actas = GestionRotaria.query.filter_by(tipo='ACTA').count()
-    total_acuerdos = GestionRotaria.query.filter_by(tipo='ACUERDO').count()
-    total_presidencia = GestionRotaria.query.filter_by(tipo='PRESIDENCIA').count()
-    total_secretaria = GestionRotaria.query.filter_by(tipo='SECRETARIA').count()
-    total_fundacion = GestionRotaria.query.filter_by(tipo='FUNDACION').count()
-    total_servicios = GestionRotaria.query.filter_by(tipo='SERVICIOS').count()
-    tipos = ['ACTA', 'ACUERDO', 'PRESIDENCIA', 'SECRETARIA', 'FUNDACION', 'SERVICIOS', 'TESORERIA', 'MEMBRESIA', 'OTRO']
-    return render_template('gestion_rotaria.html',
-                           documentos=documentos,
-                           tipos=tipos,
-                           tipo_filtro=tipo_filtro,
-                           estado_filtro=estado_filtro,
-                           total_actas=total_actas,
-                           total_acuerdos=total_acuerdos,
-                           total_presidencia=total_presidencia,
-                           total_secretaria=total_secretaria,
-                           total_fundacion=total_fundacion,
-                           total_servicios=total_servicios)
-
-@app.route('/gestion-rotaria/subir', methods=['POST'])
-def subir_documento_rotaria():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE', 'TESORERO', 'SECRETARIO']:
-        if session.get('rol') == 'RCREEL':
-            flash('Usuario rcreel no tiene acceso a Gestion Rotaria', 'danger')
-            return redirect(url_for('menu_principal'))
-        flash('No autorizado para subir documentos.', 'danger')
-        return redirect(url_for('gestion_rotaria'))
-    tipo = request.form.get('tipo', 'OTRO').strip().upper()
-    titulo = request.form.get('titulo', '').strip()
-    descripcion = request.form.get('descripcion', '').strip()
-    fecha_doc_str = request.form.get('fecha_documento')
-    estado = request.form.get('estado', 'VIGENTE').strip().upper()
-    origen_form = request.form.get('origen', 'PDF').strip().upper()
-    lugar = request.form.get('lugar', '').strip()
-    participantes = request.form.get('participantes', '').strip()
-    contenido_sistema = request.form.get('contenido_sistema', '').strip()
-    acuerdos_lista = request.form.get('acuerdos_lista', '').strip()
-    if not titulo:
-        flash('El titulo es obligatorio.', 'warning')
-        return redirect(url_for('gestion_rotaria'))
-    fecha_doc = None
-    if fecha_doc_str:
-        try:
-            fecha_doc = datetime.strptime(fecha_doc_str, '%Y-%m-%d').date()
-        except:
-            fecha_doc = datetime.now().date()
-    archivo_nombre = None
-    archivo_b64 = None
-    archivo_tipo = 'PDF'
-    if 'archivo' in request.files:
-        file = request.files['archivo']
-        if file and file.filename:
-            archivo_nombre = file.filename
-            if not archivo_nombre.lower().endswith('.pdf'):
-                flash('Solo se permiten archivos PDF.', 'warning')
-                return redirect(url_for('gestion_rotaria'))
-            contenido = file.read()
-            if len(contenido) > 15 * 1024 * 1024:
-                flash('Archivo muy grande, max 15 MB.', 'warning')
-                return redirect(url_for('gestion_rotaria'))
-            archivo_b64 = base64.b64encode(contenido).decode('utf-8')
-            archivo_tipo = 'PDF'
-    if origen_form == 'SISTEMA' and not contenido_sistema:
-        flash('Para crear documento en sistema, debe escribir el contenido.', 'warning')
-        return redirect(url_for('gestion_rotaria'))
-    if not archivo_b64 and not contenido_sistema:
-        flash('Debe subir un PDF o crear el contenido en el sistema.', 'warning')
-        return redirect(url_for('gestion_rotaria'))
-    if archivo_b64 and contenido_sistema:
-        origen_final = 'MIXTO'
-    elif archivo_b64:
-        origen_final = 'PDF'
-    else:
-        origen_final = 'SISTEMA'
-    doc = GestionRotaria(
-        tipo=tipo,
-        titulo=to_upper(titulo),
-        descripcion=descripcion,
-        fecha_documento=fecha_doc or datetime.now().date(),
-        archivo_nombre=archivo_nombre,
-        archivo_base64=archivo_b64,
-        archivo_tipo=archivo_tipo,
-        subido_por=session.get('username', 'SISTEMA'),
-        estado=estado,
-        contenido_sistema=contenido_sistema,
-        origen=origen_final,
-        lugar=to_upper(lugar) if lugar else None,
-        participantes=participantes,
-        acuerdos_lista=acuerdos_lista
-    )
-    db.session.add(doc)
-    db.session.commit()
-    if origen_final == 'SISTEMA':
-        flash(f'Documento {tipo} - {titulo} CREADO EN SISTEMA correctamente.', 'success')
-    elif origen_final == 'MIXTO':
-        flash(f'Documento {tipo} - {titulo} creado con contenido + PDF.', 'success')
-    else:
-        flash(f'Documento {tipo} - {titulo} subido PDF correctamente.', 'success')
-    return redirect(url_for('gestion_rotaria'))
-
-@app.route('/gestion-rotaria/ver/<int:doc_id>')
-def ver_documento_rotaria(doc_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    if session.get('rol') == 'RCREEL':
-        flash('Acceso denegado a Gestion Rotaria.', 'danger')
-        return redirect(url_for('menu_principal'))
-    doc = GestionRotaria.query.get_or_404(doc_id)
-    if doc.origen == 'SISTEMA' or (doc.contenido_sistema and not doc.archivo_base64):
-        return redirect(url_for('ver_documento_sistema', doc_id=doc.id))
-    if not doc.archivo_base64:
-        if doc.contenido_sistema:
-            return redirect(url_for('ver_documento_sistema', doc_id=doc.id))
-        flash('Documento sin archivo PDF adjunto.', 'warning')
-        return redirect(url_for('gestion_rotaria'))
-    try:
-        pdf_bytes = base64.b64decode(doc.archivo_base64)
-        from flask import Response
-        return Response(pdf_bytes, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename={doc.archivo_nombre or "documento.pdf"}'})
-    except Exception as e:
-        flash(f'Error al mostrar PDF: {e}', 'danger')
-        return redirect(url_for('gestion_rotaria'))
-    try:
-        pdf_bytes = base64.b64decode(doc.archivo_base64)
-        from flask import Response
-        return Response(pdf_bytes, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename={doc.archivo_nombre or "documento.pdf"}'})
-    except Exception as e:
-        flash(f'Error al mostrar PDF: {e}', 'danger')
-        return redirect(url_for('gestion_rotaria'))
-
-@app.route('/gestion-rotaria/descargar/<int:doc_id>')
-def descargar_documento_rotaria(doc_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    if session.get('rol') == 'RCREEL':
-        flash('Acceso denegado.', 'danger')
-        return redirect(url_for('menu_principal'))
-    doc = GestionRotaria.query.get_or_404(doc_id)
-    if not doc.archivo_base64:
-        flash('Sin archivo.', 'warning')
-        return redirect(url_for('gestion_rotaria'))
-    try:
-        pdf_bytes = base64.b64decode(doc.archivo_base64)
-        from flask import Response
-        return Response(pdf_bytes, mimetype='application/pdf', headers={'Content-Disposition': f'attachment; filename={doc.archivo_nombre or "documento.pdf"}'})
-    except Exception as e:
-        flash(f'Error: {e}', 'danger')
-        return redirect(url_for('gestion_rotaria'))
-
-@app.route('/gestion-rotaria/eliminar/<int:doc_id>', methods=['POST'])
-def eliminar_documento_rotaria(doc_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE']:
-        flash('Solo ADMIN o PRESIDENTE puede eliminar.', 'danger')
-        return redirect(url_for('gestion_rotaria'))
-    doc = GestionRotaria.query.get_or_404(doc_id)
-    db.session.delete(doc)
-    db.session.commit()
-    flash(f'Documento {doc.titulo} eliminado.', 'warning')
-    return redirect(url_for('gestion_rotaria'))
-
-@app.route('/gestion-rotaria/editar/<int:doc_id>', methods=['POST'])
-def editar_documento_rotaria(doc_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE', 'TESORERO', 'SECRETARIO']:
+@app.route('/tesoreria/ingresos-extraordinarios/nuevo', methods=['POST'])
+def nuevo_ingreso_extraordinario():
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
         flash('No autorizado.', 'danger')
-        return redirect(url_for('gestion_rotaria'))
-    doc = GestionRotaria.query.get_or_404(doc_id)
-    doc.titulo = to_upper(request.form.get('titulo', doc.titulo))
-    doc.descripcion = request.form.get('descripcion', doc.descripcion)
-    doc.tipo = request.form.get('tipo', doc.tipo).strip().upper()
-    doc.estado = request.form.get('estado', doc.estado).strip().upper()
-    doc.lugar = to_upper(request.form.get('lugar', doc.lugar or ''))
-    doc.participantes = request.form.get('participantes', doc.participantes)
-    doc.contenido_sistema = request.form.get('contenido_sistema', doc.contenido_sistema)
-    doc.acuerdos_lista = request.form.get('acuerdos_lista', doc.acuerdos_lista)
-    fecha_str = request.form.get('fecha_documento')
-    if fecha_str:
-        try:
-            doc.fecha_documento = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-        except:
-            pass
-    # Si sube nuevo PDF
-    if 'archivo' in request.files:
-        file = request.files['archivo']
+        return redirect(url_for('menu_principal'))
+    mes_anio = request.form.get('mes_anio', get_mes_anio_actual()).strip().upper()
+    concepto = to_upper(request.form.get('concepto'))
+    tipo = request.form.get('tipo', 'DONACION').strip().upper()
+    origen = to_upper(request.form.get('origen'))
+    referencia = to_upper(request.form.get('referencia'))
+    notas = request.form.get('notas')
+    try:
+        monto = float(request.form.get('monto', 0))
+    except:
+        flash('Monto invalido.', 'danger')
+        return redirect(url_for('ingresos_extraordinarios', mes=mes_anio))
+    
+    fecha_str = request.form.get('fecha')
+    try:
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.now().date()
+    except:
+        fecha = datetime.now().date()
+    
+    # Comprobante base64 opcional
+    comprobante_nombre = None
+    comprobante_b64 = None
+    if 'comprobante' in request.files:
+        file = request.files['comprobante']
         if file and file.filename:
-            if file.filename.lower().endswith('.pdf'):
+            if file.filename.lower().endswith(('.pdf', '.png', '.jpg', '.jpeg')):
                 contenido = file.read()
                 if len(contenido) <= 15 * 1024 * 1024:
-                    doc.archivo_nombre = file.filename
-                    doc.archivo_base64 = base64.b64encode(contenido).decode('utf-8')
-                    # Actualiza origen
-                    if doc.contenido_sistema:
-                        doc.origen = 'MIXTO'
-                    else:
-                        doc.origen = 'PDF'
-    else:
-        # Si no hay PDF pero si contenido sistema, origen SISTEMA
-        if doc.contenido_sistema and not doc.archivo_base64:
-            doc.origen = 'SISTEMA'
-        elif doc.contenido_sistema and doc.archivo_base64:
-            doc.origen = 'MIXTO'
+                    comprobante_nombre = file.filename
+                    comprobante_b64 = base64.b64encode(contenido).decode('utf-8')
+    
+    ingreso = IngresoExtraordinario(
+        fecha=fecha,
+        mes_anio=mes_anio,
+        concepto=concepto,
+        monto=monto,
+        tipo=tipo,
+        origen=origen,
+        referencia=referencia,
+        comprobante_nombre=comprobante_nombre,
+        comprobante_base64=comprobante_b64,
+        registrado_por=session.get('username', 'SISTEMA'),
+        notas=notas
+    )
+    db.session.add(ingreso)
     db.session.commit()
-    flash('Documento actualizado.', 'success')
-    return redirect(url_for('gestion_rotaria'))
+    flash(f'Ingreso extraordinario {concepto} - ${monto:.2f} registrado.', 'success')
+    return redirect(url_for('ingresos_extraordinarios', mes=mes_anio))
 
-@app.route('/gestion-rotaria/ver-sistema/<int:doc_id>')
-def ver_documento_sistema(doc_id):
+@app.route('/tesoreria/ingresos-extraordinarios/eliminar/<int:ingreso_id>', methods=['POST'])
+def eliminar_ingreso_extraordinario(ingreso_id):
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE']:
+        flash('Solo ADMIN o PRESIDENTE puede eliminar.', 'danger')
+        return redirect(url_for('ingresos_extraordinarios'))
+    ingreso = IngresoExtraordinario.query.get_or_404(ingreso_id)
+    mes = ingreso.mes_anio
+    db.session.delete(ingreso)
+    db.session.commit()
+    flash(f'Ingreso {ingreso.concepto} eliminado.', 'warning')
+    return redirect(url_for('ingresos_extraordinarios', mes=mes))
+
+@app.route('/tesoreria/ingresos-extraordinarios/ver/<int:ingreso_id>')
+def ver_comprobante_ingreso(ingreso_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if session.get('rol') == 'RCREEL':
-        flash('Acceso denegado a Gestion Rotaria.', 'danger')
-        return redirect(url_for('menu_principal'))
-    doc = GestionRotaria.query.get_or_404(doc_id)
-    return render_template('gestion_documento_sistema.html', doc=doc)
+    ingreso = IngresoExtraordinario.query.get_or_404(ingreso_id)
+    if not ingreso.comprobante_base64:
+        flash('Sin comprobante.', 'warning')
+        return redirect(url_for('ingresos_extraordinarios', mes=ingreso.mes_anio))
+    try:
+        file_bytes = base64.b64decode(ingreso.comprobante_base64)
+        from flask import Response
+        mimetype = 'application/pdf' if ingreso.comprobante_nombre and ingreso.comprobante_nombre.lower().endswith('.pdf') else 'image/jpeg'
+        return Response(file_bytes, mimetype=mimetype, headers={'Content-Disposition': f'inline; filename={ingreso.comprobante_nombre or "comprobante.pdf"}'})
+    except Exception as e:
+        flash(f'Error: {e}', 'danger')
+        return redirect(url_for('ingresos_extraordinarios', mes=ingreso.mes_anio))
 
 @app.route('/logout')
+
 def logout():
     session.clear()
     return redirect(url_for('index_publico'))
