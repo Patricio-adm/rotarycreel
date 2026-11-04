@@ -47,15 +47,6 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 {% endif %}
 {% endwith %}
 
-<div class="alert alert-info py-1" style="font-size:9px; border:2px solid #000; text-transform:none;">
-<strong>DEBUG FESTIVIDADES:</strong> Mes actual: {{ mes_actual_num }} - {{ mes_actual_nombre }} | Total festividades este mes: {{ festividades_mes|length if festividades_mes else 0 }}
-{% if festividades_mes %}
-{% for f in festividades_mes %}
- - {{ f.dia }}/{{ mes_actual_num }}: {{ f.tipo }} - {{ f.persona }}
-{% endfor %}
-{% endif %}
-</div>
-
 <div class="table-responsive">
 <table class="table tabla-socios bg-white">
 <thead>
@@ -116,25 +107,19 @@ ANIV: {{ socio.aniversario_matrimonio.strftime('%d/%m/%Y') if socio.aniversario_
 {% if festividades_mes and festividades_mes|length > 0 %}
 {% for fest in festividades_mes %}
 <div class="festividad-item">
-<div class="d-flex justify-content-between align-items-center">
-<div>
-<span class="festividad-dia">{{ fest.dia }}</span> <small style="font-size:9px;">/{{ mes_actual_num }}</small>
-<span class="badge bg-primary ms-2" style="font-size:7px;">{{ fest.tipo }}</span>
-</div>
-<small style="font-size:8px; color:#666;">{{ fest.detalle }}</small>
+<div class="d-flex align-items-center gap-2">
+<span class="festividad-dia">{{ fest.dia }}</span>
+<span class="badge bg-primary" style="font-size:7px;">{{ fest.tipo }}</span>
 </div>
 <div class="mt-1">
 <strong style="font-size:11px; text-transform:uppercase;">{{ fest.persona }}</strong><br>
-<small style="font-size:8px; color:#333;">{{ fest.detalle }}</small>
+<small style="font-size:8px; color:#555;">{{ fest.detalle }}</small>
 </div>
 </div>
 {% endfor %}
 {% else %}
 <div class="text-center py-4">
 <p style="font-size:11px; color:#999;">NO HAY FESTIVIDADES EN {{ mes_actual_nombre }}</p>
-<small style="font-size:8px; text-transform:none; color:#666;">Verifica que las fechas de nacimiento de socios, cónyuges e hijos estén registradas correctamente. Formatos aceptados: YYYY-MM-DD, DD/MM/YYYY</small>
-<br><br>
-<a href="/debug/festividades" target="_blank" class="btn btn-info btn-sm" style="font-size:8px;">DEBUG VER TODAS LAS FECHAS</a>
 </div>
 {% endif %}
 </div>
