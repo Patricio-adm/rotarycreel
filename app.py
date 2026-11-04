@@ -19,6 +19,20 @@ def to_upper(val):
         return cleaned if cleaned else None
     return None
 
+def parse_fecha_robusta(date_str):
+    if not date_str:
+        return None
+    date_str = str(date_str).strip()
+    if not date_str:
+        return None
+    formatos = ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y', '%Y/%m/%d', '%d.%m.%Y']
+    for fmt in formatos:
+        try:
+            return datetime.strptime(date_str, fmt).date()
+        except:
+            continue
+    return None
+
 db_url = os.getenv('DATABASE_URL', 'postgresql://postgres.smbrfdwruccudlcjdabs:rotary4110creel@aws-0-ca-central-1.pooler.supabase.com:6543/postgres')
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
@@ -325,20 +339,50 @@ def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     lista_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
-    return render_template('socios.html', socios=lista_socios)
+    meses_es = {1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO", 9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"}
+    mes_actual_num = datetime.now().month
+    mes_actual_nombre = meses_es.get(mes_actual_num, "MES")
+    festividades = []
+    for socio in lista_socios:
+        if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual_num:
+            festividades.append({'dia': socio.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO: {socio.nombre_completo}"})
+        if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual_num:
+            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CONYUGE', 'persona': socio.nombre_esposa or 'CONYUGE', 'detalle': f"CONYUGE DE: {socio.nombre_completo} - F.NAC: {socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y')}"})
+        if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual_num:
+            festividades.append({'dia': socio.aniversario_matrimonio.day, 'tipo': 'ANIVERSARIO BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or 'CONYUGE'}", 'detalle': "ANIVERSARIO MATRIMONIAL"})
+        if socio.hijos:
+            for hijo in socio.hijos:
+                if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual_num:
+                    festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
+    festividades = sorted(festividades, key=lambda x: x['dia'])
+    return render_template('socios.html', socios=lista_socios, festividades_mes=festividades, mes_actual_nombre=mes_actual_nombre, mes_actual_num=mes_actual_num)
+
+
+@app.route('/debug/festividades')
+def debug_festividades():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    socios = Socio.query.all()
+    html = "<h2>DEBUG FESTIVIDADES - TODOS LOS SOCIOS</h2>"
+    html += f"<p>Mes actual: {datetime.now().month} - {datetime.now().strftime('%d/%m/%Y')}</p>"
+    html += "<table border=1 style='font-size:10px; border-collapse:collapse;'><tr><th>SOCIO</th><th>F.NAC SOCIO</th><th>NOMBRE ESPOSA</th><th>F.NAC ESPOSA (RAW)</th><th>F.NAC ESPOSA PARSED</th><th>MES</th><th>ANIV</th></tr>"
+    for s in socios:
+        fnac_esposa = s.fecha_nacimiento_esposa
+        fnac_esposa_str = str(fnac_esposa) if fnac_esposa else 'None'
+        mes = fnac_esposa.month if fnac_esposa else 'None'
+        html += f"<tr><td>{s.nombre_completo}</td><td>{s.fecha_nacimiento}</td><td>{s.nombre_esposa}</td><td>{fnac_esposa_str}</td><td>{fnac_esposa}</td><td>{mes}</td><td>{s.aniversario_matrimonio}</td></tr>"
+    html += "</table>"
+    html += "<p><a href='/socios'>Volver a Socios</a></p>"
+    return html
 
 @app.route('/socios/agregar', methods=['POST'])
+
 def agregar_socio():
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE', 'RCREEL']:
         flash('Acceso denegado.', 'danger')
         return redirect(url_for('gestion_socios'))
     def parse_date(date_str):
-        if date_str:
-            try:
-                return datetime.strptime(date_str, '%Y-%m-%d').date()
-            except ValueError:
-                return None
-        return None
+        return parse_fecha_robusta(date_str)
     nuevo = Socio(
         numero_socio=to_upper(request.form.get('numero_socio')),
         nombre_completo=to_upper(request.form.get('nombre_completo')),
@@ -384,12 +428,7 @@ def editar_socio(socio_id):
         return redirect(url_for('gestion_socios'))
     socio = Socio.query.get_or_404(socio_id)
     def parse_date(date_str):
-        if date_str:
-            try:
-                return datetime.strptime(date_str, '%Y-%m-%d').date()
-            except ValueError:
-                return None
-        return None
+        return parse_fecha_robusta(date_str)
     socio.numero_socio = to_upper(request.form.get('numero_socio')) or socio.numero_socio
     socio.nombre_completo = to_upper(request.form.get('nombre_completo')) or socio.nombre_completo
     socio.tipo_socio = to_upper(request.form.get('tipo_socio')) or socio.tipo_socio
