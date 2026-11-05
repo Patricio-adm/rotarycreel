@@ -398,7 +398,7 @@ def editar_socio(socio_id):
             if nn:
                 hijo.nombre = to_upper(nn)
                 hijo.fecha_nacimiento = parse_date(request.form.get(f'hijo_fecha_{hijo.id}')) or hijo.fecha_nacimiento
-    for i in range(1, 4):
+    for i in range(1, 9):
         n_nombre = request.form.get(f'nuevo_hijo_nombre_{i}')
         n_fecha = request.form.get(f'nuevo_hijo_fecha_{i}')
         if n_nombre and n_nombre.strip():
