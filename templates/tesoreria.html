@@ -322,18 +322,18 @@ CLUB ROTARIO CREEL - INFORMACIÓN DE DEPÓSITO - POR FAVOR REALIZA TU PAGO A LA 
 </div>
 </div>
 
-<!-- MODAL REGISTRAR PAGO -->
+<!-- MODAL REGISTRAR PAGO - CON FECHA HISTORICA -->
 <div class="modal fade" id="modalRegistrarPago" tabindex="-1">
 <div class="modal-dialog modal-lg">
 <div class="modal-content">
 <form method="POST" action="/tesoreria/registrar-pago">
 <div class="modal-header" style="background:#17458F; color:white;">
-<h6 class="modal-title fw-bold" style="font-size:12px;">💵 REGISTRAR PAGO DE CUOTA SOCIAL - $500.00 MXN</h6>
+<h6 class="modal-title fw-bold" style="font-size:12px;">💵 REGISTRAR PAGO DE CUOTA SOCIAL - $500.00 MXN - HISTORIAL</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="font-size:11px;">
 <div class="row">
-<div class="col-md-5 mb-2">
+<div class="col-md-4 mb-2">
 <label class="fw-bold" style="font-size:10px;">SOCIO:</label>
 <select name="socio_id" id="selectSocioPago" class="form-select form-select-sm fw-bold" required>
 <option value="">-- SELECCIONA SOCIO --</option>
@@ -342,8 +342,8 @@ CLUB ROTARIO CREEL - INFORMACIÓN DE DEPÓSITO - POR FAVOR REALIZA TU PAGO A LA 
 {% endfor %}
 </select>
 </div>
-<div class="col-md-3 mb-2">
-<label class="fw-bold" style="font-size:10px;">MÉTODO PAGO:</label>
+<div class="col-md-2 mb-2">
+<label class="fw-bold" style="font-size:10px;">METODO:</label>
 <select name="metodo_pago" class="form-select form-select-sm">
 <option value="EFECTIVO">E - EFECTIVO</option>
 <option value="TRANSFERENCIA">T - TRANSFERENCIA</option>
@@ -351,11 +351,27 @@ CLUB ROTARIO CREEL - INFORMACIÓN DE DEPÓSITO - POR FAVOR REALIZA TU PAGO A LA 
 <option value="OTRO">O - OTRO</option>
 </select>
 </div>
-<div class="col-md-4 mb-2">
-<label class="fw-bold" style="font-size:10px;">REFERENCIA / NOTA:</label>
+<div class="col-md-3 mb-2">
+<label class="fw-bold" style="font-size:10px;">FECHA PAGO REAL:</label>
+<input type="date" name="fecha_pago" id="fechaPagoInput" class="form-control form-control-sm">
+<small style="font-size:7px; color:#666;">Si vacio, hoy o fecha del mes si es historico</small>
+</div>
+<div class="col-md-3 mb-2">
+<label class="fw-bold" style="font-size:10px;">REFERENCIA:</label>
 <input type="text" name="referencia" class="form-control form-control-sm" placeholder="EJ: TRANSF 1234">
 </div>
 </div>
+
+<div class="card mb-2 mt-2" style="border:2px dashed #dc3545; background:#d4edda; border-color:#28a745;" id="cardHistorico">
+<div class="card-body py-2">
+<div class="form-check">
+<input class="form-check-input" type="checkbox" name="es_historico" id="checkHistorico" value="1" checked>
+<label class="form-check-label fw-bold" for="checkHistorico" style="font-size:10px; color:#155724;">📅 PAGO HISTORICO ANTERIOR AL 01 OCT 2025 - APLICAR AL MES QUE CORRESPONDE</label>
+</div>
+<small id="textoHistorico" style="font-size:8px; color:#155724; text-transform:none; display:block; margin-top:4px;">✅ ACTIVADO: Los pagos de JUN 2025 aunque se registren el 10 OCT 2026 se guardaran con fecha 15 JUN 2025 y apareceran en estado de cuenta de JUNIO para historial.</small>
+</div>
+</div>
+
 <div class="mt-2">
 <label class="fw-bold" style="font-size:10px;">MESES A PAGAR: <span id="contadorSeleccionados" class="badge bg-primary">0 seleccionados</span> <span id="infoPagados" class="badge bg-secondary ms-2"></span></label>
 <div class="alert alert-info py-1 mt-1" style="font-size:8px; text-transform:none; border:1px dashed #17458F;">
@@ -411,6 +427,28 @@ CLUB ROTARIO CREEL - INFORMACIÓN DE DEPÓSITO - POR FAVOR REALIZA TU PAGO A LA 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+function toggleHistoricoUI() {
+  var check = document.getElementById('checkHistorico');
+  var card = document.getElementById('cardHistorico');
+  var texto = document.getElementById('textoHistorico');
+  if (!check) return;
+  if (check.checked) {
+    card.style.background = '#d4edda';
+    card.style.borderColor = '#28a745';
+    texto.innerHTML = '✅ ACTIVADO: JUN 2025 pagado el 10 OCT 2026 se guarda como 15 JUN 2025 y aparece en JUNIO.';
+    texto.style.color = '#155724';
+  } else {
+    card.style.background = '#fff3cd';
+    card.style.borderColor = '#ffc107';
+    texto.innerHTML = '⚠️ DESACTIVADO: Se guardara con fecha real puesta arriba o hoy.';
+    texto.style.color = '#856404';
+  }
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var chk = document.getElementById('checkHistorico');
+  if (chk) chk.addEventListener('change', toggleHistoricoUI);
+});
+
 // DATOS DE PAGOS Y SOCIOS PARA MODALES
 const pagosData = {
 {% for socio in socios %}
