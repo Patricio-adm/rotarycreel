@@ -296,7 +296,24 @@ def gestion_socios():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     lista_socios = Socio.query.order_by(Socio.nombre_completo.asc()).all()
-    return render_template('socios.html', socios=lista_socios)
+    # CALCULAR FESTIVIDADES DEL MES (CUMPLEAÑOS) - FIX QUE NO MOSTRABA
+    meses_es = {1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO", 9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"}
+    mes_actual_num = datetime.now().month
+    mes_actual_nombre = meses_es.get(mes_actual_num, "MES")
+    festividades = []
+    for socio in lista_socios:
+        if socio.fecha_nacimiento and socio.fecha_nacimiento.month == mes_actual_num:
+            festividades.append({'dia': socio.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS SOCIO', 'persona': socio.nombre_completo, 'detalle': f"SOCIO: {socio.numero_socio or ''} - {socio.nombre_completo}"})
+        if socio.fecha_nacimiento_esposa and socio.fecha_nacimiento_esposa.month == mes_actual_num:
+            festividades.append({'dia': socio.fecha_nacimiento_esposa.day, 'tipo': 'CUMPLEAÑOS CONYUGE', 'persona': socio.nombre_esposa or 'CONYUGE', 'detalle': f"CONYUGE DE: {socio.nombre_completo}"})
+        if socio.aniversario_matrimonio and socio.aniversario_matrimonio.month == mes_actual_num:
+            festividades.append({'dia': socio.aniversario_matrimonio.day, 'tipo': 'ANIVERSARIO BODAS', 'persona': f"{socio.nombre_completo} Y {socio.nombre_esposa or ''}", 'detalle': "ANIVERSARIO MATRIMONIAL"})
+        if socio.hijos:
+            for hijo in socio.hijos:
+                if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual_num:
+                    festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLE HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
+    festividades = sorted(festividades, key=lambda x: x['dia'])
+    return render_template('socios.html', socios=lista_socios, festividades_mes=festividades, mes_actual_nombre=mes_actual_nombre)
 
 @app.route('/socios/agregar', methods=['POST'])
 def agregar_socio():
