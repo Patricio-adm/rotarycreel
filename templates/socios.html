@@ -112,7 +112,34 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="col-md-3 mb-2"><label class="fw-bold">F. NAC ESPOSA:</label><input type="date" name="fecha_nacimiento_esposa" class="form-control form-control-sm" value="{{ socio.fecha_nacimiento_esposa.strftime('%Y-%m-%d') if socio.fecha_nacimiento_esposa else '' }}"></div>
 <div class="col-md-3 mb-2"><label class="fw-bold">ANIVERSARIO:</label><input type="date" name="aniversario_matrimonio" class="form-control form-control-sm" value="{{ socio.aniversario_matrimonio.strftime('%Y-%m-%d') if socio.aniversario_matrimonio else '' }}"></div>
 </div>
-<div class="alert alert-info py-2 mt-2" style="font-size:9px;">💡 Aunque ya no se muestra en tabla, los datos de familia y cumpleaños siguen guardados y aparecerán en el botón 🎂 CUMPLEAÑOS DEL MES.</div>
+<div class="alert alert-info py-1 mt-2" style="font-size:9px;">💡 Familia guardada para cumpleaños.</div>
+</div>
+
+<hr>
+<small class="fw-bold text-success">HIJOS (Cumpleaños - aparecerán en CUMPLEAÑOS DEL MES)</small>
+{% if socio.hijos %}
+{% for hijo in socio.hijos %}
+<div class="row align-items-end mb-2 p-2" style="background:#f8fff8; border:1px solid #c3e6cb; border-radius:6px;">
+<div class="col-md-5"><label class="fw-bold" style="font-size:9px;">HIJO {{ loop.index }}:</label><input type="text" name="hijo_nombre_{{ hijo.id }}" class="form-control form-control-sm" value="{{ hijo.nombre }}"></div>
+<div class="col-md-4"><label class="fw-bold" style="font-size:9px;">F. NAC:</label><input type="date" name="hijo_fecha_{{ hijo.id }}" class="form-control form-control-sm" value="{{ hijo.fecha_nacimiento.strftime('%Y-%m-%d') if hijo.fecha_nacimiento else '' }}"></div>
+<div class="col-md-3"><div class="form-check"><input type="checkbox" name="hijo_eliminar_{{ hijo.id }}" value="1" class="form-check-input"><label class="form-check-label" style="font-size:9px;">Eliminar</label></div></div>
+</div>
+{% endfor %}
+{% endif %}
+
+<small class="fw-bold mt-2" style="font-size:10px;">AGREGAR NUEVOS HIJOS:</small>
+<div class="row mb-1 p-1" style="background:#fff8e1; border:1px dashed #ffb300; border-radius:6px;">
+<div class="col-6"><input type="text" name="nuevo_hijo_nombre_1" class="form-control form-control-sm" placeholder="Nombre hijo 1"></div>
+<div class="col-6"><input type="date" name="nuevo_hijo_fecha_1" class="form-control form-control-sm"></div>
+</div>
+<div class="row mb-1 p-1" style="background:#fff8e1; border:1px dashed #ffb300; border-radius:6px;">
+<div class="col-6"><input type="text" name="nuevo_hijo_nombre_2" class="form-control form-control-sm" placeholder="Nombre hijo 2"></div>
+<div class="col-6"><input type="date" name="nuevo_hijo_fecha_2" class="form-control form-control-sm"></div>
+</div>
+<div class="row mb-2 p-1" style="background:#fff8e1; border:1px dashed #ffb300; border-radius:6px;">
+<div class="col-6"><input type="text" name="nuevo_hijo_nombre_3" class="form-control form-control-sm" placeholder="Nombre hijo 3"></div>
+<div class="col-6"><input type="date" name="nuevo_hijo_fecha_3" class="form-control form-control-sm"></div>
+</div>
 </div>
 <div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">💾 GUARDAR CAMBIOS</button></div>
 </form>
