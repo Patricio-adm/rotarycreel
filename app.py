@@ -153,6 +153,7 @@ class Gasto(db.Model):
     centro_costo = db.Column(db.String(30), nullable=False)  # ADMINISTRATIVO o PROYECTO
     proyecto_id = db.Column(db.Integer, db.ForeignKey('proyectos.id'), nullable=True)
     comprobante = db.Column(db.String(300), nullable=True)
+    foto_comprobante = db.Column(db.Text, nullable=True)  # Base64 de foto ticket/factura
     creado_por = db.Column(db.String(100), nullable=True)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
     notas = db.Column(db.Text, nullable=True)
@@ -214,6 +215,7 @@ with app.app_context():
         db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS registrado_por VARCHAR(100);"))
         db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT NOW();"))
         db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS notas TEXT;"))
+        db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS foto_comprobante TEXT;"))
         db.session.commit()
     except Exception as e:
         print(f"Migracion ingresos_extraordinarios: {e}")
