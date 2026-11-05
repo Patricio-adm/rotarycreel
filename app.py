@@ -41,6 +41,41 @@ MESES_CONTROL = [
 
 MESES_NOMBRES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"]
 
+def mes_anio_a_fecha(mes_anio_str, dia=15):
+    try:
+        partes = mes_anio_str.strip().upper().split()
+        if len(partes) >= 2:
+            mes_nom = partes[0]
+            anio = int(partes[1])
+            if mes_nom in MESES_NOMBRES:
+                mes_num = MESES_NOMBRES.index(mes_nom) + 1
+                from datetime import date
+                return date(anio, mes_num, dia)
+    except:
+        pass
+    return None
+
+def es_mes_historico_anterior_oct(mes_anio_str):
+    try:
+        partes = mes_anio_str.strip().upper().split()
+        if len(partes) >= 2:
+            mes_nom = partes[0]
+            anio = int(partes[1])
+            if anio < 2025:
+                return True
+            if anio == 2025:
+                mes_num = MESES_NOMBRES.index(mes_nom) + 1 if mes_nom in MESES_NOMBRES else 13
+                if mes_num < 10:  # Antes de OCT 2025
+                    return True
+            # Si anio == 2025 y mes >= OCT, no es historico anterior a 01 oct? Pero si usuario paga 2025 en 2026, sigue siendo historico
+            # Consideramos historico todo lo anterior a OCT 2025 inclusive?
+            # Para seguridad, todo mes_anio que no sea mes actual se considera historico para aplicar al mes que corresponde
+            return False
+    except:
+        return False
+    return False
+
+
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -745,7 +780,7 @@ def actualizar_saldo_inicial():
         else:
             config.saldo_inicial = nuevo_saldo
         db.session.commit()
-        flash('Saldo actualizado!', 'success')
+        flash('Saldo inicial actualizado.', 'success')
     else:
         flash('Contraseña incorrecta.', 'danger')
     return redirect(url_for('cuotas_sociales'))
@@ -759,21 +794,52 @@ def registrar_pago_cuota():
     meses_pagados = request.form.getlist('meses')
     metodo = to_upper(request.form.get('metodo_pago'))
     referencia = to_upper(request.form.get('referencia'))
+    fecha_pago_str = request.form.get('fecha_pago')
+    es_historico_check = request.form.get('es_historico') == '1' or request.form.get('es_historico') == 'on'
+    
     if not socio_id or not meses_pagados:
         flash('Debe seleccionar al menos un mes y un socio.', 'warning')
         return redirect(url_for('cuotas_sociales'))
+    
+    # Fecha de pago general si se proporciona
+    fecha_pago_general = None
+    if fecha_pago_str:
+        try:
+            fecha_pago_general = datetime.strptime(fecha_pago_str, '%Y-%m-%d').date()
+        except:
+            fecha_pago_general = None
+    
     pagos_creados_ids = []
     for m in meses_pagados:
         mes_limpio = m.strip().upper()
         existente = PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=mes_limpio).first()
         if not existente:
-            pago = PagoCuota(socio_id=socio_id, mes_anio=mes_limpio, monto=500.0, metodo_pago=metodo, referencia=referencia)
+            # Lógica historial: si es anterior a 01 OCT 2025 o marcado como histórico, fecha_pago = fecha del mes que corresponde
+            # Esto hace que JUN 2025 pagado el 10 OCT 2026 quede aplicado en JUNIO para el historial
+            fecha_para_registro = None
+            if fecha_pago_general and not es_historico_check:
+                fecha_para_registro = fecha_pago_general
+            else:
+                # Si es histórico o no se dio fecha, usar fecha del mes_anio (15 del mes correspondiente)
+                fecha_del_mes = mes_anio_a_fecha(mes_limpio, dia=15)
+                if fecha_del_mes:
+                    fecha_para_registro = fecha_del_mes
+                else:
+                    fecha_para_registro = fecha_pago_general or datetime.now().date()
+            
+            # Si es histórico anterior a 01 OCT 2025, siempre va al mes que corresponde
+            if es_historico_check or es_mes_historico_anterior_oct(mes_limpio):
+                fecha_del_mes = mes_anio_a_fecha(mes_limpio, dia=15)
+                if fecha_del_mes:
+                    fecha_para_registro = fecha_del_mes
+            
+            pago = PagoCuota(socio_id=socio_id, mes_anio=mes_limpio, monto=500.0, metodo_pago=metodo, referencia=referencia, fecha_pago=fecha_para_registro)
             db.session.add(pago)
             db.session.flush()
             pagos_creados_ids.append(str(pago.id))
     db.session.commit()
     if pagos_creados_ids:
-        flash(f'{len(pagos_creados_ids)} pago(s) registrado(s).', 'success')
+        flash(f'{len(pagos_creados_ids)} pago(s) registrado(s) aplicado(s) al mes que corresponde (Historial).', 'success')
         return redirect(url_for('cuotas_sociales', recibo_ids=','.join(pagos_creados_ids)))
     else:
         flash('Ya estaban pagados.', 'info')
