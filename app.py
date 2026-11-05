@@ -186,6 +186,13 @@ class DocumentoRotario(db.Model):
     archivo_base64 = db.Column(db.Text, nullable=True)
     subido_por = db.Column(db.String(100), nullable=True)
     fecha_subida = db.Column(db.DateTime, default=datetime.utcnow)
+    # NUEVOS CAMPOS SEGUIMIENTO
+    tiene_fechas = db.Column(db.Boolean, default=False)
+    fecha_inicio = db.Column(db.Date, nullable=True)
+    fecha_termino = db.Column(db.Date, nullable=True)
+    responsable = db.Column(db.String(150), nullable=True)
+    porcentaje_avance = db.Column(db.Integer, default=0)
+    prioridad = db.Column(db.String(20), default='MEDIA')  # BAJA, MEDIA, ALTA, URGENTE
 
 with app.app_context():
     db.create_all()
@@ -216,6 +223,12 @@ with app.app_context():
         db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP DEFAULT NOW();"))
         db.session.execute(db.text("ALTER TABLE ingresos_extraordinarios ADD COLUMN IF NOT EXISTS notas TEXT;"))
         db.session.execute(db.text("ALTER TABLE gastos ADD COLUMN IF NOT EXISTS foto_comprobante TEXT;"))
+        db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS tiene_fechas BOOLEAN DEFAULT FALSE;"))
+        db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS fecha_inicio DATE;"))
+        db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS fecha_termino DATE;"))
+        db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS responsable VARCHAR(150);"))
+        db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS porcentaje_avance INTEGER DEFAULT 0;"))
+        db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS prioridad VARCHAR(20) DEFAULT 'MEDIA';"))
         db.session.commit()
     except Exception as e:
         print(f"Migracion ingresos_extraordinarios: {e}")
@@ -447,6 +460,8 @@ def gestion_rotaria():
     total_fundacion = DocumentoRotario.query.filter_by(tipo='FUNDACION').count()
     total_servicios = DocumentoRotario.query.filter_by(tipo='SERVICIOS').count()
     
+    from datetime import date as date_cls
+    now_date = date_cls.today()
     return render_template('gestion_rotaria.html',
                            documentos=documentos,
                            tipos=tipos,
@@ -457,7 +472,8 @@ def gestion_rotaria():
                            total_presidencia=total_presidencia,
                            total_secretaria=total_secretaria,
                            total_fundacion=total_fundacion,
-                           total_servicios=total_servicios)
+                           total_servicios=total_servicios,
+                           now_date=now_date)
 
 @app.route('/gestion-rotaria/subir', methods=['POST'])
 def subir_documento_rotario():
@@ -493,6 +509,31 @@ def subir_documento_rotario():
     if not archivo_b64:
         archivo_nombre = 'CREADO EN SISTEMA - SIN PDF'
     
+    # Nuevos campos de seguimiento
+    tiene_fechas = request.form.get('tiene_fechas') == '1' or request.form.get('tiene_fechas') == 'on'
+    fecha_inicio = None
+    fecha_termino = None
+    if tiene_fechas:
+        fi_str = request.form.get('fecha_inicio')
+        ft_str = request.form.get('fecha_termino')
+        try:
+            if fi_str:
+                fecha_inicio = datetime.strptime(fi_str, '%Y-%m-%d').date()
+        except:
+            pass
+        try:
+            if ft_str:
+                fecha_termino = datetime.strptime(ft_str, '%Y-%m-%d').date()
+        except:
+            pass
+    
+    responsable = request.form.get('responsable','').strip().upper() or None
+    prioridad = request.form.get('prioridad','MEDIA').strip().upper()
+    try:
+        avance = int(request.form.get('porcentaje_avance', 0))
+    except:
+        avance = 0
+    
     doc = DocumentoRotario(
         tipo=tipo,
         titulo=titulo,
@@ -501,7 +542,13 @@ def subir_documento_rotario():
         estado=estado,
         archivo_nombre=archivo_nombre,
         archivo_base64=archivo_b64,
-        subido_por=session.get('username','SISTEMA')
+        subido_por=session.get('username','SISTEMA'),
+        tiene_fechas=tiene_fechas,
+        fecha_inicio=fecha_inicio,
+        fecha_termino=fecha_termino,
+        responsable=responsable,
+        prioridad=prioridad,
+        porcentaje_avance=avance
     )
     db.session.add(doc)
     db.session.commit()
@@ -565,6 +612,28 @@ def editar_documento_rotario(doc_id):
             doc.fecha_documento = datetime.strptime(fecha_str, '%Y-%m-%d').date()
     except:
         pass
+    # Fechas seguimiento
+    doc.tiene_fechas = request.form.get('tiene_fechas') == '1' or request.form.get('tiene_fechas') == 'on'
+    if doc.tiene_fechas:
+        fi_str = request.form.get('fecha_inicio')
+        ft_str = request.form.get('fecha_termino')
+        try:
+            doc.fecha_inicio = datetime.strptime(fi_str, '%Y-%m-%d').date() if fi_str else doc.fecha_inicio
+        except:
+            pass
+        try:
+            doc.fecha_termino = datetime.strptime(ft_str, '%Y-%m-%d').date() if ft_str else doc.fecha_termino
+        except:
+            pass
+    else:
+        doc.fecha_inicio = None
+        doc.fecha_termino = None
+    doc.responsable = request.form.get('responsable','').strip().upper() or doc.responsable
+    doc.prioridad = request.form.get('prioridad','MEDIA').strip().upper()
+    try:
+        doc.porcentaje_avance = int(request.form.get('porcentaje_avance', doc.porcentaje_avance or 0))
+    except:
+        pass
     if 'archivo' in request.files:
         f = request.files['archivo']
         if f and f.filename and f.filename.lower().endswith('.pdf'):
@@ -574,6 +643,21 @@ def editar_documento_rotario(doc_id):
                 doc.archivo_base64 = base64.b64encode(data).decode('utf-8')
     db.session.commit()
     flash('Documento actualizado.', 'success')
+    return redirect(url_for('gestion_rotaria'))
+
+@app.route('/gestion-rotaria/actualizar-avance/<int:doc_id>', methods=['POST'])
+def actualizar_avance_documento(doc_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    doc = DocumentoRotario.query.get_or_404(doc_id)
+    try:
+        doc.porcentaje_avance = int(request.form.get('porcentaje_avance', 0))
+        if doc.porcentaje_avance >= 100:
+            doc.estado = 'ARCHIVADO'
+    except:
+        pass
+    db.session.commit()
+    flash(f'Avance de {doc.titulo} actualizado a {doc.porcentaje_avance}%', 'success')
     return redirect(url_for('gestion_rotaria'))
 
 @app.route('/autoridades')
