@@ -4,18 +4,18 @@
 <meta charset="UTF-8">
 <title>Menú Principal - Rotary Creel</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; display:flex; justify-content:space-between; align-items:center; }
-.card-modulo { border:none; border-radius:12px; border-top:5px solid #17458F; min-height:140px; display:flex; flex-direction:column; justify-content:center; align-items:center; transition:0.2s; cursor:pointer; background:white; }
-.card-modulo:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.15); }
+.grid-2x2 { display:grid; grid-template-columns: repeat(2, 1fr); gap:18px; max-width:700px; margin:0 auto; }
+.card-modulo { border:none; border-radius:14px; border-top:6px solid #17458F; height:180px; display:flex; flex-direction:column; justify-content:center; align-items:center; transition:0.2s; cursor:pointer; background:white; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+.card-modulo:hover { transform:translateY(-5px); box-shadow:0 10px 24px rgba(0,0,0,0.16); }
 .card-gestion { border-top-color:#6f42c1; background: linear-gradient(135deg,#f3e8ff,#fff); }
 .card-socios { border-top-color:#0d6efd; }
 .card-autoridades { border-top-color:#B8860B; }
 .card-tesoreria { border-top-color:#28a745; }
-.icono { font-size:40px; margin-bottom:8px; }
-.badge-rol { background:#F7A81B; color:#000; font-size:9px; padding:3px 8px; border-radius:10px; font-weight:900; }
+.icono { font-size:46px; margin-bottom:10px; line-height:1; }
+@media (max-width:576px){ .grid-2x2{grid-template-columns:1fr; max-width:340px;} .card-modulo{height:150px;} .icono{font-size:36px;} }
 </style>
 </head>
 <body>
@@ -40,7 +40,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 <h4 class="fw-bold" style="color:#17458F; font-size:24px;">MENÚ PRINCIPAL</h4>
 <p class="text-muted" style="font-size:11px;">SISTEMA INTEGRAL DE GESTIÓN - ROTARY CLUB CREEL</p>
 {% if session.get('rol') == 'RCREEL' %}
-<div class="alert alert-warning py-2" style="font-size:11px; text-transform:none; border:2px solid #000;">
+<div class="alert alert-warning py-2" style="font-size:11px; text-transform:none; border:2px solid #000; max-width:700px; margin:0 auto;">
 ⚠️ Usuario <strong>rcreel</strong> con acceso limitado a <strong>Directorio de Socios y Autoridades Rotarias</strong> únicamente.
 </div>
 {% endif %}
@@ -49,7 +49,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 {% for category, message in messages %}
-<div class="alert alert-{{ category }} alert-dismissible fade show py-2" style="font-size:11px;">
+<div class="alert alert-{{ category }} alert-dismissible fade show py-2" style="font-size:11px; max-width:700px; margin:0 auto 10px;">
 {{ message }}
 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
@@ -57,53 +57,48 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 {% endif %}
 {% endwith %}
 
-<div class="row g-3 justify-content-center">
+<div class="grid-2x2">
 
 {% if session.get('rol') != 'RCREEL' %}
-<div class="col-md-6 col-lg-3">
 <a href="/tesoreria" class="text-decoration-none">
-<div class="card card-modulo card-tesoreria shadow-sm text-center p-3">
+<div class="card card-modulo card-tesoreria text-center p-3">
 <div class="icono">💰</div>
-<h6 class="fw-bold mb-1" style="font-size:13px; color:#000;">TESORERÍA</h6>
+<h6 class="fw-bold mb-1" style="font-size:14px; color:#000;">TESORERÍA</h6>
 <small style="font-size:9px; color:#666;">CONTROL DE CUOTAS SOCIALES</small>
-<small style="font-size:7px; color:#28a745; font-weight:700; margin-top:4px; display:block;">CUOTAS • GASTOS • PROYECTOS • ESTADO CUENTA</small>
+<small style="font-size:7px; color:#28a745; font-weight:700; margin-top:6px; display:block;">CUOTAS • GASTOS • PROYECTOS • ESTADO CUENTA</small>
 </div>
 </a>
-</div>
 
-<div class="col-md-6 col-lg-3">
 <a href="/gestion-rotaria" class="text-decoration-none">
-<div class="card card-modulo card-gestion shadow-sm text-center p-3">
+<div class="card card-modulo card-gestion text-center p-3">
 <div class="icono">📚</div>
-<h6 class="fw-bold mb-1" style="font-size:13px; color:#000;">GESTIÓN ROTARIA</h6>
+<h6 class="fw-bold mb-1" style="font-size:14px; color:#000;">GESTIÓN ROTARIA</h6>
 <small style="font-size:9px; color:#666;">ERP - ACTAS Y ACUERDOS</small>
 <span class="badge bg-primary mt-2" style="font-size:7px;">NUEVO MODULO</span>
 </div>
 </a>
-</div>
+{% else %}
+<div style="height:180px; display:flex; align-items:center; justify-content:center; border:2px dashed #ccc; border-radius:14px; background:#f8f9fa; color:#999; font-size:10px; text-align:center;">ACCESO RESTRINGIDO<br>SOLO SOCIOS Y AUTORIDADES</div>
+<div style="height:180px; display:flex; align-items:center; justify-content:center; border:2px dashed #ccc; border-radius:14px; background:#f8f9fa; color:#999; font-size:10px; text-align:center;">ACCESO RESTRINGIDO<br>SOLO SOCIOS Y AUTORIDADES</div>
 {% endif %}
 
-<div class="col-md-6 col-lg-3">
 <a href="/socios" class="text-decoration-none">
-<div class="card card-modulo card-socios shadow-sm text-center p-3">
+<div class="card card-modulo card-socios text-center p-3">
 <div class="icono">👥</div>
-<h6 class="fw-bold mb-1" style="font-size:13px; color:#000;">DIRECTORIO DE SOCIOS</h6>
+<h6 class="fw-bold mb-1" style="font-size:14px; color:#000;">DIRECTORIO DE SOCIOS</h6>
 <small style="font-size:9px; color:#666;">GESTIÓN DE SOCIOS, CARGOS E HIJOS</small>
 {% if session.get('rol') == 'RCREEL' %}<span class="badge bg-success mt-2" style="font-size:7px;">ACCESO PERMITIDO</span>{% endif %}
 </div>
 </a>
-</div>
 
-<div class="col-md-6 col-lg-3">
 <a href="/autoridades" class="text-decoration-none">
-<div class="card card-modulo card-autoridades shadow-sm text-center p-3">
+<div class="card card-modulo card-autoridades text-center p-3">
 <div class="icono">🏛️</div>
-<h6 class="fw-bold mb-1" style="font-size:13px; color:#000;">AUTORIDADES ROTARIAS</h6>
+<h6 class="fw-bold mb-1" style="font-size:14px; color:#000;">AUTORIDADES ROTARIAS</h6>
 <small style="font-size:9px; color:#666;">DIRECTORIO DISTRITO 4110</small>
 {% if session.get('rol') == 'RCREEL' %}<span class="badge bg-success mt-2" style="font-size:7px;">ACCESO PERMITIDO</span>{% endif %}
 </div>
 </a>
-</div>
 
 </div>
 
