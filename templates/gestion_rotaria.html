@@ -86,12 +86,11 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 </div>
 
-<!-- TABLA DOCUMENTOS - 5 COLUMNAS, LETRAS GRANDES -->
+<!-- TABLA DOCUMENTOS - 4 COLUMNAS SIN ID, ORDEN POR FECHA DOC -->
 <div class="table-responsive">
 <table class="table tabla-docs table-hover bg-white">
 <thead>
 <tr>
-<th style="width:50px;">ID</th>
 <th style="width:120px;">TIPO</th>
 <th>👉 TITULO / DESCRIPCION - CLICK PARA VER DETALLE, PDF, ESTADO Y ACCIONES</th>
 <th style="width:200px;">SEGUIMIENTO</th>
@@ -101,7 +100,6 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <tbody>
 {% for doc in documentos %}
 <tr style="{{ 'background:#fff3cd;' if doc.tiene_fechas and doc.fecha_termino and doc.fecha_termino < now_date else '' }}">
-<td class="fw-bold" style="font-size:15px;">{{ doc.id }}</td>
 <td>
 <span class="badge badge-tipo-{{ doc.tipo }} badge-grande">{{ doc.tipo }}</span><br>
 {% if doc.prioridad %}<span class="badge {{ 'bg-danger' if doc.prioridad=='URGENTE' else 'bg-warning text-dark' if doc.prioridad=='ALTA' else 'bg-secondary' }} mt-1" style="font-size:11px;">{{ doc.prioridad }}</span><br>{% endif %}
@@ -247,7 +245,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 
 {% endfor %}
 {% if not documentos %}
-<tr><td colspan="5" class="text-center py-4" style="font-size:14px; color:#999;">NO HAY DOCUMENTOS EN ESTE FILTRO</td></tr>
+<tr><td colspan="4" class="text-center py-4" style="font-size:14px; color:#999;">NO HAY DOCUMENTOS EN ESTE FILTRO</td></tr>
 {% endif %}
 </tbody>
 </table>
