@@ -110,15 +110,17 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="col-md-4 mb-2"><label class="fw-bold">TIPO:</label><select name="tipo_socio" class="form-select form-select-sm"><option value="ACTIVO" {{ 'selected' if socio.tipo_socio=='ACTIVO' else '' }}>ACTIVO</option><option value="HONORARIO" {{ 'selected' if socio.tipo_socio=='HONORARIO' else '' }}>HONORARIO</option></select></div>
 </div>
 <div class="row">
-<div class="col-md-4 mb-2"><label class="fw-bold">F. NACIMIENTO:</label><input type="date" name="fecha_nacimiento" class="form-control form-control-sm" value="{{ socio.fecha_nacimiento.strftime('%Y-%m-%d') if socio.fecha_nacimiento else '' }}"></div>
-<div class="col-md-4 mb-2"><label class="fw-bold">CIUDAD:</label><input type="text" name="ciudad" class="form-control form-control-sm" value="{{ socio.ciudad or 'CREEL' }}"></div>
-<div class="col-md-4 mb-2"><label class="fw-bold">FOTO:</label><input type="file" name="foto_archivo" class="form-control form-control-sm" accept="image/*"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold">F. NACIMIENTO:</label><input type="date" name="fecha_nacimiento" class="form-control form-control-sm" value="{{ socio.fecha_nacimiento.strftime('%Y-%m-%d') if socio.fecha_nacimiento else '' }}"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold">CIUDAD:</label><input type="text" name="ciudad" class="form-control form-control-sm" value="{{ socio.ciudad or 'CREEL' }}"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold">TEL. EMERGENCIA:</label><input type="text" name="telefono_emergencia" class="form-control form-control-sm" style="border:2px solid #dc3545;" placeholder="Contacto emergencia" value="{{ socio.telefono_emergencia or '' }}"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold">FOTO:</label><input type="file" name="foto_archivo" class="form-control form-control-sm" accept="image/*"></div>
 </div>
 
 <hr style="margin:8px 0;">
 <small class="fw-bold text-primary">DATOS FAMILIARES</small>
 <div class="row mt-2">
-<div class="col-md-6 mb-2"><label class="fw-bold">NOMBRE ESPOSA(O):</label><input type="text" name="nombre_esposa" class="form-control form-control-sm" value="{{ socio.nombre_esposa or '' }}"></div>
+<div class="col-md-4 mb-2"><label class="fw-bold">NOMBRE ESPOSA(O):</label><input type="text" name="nombre_esposa" class="form-control form-control-sm" value="{{ socio.nombre_esposa or '' }}"></div>
+<div class="col-md-2 mb-2"><label class="fw-bold">TEL ESPOSA:</label><input type="text" name="telefono_esposa" class="form-control form-control-sm" value="{{ socio.telefono_esposa or '' }}"></div>
 <div class="col-md-3 mb-2"><label class="fw-bold">F. NAC ESPOSA:</label><input type="date" name="fecha_nacimiento_esposa" class="form-control form-control-sm" value="{{ socio.fecha_nacimiento_esposa.strftime('%Y-%m-%d') if socio.fecha_nacimiento_esposa else '' }}"></div>
 <div class="col-md-3 mb-2"><label class="fw-bold">ANIVERSARIO:</label><input type="date" name="aniversario_matrimonio" class="form-control form-control-sm" value="{{ socio.aniversario_matrimonio.strftime('%Y-%m-%d') if socio.aniversario_matrimonio else '' }}"></div>
 </div>
