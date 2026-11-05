@@ -89,63 +89,105 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <table class="table tabla-docs table-hover bg-white">
 <thead>
 <tr>
-<th style="width:40px;">ID</th>
-<th style="width:70px;">TIPO</th>
+<th style="width:35px;">ID</th>
+<th style="width:60px;">TIPO</th>
 <th>TITULO / DESCRIPCION</th>
-<th style="width:90px;">FECHA DOC</th>
-<th style="width:100px;">ARCHIVO PDF</th>
-<th style="width:70px;">ESTADO</th>
-<th style="width:60px;">SUBIDO POR</th>
-<th style="width:140px;">ACCIONES</th>
+<th style="width:110px;">SEGUIMIENTO</th>
+<th style="width:85px;">FECHA DOC</th>
+<th style="width:70px;">PDF</th>
+<th style="width:60px;">ESTADO</th>
+<th style="width:120px;">ACCIONES</th>
 </tr>
 </thead>
 <tbody>
 {% for doc in documentos %}
-<tr>
+<tr style="{{ 'background:#fff3cd;' if doc.tiene_fechas and doc.fecha_termino and doc.fecha_termino < now_date else '' }}">
 <td class="fw-bold">{{ doc.id }}</td>
-<td><span class="badge badge-tipo-{{ doc.tipo }}" style="font-size:7px;">{{ doc.tipo }}</span></td>
+<td><span class="badge badge-tipo-{{ doc.tipo }}" style="font-size:7px;">{{ doc.tipo }}</span><br>{% if doc.prioridad %}<span class="badge {{ 'bg-danger' if doc.prioridad=='URGENTE' else 'bg-warning text-dark' if doc.prioridad=='ALTA' else 'bg-secondary' }}" style="font-size:6px; margin-top:2px;">{{ doc.prioridad }}</span>{% endif %}</td>
 <td class="titulo-col">
 <strong style="font-size:9px;">{{ doc.titulo }}</strong><br>
-<small style="font-size:7px; text-transform:none; color:#666;">{{ doc.descripcion[:120] if doc.descripcion else '' }}</small>
+<small style="font-size:7px; text-transform:none; color:#666;">{{ doc.descripcion[:130] if doc.descripcion else '' }}</small>
+{% if doc.responsable %}<br><small style="font-size:6px; color:#17458F;">👤 {{ doc.responsable }}</small>{% endif %}
 </td>
-<td style="font-size:8px;">{{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '-' }}<br><small style="font-size:6px;">Subida: {{ doc.fecha_subida.strftime('%d/%m %H:%M') if doc.fecha_subida else '' }}</small></td>
+<td style="font-size:7px; text-align:left;">
+{% if doc.tiene_fechas %}
+<span style="color:#198754; font-weight:900;">⏰ CON SEGUIMIENTO</span><br>
+<small>INICIO: {{ doc.fecha_inicio.strftime('%d/%m/%Y') if doc.fecha_inicio else '-' }}</small><br>
+<small>TERMINO: {{ doc.fecha_termino.strftime('%d/%m/%Y') if doc.fecha_termino else '-' }}</small><br>
+{% if doc.fecha_termino %}
+{% set dias_rest = (doc.fecha_termino - now_date).days if doc.fecha_termino else 0 %}
+<small style="font-weight:900; color:{{ 'red' if dias_rest < 0 else 'orange' if dias_rest < 7 else 'green' }};">{{ dias_rest }} días {{ 'ATRASO' if dias_rest < 0 else 'restantes' }}</small><br>
+{% endif %}
+<div class="progress mt-1" style="height:8px;"><div class="progress-bar {{ 'bg-success' if doc.porcentaje_avance==100 else 'bg-primary' }}" style="width: {{ doc.porcentaje_avance or 0 }}%;"></div></div>
+<small style="font-size:6px;">{{ doc.porcentaje_avance or 0 }}% AVANCE</small>
+{% else %}
+<small style="color:#999;">SIN FECHAS</small>
+{% endif %}
+</td>
+<td style="font-size:8px;">{{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '-' }}<br><small style="font-size:6px;">{{ doc.fecha_subida.strftime('%d/%m') if doc.fecha_subida else '' }}</small></td>
 <td>
 {% if doc.archivo_base64 %}
-<span class="pdf-icon">📄</span><br><small style="font-size:6px;">{{ doc.archivo_nombre or 'PDF' }}</small>
+<span class="pdf-icon">📄</span><br><small style="font-size:6px;">PDF</small>
 {% else %}
-<small style="font-size:7px; color:#999;">SIN PDF</small>
+<small style="font-size:6px; color:#999;">SISTEMA</small>
 {% endif %}
 </td>
 <td><span class="badge {{ 'bg-success' if doc.estado=='VIGENTE' else 'bg-secondary' }}" style="font-size:7px;">{{ doc.estado }}</span></td>
-<td style="font-size:7px;">{{ doc.subido_por or '-' }}</td>
 <td>
 <div class="btn-group-vertical gap-1" style="width:100%;">
-{% if doc.archivo_base64 %}
-<a href="/gestion-rotaria/ver/{{ doc.id }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:7px; padding:2px 4px;"><i class="bi bi-eye"></i> VER PDF</a>
-<a href="/gestion-rotaria/descargar/{{ doc.id }}" class="btn btn-success btn-sm" style="font-size:7px; padding:2px 4px;"><i class="bi bi-download"></i> DESCARGAR</a>
+{% if doc.tiene_fechas %}
+<form method="POST" action="/gestion-rotaria/actualizar-avance/{{ doc.id }}" class="d-flex gap-1 mb-1">
+<input type="number" name="porcentaje_avance" min="0" max="100" value="{{ doc.porcentaje_avance or 0 }}" class="form-control form-control-sm" style="font-size:7px; width:45px; padding:1px;">
+<button type="submit" class="btn btn-info btn-sm" style="font-size:6px; padding:2px 4px;">%</button>
+</form>
 {% endif %}
-<button class="btn btn-warning btn-sm" style="font-size:7px; padding:2px 4px;" data-bs-toggle="modal" data-bs-target="#modalEditar{{ doc.id }}"><i class="bi bi-pencil"></i> EDITAR</button>
-<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar documento {{ doc.titulo }}?')" style="display:inline;">
-<button type="submit" class="btn btn-danger btn-sm w-100" style="font-size:7px; padding:2px 4px;"><i class="bi bi-trash"></i> ELIMINAR</button>
+{% if doc.archivo_base64 %}
+<a href="/gestion-rotaria/ver/{{ doc.id }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:6px; padding:2px 4px;"><i class="bi bi-eye"></i> VER</a>
+{% endif %}
+<button class="btn btn-warning btn-sm" style="font-size:6px; padding:2px 4px;" data-bs-toggle="modal" data-bs-target="#modalEditar{{ doc.id }}"><i class="bi bi-pencil"></i> EDITAR</button>
+<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar {{ doc.titulo }}?')" style="display:inline;">
+<button type="submit" class="btn btn-danger btn-sm w-100" style="font-size:6px; padding:2px 4px;"><i class="bi bi-trash"></i> ELIM</button>
 </form>
 </div>
 </td>
 </tr>
 
-<!-- MODAL EDITAR -->
+<!-- MODAL EDITAR CON FECHAS SEGUIMIENTO -->
 <div class="modal fade" id="modalEditar{{ doc.id }}" tabindex="-1">
-<div class="modal-dialog">
+<div class="modal-dialog modal-lg">
 <div class="modal-content">
 <form method="POST" action="/gestion-rotaria/editar/{{ doc.id }}" enctype="multipart/form-data">
 <div class="modal-header" style="background:#ffc107; color:#000;">
-<h6 class="modal-title" style="font-size:11px;">✏️ EDITAR DOCUMENTO - {{ doc.tipo }}</h6>
+<h6 class="modal-title" style="font-size:11px;">✏️ EDITAR - {{ doc.tipo }} - {{ doc.titulo[:30] }}</h6>
 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="font-size:10px; text-transform:none;">
-<div class="mb-2"><label class="fw-bold">TIPO:</label><select name="tipo" class="form-select form-select-sm">{% for t in tipos %}<option value="{{ t }}" {{ 'selected' if doc.tipo==t else '' }}>{{ t }}</option>{% endfor %}</select></div>
+<div class="row">
+<div class="col-md-4 mb-2"><label class="fw-bold">TIPO:</label><select name="tipo" class="form-select form-select-sm">{% for t in tipos %}<option value="{{ t }}" {{ 'selected' if doc.tipo==t else '' }}>{{ t }}</option>{% endfor %}</select></div>
+<div class="col-md-4 mb-2"><label class="fw-bold">FECHA DOC:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" value="{{ doc.fecha_documento.strftime('%Y-%m-%d') if doc.fecha_documento else '' }}"></div>
+<div class="col-md-4 mb-2"><label class="fw-bold">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE" {{ 'selected' if doc.estado=='VIGENTE' else '' }}>VIGENTE</option><option value="ARCHIVADO" {{ 'selected' if doc.estado=='ARCHIVADO' else '' }}>ARCHIVADO</option><option value="BORRADOR" {{ 'selected' if doc.estado=='BORRADOR' else '' }}>BORRADOR</option></select></div>
+</div>
 <div class="mb-2"><label class="fw-bold">TITULO:</label><input type="text" name="titulo" class="form-control form-control-sm" value="{{ doc.titulo }}" required></div>
-<div class="mb-2"><label class="fw-bold">DESCRIPCION:</label><textarea name="descripcion" class="form-control form-control-sm" rows="2">{{ doc.descripcion or '' }}</textarea></div>
-<div class="row"><div class="col-6"><label class="fw-bold">FECHA DOC:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" value="{{ doc.fecha_documento.strftime('%Y-%m-%d') if doc.fecha_documento else '' }}"></div><div class="col-6"><label class="fw-bold">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE" {{ 'selected' if doc.estado=='VIGENTE' else '' }}>VIGENTE</option><option value="ARCHIVADO" {{ 'selected' if doc.estado=='ARCHIVADO' else '' }}>ARCHIVADO</option><option value="BORRADOR" {{ 'selected' if doc.estado=='BORRADOR' else '' }}>BORRADOR</option></select></div></div>
+<div class="mb-2"><label class="fw-bold">DESCRIPCION:</label><textarea name="descripcion" class="form-control form-control-sm" rows="3">{{ doc.descripcion or '' }}</textarea></div>
+
+<div class="card mb-2" style="border:2px dashed #0d6efd; background:#e8f0ff;">
+<div class="card-body py-2">
+<div class="form-check mb-2">
+<input class="form-check-input" type="checkbox" name="tiene_fechas" id="checkFechasEdit{{ doc.id }}" value="1" {{ 'checked' if doc.tiene_fechas else '' }} onchange="document.getElementById('fechasEdit{{ doc.id }}').style.display=this.checked?'block':'none'">
+<label class="form-check-label fw-bold" for="checkFechasEdit{{ doc.id }}" style="font-size:11px; color:#0d6efd;">⏰ ¿TIENE FECHA DE INICIO Y TERMINO?</label>
+</div>
+<div id="fechasEdit{{ doc.id }}" style="display:{{ 'block' if doc.tiene_fechas else 'none' }};">
+<div class="row">
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">INICIO:</label><input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ doc.fecha_inicio.strftime('%Y-%m-%d') if doc.fecha_inicio else '' }}"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">TERMINO:</label><input type="date" name="fecha_termino" class="form-control form-control-sm" value="{{ doc.fecha_termino.strftime('%Y-%m-%d') if doc.fecha_termino else '' }}"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">RESPONSABLE:</label><input type="text" name="responsable" class="form-control form-control-sm" value="{{ doc.responsable or '' }}" placeholder="Responsable"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">PRIORIDAD:</label><select name="prioridad" class="form-select form-select-sm"><option value="BAJA" {{ 'selected' if doc.prioridad=='BAJA' else '' }}>BAJA</option><option value="MEDIA" {{ 'selected' if doc.prioridad=='MEDIA' else '' }}>MEDIA</option><option value="ALTA" {{ 'selected' if doc.prioridad=='ALTA' else '' }}>ALTA</option><option value="URGENTE" {{ 'selected' if doc.prioridad=='URGENTE' else '' }}>URGENTE</option></select></div>
+</div>
+<div class="mb-2"><label class="fw-bold" style="font-size:9px;">% AVANCE:</label><input type="range" name="porcentaje_avance" min="0" max="100" value="{{ doc.porcentaje_avance or 0 }}" class="form-range" oninput="this.nextElementSibling.value=this.value+'%'"><output style="font-size:10px; font-weight:900;">{{ doc.porcentaje_avance or 0 }}%</output></div>
+</div>
+</div>
+</div>
+
 <div class="mt-2"><label class="fw-bold">REEMPLAZAR PDF (opcional):</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf"></div>
 {% if doc.archivo_nombre %}<small style="font-size:8px;">Actual: {{ doc.archivo_nombre }}</small>{% endif %}
 </div>
@@ -165,14 +207,14 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 
 </div>
 
-<!-- MODAL CREAR EN SISTEMA (SIN PDF) -->
+<!-- MODAL CREAR EN SISTEMA (CON FECHAS SEGUIMIENTO) -->
 <div class="modal fade" id="modalCrearSistema" tabindex="-1">
 <div class="modal-dialog modal-lg">
 <div class="modal-content">
 <form method="POST" action="/gestion-rotaria/subir" enctype="multipart/form-data">
 <input type="hidden" name="modo" value="SISTEMA">
 <div class="modal-header" style="background:#198754; color:white;">
-<h6 class="modal-title" style="font-size:12px;">📝 CREAR EN SISTEMA - ACUERDO / ACTA SIN PDF</h6>
+<h6 class="modal-title" style="font-size:12px;">📝 CREAR EN SISTEMA - ACUERDO / ACTA / SEGUIMIENTO</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="font-size:11px; text-transform:none;">
@@ -182,11 +224,30 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px;">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE">VIGENTE</option><option value="BORRADOR">BORRADOR</option><option value="ARCHIVADO">ARCHIVADO</option></select></div>
 </div>
 <div class="mb-2"><label class="fw-bold" style="font-size:10px;">TITULO (OBLIGATORIO):</label><input type="text" name="titulo" class="form-control form-control-sm fw-bold" placeholder="EJ: ACUERDO APOYO DESPENSA COMUNIDAD RARAMURI" required></div>
-<div class="mb-2"><label class="fw-bold" style="font-size:10px;">DESCRIPCION / ACUERDO / CONTENIDO COMPLETO:</label><textarea name="descripcion" class="form-control form-control-sm" rows="6" placeholder="Escribe aqui el contenido completo del acuerdo, acta, minuta, puntos tratados, responsables, fechas compromiso... Este texto quedara guardado y visible sin necesidad de PDF." required></textarea></div>
-<div class="alert alert-success py-2" style="font-size:9px; text-transform:none; border:1px dashed #198754;">
-<strong>CREAR EN SISTEMA:</strong> No necesitas PDF. El contenido que escribas aqui se guarda como documento oficial y aparece en la tabla. Ideal para acuerdos rapidos de reunion. Despues puedes anexar PDF si quieres.
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">DESCRIPCION / ACUERDO / CONTENIDO COMPLETO:</label><textarea name="descripcion" class="form-control form-control-sm" rows="4" placeholder="Escribe aqui el contenido completo del acuerdo..." required></textarea></div>
+
+<div class="card mb-2" style="border:2px dashed #0d6efd; background:#e8f0ff;">
+<div class="card-body py-2">
+<div class="form-check mb-2">
+<input class="form-check-input" type="checkbox" name="tiene_fechas" id="checkFechasNuevo" value="1" onchange="toggleFechas('nuevo')">
+<label class="form-check-label fw-bold" for="checkFechasNuevo" style="font-size:11px; color:#0d6efd;">⏰ ¿TIENE FECHA DE INICIO Y TERMINO? (Para seguimiento del acuerdo)</label>
 </div>
-<div class="mb-2"><label class="fw-bold" style="font-size:10px;">ANEXAR PDF OPCIONAL:</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf"><small style="font-size:8px; color:#666;">Opcional. Si tienes foto o documento escaneado, puedes anexarlo.</small></div>
+<div id="fechasNuevo" style="display:none;">
+<div class="row">
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">FECHA INICIO:</label><input type="date" name="fecha_inicio" class="form-control form-control-sm"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">FECHA TERMINO:</label><input type="date" name="fecha_termino" class="form-control form-control-sm"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">RESPONSABLE:</label><input type="text" name="responsable" class="form-control form-control-sm" placeholder="Ej: DAVID BAEZA"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">PRIORIDAD:</label><select name="prioridad" class="form-select form-select-sm"><option value="BAJA">BAJA</option><option value="MEDIA" selected>MEDIA</option><option value="ALTA">ALTA</option><option value="URGENTE">URGENTE</option></select></div>
+</div>
+<div class="row">
+<div class="col-md-6 mb-2"><label class="fw-bold" style="font-size:9px;">% AVANCE INICIAL:</label><input type="range" name="porcentaje_avance" min="0" max="100" value="0" class="form-range" oninput="this.nextElementSibling.value=this.value+'%'"><output style="font-size:10px; font-weight:900;">0%</output></div>
+<div class="col-md-6"><small style="font-size:8px; color:#555;">Al activar fechas, el acuerdo aparecerá en seguimiento con barra de progreso y días restantes.</small></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">ANEXAR PDF OPCIONAL:</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf"></div>
 </div>
 <div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">💾 CREAR ACUERDO EN SISTEMA</button></div>
 </form>
@@ -194,7 +255,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 </div>
 
-<!-- MODAL SUBIR PDF (CON PDF OBLIGATORIO) -->
+<!-- MODAL SUBIR PDF (CON FECHAS OPCIONALES) -->
 <div class="modal fade" id="modalSubir" tabindex="-1">
 <div class="modal-dialog modal-lg">
 <div class="modal-content">
@@ -206,13 +267,31 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 <div class="modal-body" style="font-size:11px; text-transform:none;">
 <div class="row">
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px; text-transform:uppercase;">TIPO DOCUMENTO:</label><select name="tipo" class="form-select form-select-sm fw-bold" required><option value="ACTA">📄 ACTA DE SESION</option><option value="ACUERDO">🤝 ACUERDO DE REUNION</option><option value="PRESIDENCIA">👑 PRESIDENCIA</option><option value="SECRETARIA">📝 SECRETARIA</option><option value="FUNDACION">💚 FUNDACION ROTARIA</option><option value="SERVICIOS">🛠️ SERVICIOS / PROYECTOS</option><option value="TESORERIA">💰 TESORERIA</option><option value="MEMBRESIA">👥 MEMBRESIA</option><option value="OTRO">📁 OTRO</option></select></div>
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px;">FECHA DOCUMENTO:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" required></div>
+<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px; text-transform:uppercase;">TIPO:</label><select name="tipo" class="form-select form-select-sm fw-bold" required><option value="ACTA">📄 ACTA</option><option value="ACUERDO">🤝 ACUERDO</option><option value="PRESIDENCIA">👑 PRESIDENCIA</option><option value="SECRETARIA">📝 SECRETARIA</option><option value="FUNDACION">💚 FUNDACION</option><option value="SERVICIOS">🛠️ SERVICIOS</option><option value="TESORERIA">💰 TESORERIA</option><option value="MEMBRESIA">👥 MEMBRESIA</option><option value="OTRO">📁 OTRO</option></select></div>
+<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px;">FECHA DOC:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" required></div>
 <div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px;">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE">VIGENTE</option><option value="BORRADOR">BORRADOR</option><option value="ARCHIVADO">ARCHIVADO</option></select></div>
 </div>
-<div class="mb-2"><label class="fw-bold" style="font-size:10px;">TITULO (OBLIGATORIO):</label><input type="text" name="titulo" class="form-control form-control-sm fw-bold" placeholder="EJ: ACTA SESION ORDINARIA 15 NOV 2026 - ACUERDO PROYECTO BOMBERA" required></div>
-<div class="mb-2"><label class="fw-bold" style="font-size:10px;">DESCRIPCION:</label><textarea name="descripcion" class="form-control form-control-sm" rows="2" placeholder="Descripcion breve..."></textarea></div>
-<div class="mb-2"><label class="fw-bold" style="font-size:10px;">ARCHIVO PDF (MAX 20MB) - OBLIGATORIO EN ESTE MODO:</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf" required><small style="font-size:8px; color:#666;">Solo PDF. El acta firmada, escaneada o documento oficial.</small></div>
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">TITULO:</label><input type="text" name="titulo" class="form-control form-control-sm fw-bold" placeholder="EJ: ACTA SESION ORDINARIA 15 NOV 2026" required></div>
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">DESCRIPCION:</label><textarea name="descripcion" class="form-control form-control-sm" rows="2"></textarea></div>
+
+<div class="card mb-2" style="border:2px dashed #17458F; background:#e8f0ff;">
+<div class="card-body py-2">
+<div class="form-check mb-2">
+<input class="form-check-input" type="checkbox" name="tiene_fechas" id="checkFechasPdf" value="1" onchange="toggleFechas('pdf')">
+<label class="form-check-label fw-bold" for="checkFechasPdf" style="font-size:11px; color:#17458F;">⏰ ¿TIENE FECHA DE INICIO Y TERMINO?</label>
+</div>
+<div id="fechasPdf" style="display:none;">
+<div class="row">
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">INICIO:</label><input type="date" name="fecha_inicio" class="form-control form-control-sm"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">TERMINO:</label><input type="date" name="fecha_termino" class="form-control form-control-sm"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">RESPONSABLE:</label><input type="text" name="responsable" class="form-control form-control-sm" placeholder="Responsable"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">PRIORIDAD:</label><select name="prioridad" class="form-select form-select-sm"><option value="BAJA">BAJA</option><option value="MEDIA" selected>MEDIA</option><option value="ALTA">ALTA</option><option value="URGENTE">URGENTE</option></select></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">ARCHIVO PDF (MAX 20MB):</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf" required></div>
 </div>
 <div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">📤 SUBIR PDF</button></div>
 </form>
@@ -224,6 +303,17 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <script>
 function filtrarTipo(tipo) {
   window.location.href = '/gestion-rotaria?tipo=' + tipo + '&estado={{ estado_filtro }}';
+}
+function toggleFechas(modo) {
+  if (modo === 'nuevo') {
+    var check = document.getElementById('checkFechasNuevo');
+    var div = document.getElementById('fechasNuevo');
+    div.style.display = check.checked ? 'block' : 'none';
+  } else if (modo === 'pdf') {
+    var check = document.getElementById('checkFechasPdf');
+    var div = document.getElementById('fechasPdf');
+    div.style.display = check.checked ? 'block' : 'none';
+  }
 }
 </script>
 </body>
