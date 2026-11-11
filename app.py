@@ -599,6 +599,10 @@ def eliminar_documento_rotario(doc_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     doc = DocumentoRotario.query.get_or_404(doc_id)
+    # REGLA: Solo el creador puede eliminar (ADMIN override)
+    if doc.subido_por and doc.subido_por != session.get('username') and session.get('rol') != 'ADMIN':
+        flash(f'Solo {doc.subido_por} (creador) puede eliminar este documento.', 'danger')
+        return redirect(url_for('gestion_rotaria'))
     db.session.delete(doc)
     db.session.commit()
     flash(f'Documento {doc.titulo} eliminado.', 'warning')
@@ -609,6 +613,10 @@ def editar_documento_rotario(doc_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     doc = DocumentoRotario.query.get_or_404(doc_id)
+    # REGLA: Solo el usuario que creo el documento puede editarlo (ADMIN puede como superusuario)
+    if doc.subido_por and doc.subido_por != session.get('username') and session.get('rol') != 'ADMIN':
+        flash(f'Solo {doc.subido_por} (creador) puede editar este documento.', 'danger')
+        return redirect(url_for('gestion_rotaria'))
     doc.tipo = request.form.get('tipo','ACTA').strip().upper()
     doc.titulo = request.form.get('titulo','').strip().upper()
     doc.descripcion = request.form.get('descripcion','').strip()
