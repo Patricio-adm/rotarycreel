@@ -74,7 +74,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <tr>
 <td>{% if socio.foto_url %}<img src="{{ socio.foto_url }}" class="foto-socio">{% else %}<div class="foto-placeholder">👤</div>{% endif %}</td>
 <td style="font-weight:800; font-size:13px; color:#17458F;">{{ socio.numero_socio or '' }}</td>
-<td class="nombre-socio">{{ socio.nombre_completo }}</td>
+<td class="nombre-socio"><a href="#" data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}" style="color:#000; text-decoration:none;" title="Click para ver informacion del socio y su familia">👁️ {{ socio.nombre_completo }}</a><br><small style="font-size:8px; color:#0d6efd;">👆 CLICK PARA VER DETALLE</small></td>
 <td><span class="badge badge-activo">{{ socio.tipo_socio or 'ACTIVO' }}</span></td>
 <td class="telefono">{{ socio.telefono or '-' }}</td>
 <td class="correo">{{ socio.correo or '-' }}</td>
@@ -91,6 +91,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 {% endif %}
 </td>
 <td>
+<button class="btn btn-info btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}" style="font-size:10px; padding:5px 12px; color:#fff;">👁️ VER</button><br>
 {% set es_mio = (session.get('rol') == 'ADMIN') or (mi_socio_id is defined and mi_socio_id and socio.id == mi_socio_id) %}
 {% if es_mio %}
 <button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}" style="font-size:10px; padding:5px 12px;"><i class="bi bi-pencil"></i> EDITAR</button>
@@ -173,6 +174,55 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 <div class="modal-footer py-2" style="background:#fff;"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">💾 GUARDAR CAMBIOS</button></div>
 </form>
+</div>
+</div>
+</div>
+
+
+<!-- MODAL VER SOCIO Y FAMILIA - SOLO LECTURA, PARA TODOS -->
+<div class="modal fade" id="modalVer{{ socio.id }}" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog modal-lg">
+<div class="modal-content" style="background:#fff;">
+<div class="modal-header" style="background:#17458F; color:white;">
+<h6 class="modal-title" style="font-size:13px;">👁️ {{ socio.nombre_completo }} <span class="badge bg-warning text-dark" style="font-size:10px; margin-left:8px;">NO. {{ socio.numero_socio or '-' }} - {{ socio.tipo_socio or 'ACTIVO' }}</span></h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body" style="font-size:11px; text-transform:none; max-height:75vh; overflow-y:auto; background:#fff;">
+<div class="d-flex gap-3 align-items-center mb-3 p-2" style="background:#e8f0ff; border-radius:8px;">
+{% if socio.foto_url %}<img src="{{ socio.foto_url }}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid #17458F;">{% else %}<div style="width:80px; height:80px; border-radius:50%; background:#ddd; display:flex; align-items:center; justify-content:center; font-size:32px;">👤</div>{% endif %}
+<div><strong style="font-size:14px; text-transform:uppercase;">{{ socio.nombre_completo }}</strong><br><small>NO. SOCIO: {{ socio.numero_socio or '-' }} | TIPO: {{ socio.tipo_socio or 'ACTIVO' }}</small><br><small>F. NACIMIENTO: {{ socio.fecha_nacimiento.strftime('%d/%m/%Y') if socio.fecha_nacimiento else '-' }}</small></div>
+</div>
+<div class="mb-3"><small class="fw-bold text-primary">📞 DATOS PERSONALES</small><hr style="margin:4px 0;">
+<div class="row"><div class="col-md-6"><strong>TELEFONO:</strong> {{ socio.telefono or '-' }}</div><div class="col-md-6"><strong>CORREO:</strong> {{ socio.correo or '-' }}</div></div>
+<div class="row mt-1"><div class="col-md-6"><strong>CIUDAD:</strong> {{ socio.ciudad or '-' }} {{ socio.estado or '' }}</div><div class="col-md-6"><strong>TELEFONO EMERGENCIA:</strong> <span style="color:#dc3545; font-weight:900;">{{ socio.telefono_emergencia or '-' }}</span></div></div>
+<div class="row mt-1"><div class="col-md-12"><strong>DOMICILIO:</strong> {{ socio.calle_numero or '' }} {{ socio.colonia or '' }} CP {{ socio.codigo_postal or '' }}</div></div>
+<div class="row mt-1"><div class="col-md-6"><strong>ESTADO CIVIL:</strong> {{ socio.estado_civil or '-' }}</div></div>
+</div>
+<div class="mb-3"><small class="fw-bold text-success">👨‍👩‍👧 DATOS FAMILIARES</small><hr style="margin:4px 0;">
+<div class="row"><div class="col-md-6"><strong>ESPOSA(O):</strong> {{ socio.nombre_esposa or '-' }}</div><div class="col-md-6"><strong>TEL. ESPOSA(O):</strong> {{ socio.telefono_esposa or '-' }}</div></div>
+<div class="row mt-1"><div class="col-md-6"><strong>F. NAC. ESPOSA(O):</strong> {{ socio.fecha_nacimiento_esposa.strftime('%d/%m/%Y') if socio.fecha_nacimiento_esposa else '-' }}</div><div class="col-md-6"><strong>ANIVERSARIO:</strong> {{ socio.aniversario_matrimonio.strftime('%d/%m/%Y') if socio.aniversario_matrimonio else '-' }}</div></div>
+</div>
+<div class="mb-2"><small class="fw-bold text-success">👶 HIJOS ({{ socio.hijos|length if socio.hijos else 0 }})</small><hr style="margin:4px 0;">
+{% if socio.hijos %}
+{% for hijo in socio.hijos %}
+<div class="p-2 mb-1" style="background:#f8fff8; border:1px solid #c3e6cb; border-radius:6px;"><strong>{{ loop.index }}. {{ hijo.nombre }}</strong> - F. NAC: {{ hijo.fecha_nacimiento.strftime('%d/%m/%Y') if hijo.fecha_nacimiento else '-' }}</div>
+{% endfor %}
+{% else %}
+<small style="color:#999;">Sin hijos registrados.</small>
+{% endif %}
+</div>
+{% if socio.cargos %}
+<div class="mb-2"><small class="fw-bold">🏛️ CARGOS</small><hr style="margin:4px 0;">
+{% for cargo in socio.cargos %}
+<div><strong>{{ cargo.cargo }}</strong> - {{ cargo.periodo or '' }} {% if cargo.es_actual %}<span class="badge bg-success" style="font-size:8px;">ACTUAL</span>{% endif %}</div>
+{% endfor %}
+</div>
+{% endif %}
+</div>
+<div class="modal-footer py-2" style="background:#fff;">
+{% if es_mio %}<button type="button" class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}" onclick="var m=bootstrap.Modal.getInstance(document.getElementById('modalVer{{ socio.id }}')); if(m) m.hide();">✏️ EDITAR</button>{% endif %}
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">CERRAR</button>
+</div>
 </div>
 </div>
 </div>
