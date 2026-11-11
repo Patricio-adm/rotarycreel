@@ -303,18 +303,7 @@ RESPONSABLE: {{ doc.responsable or '-' }} | PRIORIDAD: {{ doc.prioridad or '-' }
 <div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">RESPONSABLE:</label><input type="text" name="responsable" class="form-control form-control-sm" placeholder="Ej: DAVID BAEZA"></div>
 <div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">PRIORIDAD:</label><select name="prioridad" class="form-select form-select-sm"><option value="BAJA">BAJA</option><option value="MEDIA" selected>MEDIA</option><option value="ALTA">ALTA</option><option value="URGENTE">URGENTE</option></select></div>
 </div>
-<!-- FECHA DE EJECUCION - ABAJO DE INICIO Y TERMINO -->
-<div class="row" style="border-top:2px dashed #fd7e14; padding-top:8px; margin-top:4px; background:#fff3e6;">
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px; color:#fd7e14;">📅 FECHA DE EJECUCION:</label><input type="date" name="fecha_ejecucion" class="form-control form-control-sm" style="border:2px solid #fd7e14;"></div>
-<div class="col-md-8 mb-2"><small style="font-size:9px; color:#666; text-transform:none;">Fecha en que se realizara el evento. Se mostrara en Menu Principal scroleando junto con los cumpleaños del mes de ejecucion.</small><br>
-<div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="tiene_fecha_ejecucion" id="checkEjecNuevo" value="1"><label class="form-check-label fw-bold" for="checkEjecNuevo" style="font-size:9px; color:#fd7e14;">MOSTRAR EN MENU PRINCIPAL</label></div></div>
-</div>
-<div class="row">
-<div class="col-md-6 mb-2"><label class="fw-bold" style="font-size:9px;">% AVANCE INICIAL:</label><input type="range" name="porcentaje_avance" min="0" max="100" value="0" class="form-range" oninput="this.nextElementSibling.value=this.value+'%'"><output style="font-size:10px; font-weight:900;">0%</output></div>
-<div class="col-md-6"><small style="font-size:8px; color:#555;">Al activar fechas, el acuerdo aparecerá en seguimiento con barra de progreso y días restantes.</small></div>
-</div>
-</div>
-</div>
+<!-- DUPLICADO ELIMINADO: solo queda el campo FECHA DE EJECUCION siempre visible de abajo -->
 </div>
 
 <!-- FECHA DE EJECUCION SIEMPRE VISIBLE - OPCION INDEPENDIENTE -->
@@ -367,13 +356,7 @@ RESPONSABLE: {{ doc.responsable or '-' }} | PRIORIDAD: {{ doc.prioridad or '-' }
 <div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">RESPONSABLE:</label><input type="text" name="responsable" class="form-control form-control-sm" placeholder="Responsable"></div>
 <div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">PRIORIDAD:</label><select name="prioridad" class="form-select form-select-sm"><option value="BAJA">BAJA</option><option value="MEDIA" selected>MEDIA</option><option value="ALTA">ALTA</option><option value="URGENTE">URGENTE</option></select></div>
 </div>
-<!-- FECHA DE EJECUCION - ABAJO DE INICIO Y TERMINO -->
-<div class="row" style="border-top:2px dashed #fd7e14; padding-top:8px; margin-top:4px; background:#fff3e6;">
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px; color:#fd7e14;">📅 FECHA DE EJECUCION:</label><input type="date" name="fecha_ejecucion" class="form-control form-control-sm" style="border:2px solid #fd7e14;"></div>
-<div class="col-md-8 mb-2"><small style="font-size:9px; color:#666; text-transform:none;">Fecha en que se realizara el evento. Se mostrara en Menu Principal scroleando junto con los cumpleaños.</small><br>
-<div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="tiene_fecha_ejecucion" id="checkEjecPdf" value="1"><label class="form-check-label fw-bold" for="checkEjecPdf" style="font-size:9px; color:#fd7e14;">MOSTRAR EN MENU PRINCIPAL</label></div></div>
-</div>
-</div>
+<!-- DUPLICADO ELIMINADO: solo queda el campo FECHA DE EJECUCION siempre visible de abajo -->
 </div>
 </div>
 
