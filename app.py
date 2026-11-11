@@ -333,6 +333,14 @@ def es_mi_socio(socio):
 def puede_tesoreria():
     return session.get('rol') in ROLES_TESORERIA
 
+def solo_estado_cuenta():
+    """Si es SOCIO (no ADMIN/PRESIDENTE/TESORERO), no puede ver tesoreria completa, solo estados de cuenta."""
+    if session.get('rol') not in ROLES_TESORERIA:
+        flash('Como SOCIO solo puedes ver ESTADOS DE CUENTA (mensual y meses anteriores).', 'warning')
+        return True
+    return False
+
+
 def get_mes_anio_actual():
     now = datetime.now()
     return f"{MESES_NOMBRES[now.month-1]} {now.year}"
@@ -940,6 +948,9 @@ def eliminar_autoridad(id):
 def modulo_tesoreria():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    # REGLA CORREGIDA: SOCIO no ve menu de tesoreria completo, solo estados de cuenta
+    if solo_estado_cuenta():
+        return redirect(url_for('estado_cuenta_mensual'))
     # Resumen financiero para menu
     total_cuotas = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0
     total_gastos_admin = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='ADMINISTRATIVO').scalar() or 0
@@ -952,6 +963,8 @@ def modulo_tesoreria():
 def cuotas_sociales():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    if solo_estado_cuenta():
+        return redirect(url_for('estado_cuenta_mensual'))
     socios = Socio.query.filter_by(es_activo=True).order_by(Socio.nombre_completo.asc()).all()
     config_teso = ConfiguracionTesoreria.query.first()
     saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
@@ -1054,9 +1067,16 @@ def editar_pago_cuota(pago_id):
 
 @app.route('/tesoreria/recibo/<int:pago_id>')
 def ver_recibo(pago_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session:
         return redirect(url_for('login'))
     pago = PagoCuota.query.get_or_404(pago_id)
+    # REGLA: SOCIO solo sus propios recibos
+    if session.get('rol') not in ROLES_TESORERIA:
+        _u = Usuario.query.get(session.get('user_id')) if session.get('user_id') else None
+        _mi = _u.socio_id if _u and _u.socio_id else None
+        if pago.socio_id != _mi:
+            flash('Solo puedes ver TUS recibos.', 'danger')
+            return redirect(url_for('estado_cuenta_mensual'))
     pagos_relacionados = request.args.get('ids')
     if pagos_relacionados:
         try:
@@ -1075,9 +1095,13 @@ def ver_recibo(pago_id):
 
 @app.route('/tesoreria/estado-cuenta-pdf/<int:socio_id>')
 def estado_cuenta_pdf(socio_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session:
         return redirect(url_for('login'))
     socio = Socio.query.get_or_404(socio_id)
+    # REGLA: SOCIO solo puede ver SU propio estado de cuenta, no el de otros
+    if session.get('rol') not in ROLES_TESORERIA and not es_mi_socio(socio):
+        flash('Solo puedes ver TU estado de cuenta.', 'danger')
+        return redirect(url_for('estado_cuenta_mensual'))
     meses_es = {"January": "ENERO", "February": "FEBRERO", "March": "MARZO", "April": "ABRIL", "May": "MAYO", "June": "JUNIO", "July": "JULIO", "August": "AGOSTO", "September": "SEPTIEMBRE", "October": "OCTUBRE", "November": "NOVIEMBRE", "December": "DICIEMBRE"}
     dias_es = {"Monday": "LUNES", "Tuesday": "MARTES", "Wednesday": "MIÉRCOLES", "Thursday": "JUEVES", "Friday": "VIERNES", "Saturday": "SÁBADO", "Sunday": "DOMINGO"}
     ahora = datetime.now()
@@ -1087,9 +1111,11 @@ def estado_cuenta_pdf(socio_id):
 # ==================== NUEVO MODULO GASTOS ====================
 @app.route('/tesoreria/gastos')
 def tesoreria_gastos():
-    # REGLA TESORERIA: ver lo puede cualquiera logueado, escribir solo ADMIN/PRESIDENTE/TESORERO
+    # REGLA CORREGIDA: gastos solo ADMIN/PRESIDENTE/TESORERO. SOCIO solo estados de cuenta.
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    if solo_estado_cuenta():
+        return redirect(url_for('estado_cuenta_mensual'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     gastos_mes = Gasto.query.filter_by(mes_anio=mes_filtro).order_by(Gasto.fecha.desc()).all()
     total_admin = sum([g.monto for g in gastos_mes if g.centro_costo == 'ADMINISTRATIVO'])
@@ -1164,6 +1190,8 @@ def eliminar_gasto(gasto_id):
 def tesoreria_proyectos():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    if solo_estado_cuenta():
+        return redirect(url_for('estado_cuenta_mensual'))
     proyectos = Proyecto.query.order_by(Proyecto.fecha_creacion.desc()).all()
     for p in proyectos:
         total_rec = sum([e.monto_recaudado for e in p.eventos]) if p.eventos else 0
@@ -1191,6 +1219,8 @@ def nuevo_proyecto():
 def ver_proyecto(proyecto_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    if solo_estado_cuenta():
+        return redirect(url_for('estado_cuenta_mensual'))
     proyecto = Proyecto.query.get_or_404(proyecto_id)
     eventos = EventoProyecto.query.filter_by(proyecto_id=proyecto_id).order_by(EventoProyecto.fecha_evento.desc()).all()
     gastos = Gasto.query.filter_by(proyecto_id=proyecto_id).order_by(Gasto.fecha.desc()).all()
@@ -1341,7 +1371,8 @@ def estado_cuenta_mensual():
 
 @app.route('/tesoreria/estado-cuenta-pdf-mensual')
 def estado_cuenta_pdf_mensual():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    # REGLA: es estado de cuenta mensual, TODOS pueden verlo (incluido SOCIO)
+    if 'user_id' not in session:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     config = ConfiguracionTesoreria.query.first()
@@ -1390,9 +1421,11 @@ def estado_cuenta_pdf_mensual():
 
 @app.route('/tesoreria/recaudacion-mensual')
 def recaudacion_mensual():
-    # REGLA: TODOS pueden ver
+    # REGLA CORREGIDA: recaudacion NO es estado de cuenta, solo ADMIN/PRESIDENTE/TESORERO
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    if solo_estado_cuenta():
+        return redirect(url_for('estado_cuenta_mensual'))
     total_socios = Socio.query.filter_by(es_activo=True).count()
     if total_socios == 0:
         total_socios = 12
@@ -1468,8 +1501,10 @@ def recaudacion_mensual():
 
 @app.route('/tesoreria/ingresos-extraordinarios')
 def ingresos_extraordinarios():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    if 'user_id' not in session:
         return redirect(url_for('login'))
+    if solo_estado_cuenta():
+        return redirect(url_for('estado_cuenta_mensual'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     meses_lista = []
     now = datetime.now()
@@ -1572,6 +1607,8 @@ def eliminar_ingreso_extraordinario(ingreso_id):
 def ver_comprobante_ingreso(ingreso_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    if solo_estado_cuenta():
+        return redirect(url_for('estado_cuenta_mensual'))
     ingreso = IngresoExtraordinario.query.get_or_404(ingreso_id)
     if not ingreso.comprobante_base64:
         flash('Sin comprobante.', 'warning')
