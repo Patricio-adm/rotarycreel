@@ -153,7 +153,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="modal-dialog modal-lg">
 <div class="modal-content" style="border:3px solid #17458F;">
 <div class="modal-header" style="background:#17458F; color:white;">
-<h6 class="modal-title" style="font-size:12px; font-weight:900;">📄 {{ doc.tipo }} - {{ doc.titulo }}</h6>
+<h6 class="modal-title" style="font-size:12px; font-weight:900;">📄 {{ doc.tipo }} - {{ doc.titulo }}{% if doc.fecha_ejecucion %} <span class="badge" style="background:#fd7e14; color:#fff; font-size:11px; font-weight:900; margin-left:8px; white-space:nowrap;">📅 EJECUCION: {{ doc.fecha_ejecucion.strftime('%d/%m/%Y') }}</span>{% endif %}</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="font-size:11px; text-transform:none; background:#f9f9f9;">
@@ -162,9 +162,6 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="col-md-3"><strong>ESTADO:</strong> <span class="badge {{ 'bg-success' if doc.estado=='VIGENTE' else 'bg-secondary' }}">{{ doc.estado }}</span></div>
 <div class="col-md-3"><strong>FECHA DOC:</strong> {{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '-' }}</div>
 <div class="col-md-3"><strong>CREADO POR:</strong> <span class="badge bg-dark">{{ doc.subido_por or '-' }}</span></div>
-</div>
-<div class="mb-2 p-3 bg-white" style="border:2px solid #000; border-radius:8px;">
-<strong style="font-size:12px; text-transform:uppercase;">TITULO:</strong><br><span style="font-size:14px; font-weight:900;">{{ doc.titulo }}</span>
 </div>
 <div class="mb-3 p-3 bg-white" style="border:1px solid #ccc; border-radius:8px; max-height:250px; overflow-y:auto;">
 <strong>DESCRIPCION / CONTENIDO COMPLETO:</strong><br><span style="font-size:12px; white-space:pre-wrap;">{{ doc.descripcion or 'Sin descripcion' }}</span>
@@ -182,43 +179,32 @@ RESPONSABLE: {{ doc.responsable or '-' }} | PRIORIDAD: {{ doc.prioridad or '-' }
 </div>
 </div>
 {% endif %}
-{% if doc.fecha_ejecucion %}
-<div class="card mb-3" style="border:2px solid #fd7e14; background:#fff3e6;">
-<div class="card-header text-white fw-bold" style="background:#fd7e14; font-size:11px;">📅 FECHA DE EJECUCION</div>
-<div class="card-body" style="font-size:12px; font-weight:900;">{{ doc.fecha_ejecucion.strftime('%d/%m/%Y') }} - Aparece en Menu Principal scroleando con cumpleaños</div>
-</div>
-{% endif %}
+{% if doc.archivo_base64 %}
 <div class="card mb-3" style="border:2px solid #000;">
 <div class="card-header bg-dark text-white fw-bold" style="font-size:11px;">📎 ARCHIVO PDF</div>
 <div class="card-body text-center">
-{% if doc.archivo_base64 %}
 <p style="font-size:11px;"><strong>{{ doc.archivo_nombre or 'PDF' }}</strong></p>
 <a href="/gestion-rotaria/ver/{{ doc.id }}" target="_blank" class="btn btn-primary btn-sm fw-bold">VER PDF</a>
 <a href="/gestion-rotaria/descargar/{{ doc.id }}" class="btn btn-success btn-sm fw-bold">DESCARGAR PDF</a>
-{% else %}
-<p style="font-size:11px; color:#999;">SIN PDF - CREADO EN SISTEMA</p>
+</div>
+</div>
 {% endif %}
-</div>
-</div>
+{% if puede_editar or puede_borrar %}
 <div class="card" style="border:2px solid #dc3545;">
-<div class="card-header bg-danger text-white fw-bold" style="font-size:11px;">⚙️ ACCIONES - EDITAR: SOLO CREADOR | BORRAR: SOLO PRESIDENTE Y ADMIN</div>
+<div class="card-header bg-danger text-white fw-bold" style="font-size:11px;">⚙️ ACCIONES</div>
 <div class="card-body">
 <div class="d-flex gap-2 flex-wrap">
 {% if puede_editar %}
-<button class="btn btn-warning fw-bold btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditar{{ doc.id }}" onclick="var m=bootstrap.Modal.getInstance(document.getElementById('modalVer{{ doc.id }}')); if(m) m.hide();">✏️ EDITAR (TU ERES EL CREADOR)</button>
-{% else %}
-<span class="badge bg-warning text-dark" style="font-size:10px;">🔒 EDITAR: Solo {{ doc.subido_por }} (creador) o ADMIN</span>
+<button class="btn btn-warning fw-bold btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditar{{ doc.id }}" onclick="var m=bootstrap.Modal.getInstance(document.getElementById('modalVer{{ doc.id }}')); if(m) m.hide();">EDITAR</button>
 {% endif %}
 {% if puede_borrar %}
-<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar {{ doc.titulo }}? Solo PRESIDENTE y ADMIN.')" style="display:inline;"><button type="submit" class="btn btn-danger btn-sm fw-bold">ELIMINAR</button></form>
-{% else %}
-<span class="badge bg-danger" style="font-size:10px;">🔒 BORRAR: Solo PRESIDENTE y ADMIN</span>
+<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar {{ doc.titulo }}?')" style="display:inline;"><button type="submit" class="btn btn-danger btn-sm fw-bold">BORRAR</button></form>
 {% endif %}
 </div>
-<div class="alert alert-info py-2 mt-2 mb-0" style="font-size:11px;">Tu usuario es <strong>{{ session.get('username') }}</strong> ({{ session.get('rol') }}). Puedes ver y descargar el PDF.</div>
+</div>
+</div>
+{% endif %}
 <button type="button" class="btn btn-secondary btn-sm mt-2" data-bs-dismiss="modal">CERRAR</button>
-</div>
-</div>
 </div>
 </div>
 </div>
