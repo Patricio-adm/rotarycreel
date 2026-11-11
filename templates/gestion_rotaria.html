@@ -26,6 +26,10 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 .titulo-col { text-align:left !important; font-weight:700; min-width:200px; max-width:300px; white-space: normal; }
 .pdf-icon { font-size:18px; color:#dc3545; }
 .filtro-activo { background:#17458F !important; color:white !important; border-color:#17458F !important; }
+.fila-doc { cursor:pointer; }
+.fila-doc:hover { background:#e8f0ff !important; }
+.fila-doc:hover .titulo-col strong { color:#0d6efd !important; text-decoration:underline; }
+.btn-no-permiso { opacity:0.45; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -101,12 +105,15 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </thead>
 <tbody>
 {% for doc in documentos %}
-<tr>
+{% set puede_editar = (doc.subido_por == session.get('username')) or (session.get('rol') == 'ADMIN') %}
+<tr class="fila-doc" data-bs-toggle="modal" data-bs-target="#modalVer{{ doc.id }}" title="Click para ver detalle completo - Creado por {{ doc.subido_por }}">
 <td class="fw-bold">{{ doc.id }}</td>
 <td><span class="badge badge-tipo-{{ doc.tipo }}" style="font-size:7px;">{{ doc.tipo }}</span></td>
 <td class="titulo-col">
 <strong style="font-size:9px;">{{ doc.titulo }}</strong><br>
 <small style="font-size:7px; text-transform:none; color:#666;">{{ doc.descripcion[:120] if doc.descripcion else '' }}</small>
+{% if doc.fecha_ejecucion %}<br><span style="font-size:7px; color:#fd7e14; font-weight:900;">📅 EJECUCION: {{ doc.fecha_ejecucion.strftime('%d/%m/%Y') }}</span>{% endif %}
+<br><small style="font-size:6px; color:#0d6efd;">👆 CLICK PARA VER DETALLE</small>
 </td>
 <td style="font-size:8px;">{{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '-' }}<br><small style="font-size:6px;">Subida: {{ doc.fecha_subida.strftime('%d/%m %H:%M') if doc.fecha_subida else '' }}</small></td>
 <td>
@@ -118,19 +125,98 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </td>
 <td><span class="badge {{ 'bg-success' if doc.estado=='VIGENTE' else 'bg-secondary' }}" style="font-size:7px;">{{ doc.estado }}</span></td>
 <td style="font-size:7px;">{{ doc.subido_por or '-' }}</td>
-<td>
+<td onclick="event.stopPropagation()">
 <div class="btn-group-vertical gap-1" style="width:100%;">
 {% if doc.archivo_base64 %}
 <a href="/gestion-rotaria/ver/{{ doc.id }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:7px; padding:2px 4px;"><i class="bi bi-eye"></i> VER PDF</a>
 <a href="/gestion-rotaria/descargar/{{ doc.id }}" class="btn btn-success btn-sm" style="font-size:7px; padding:2px 4px;"><i class="bi bi-download"></i> DESCARGAR</a>
 {% endif %}
+{% if puede_editar %}
 <button class="btn btn-warning btn-sm" style="font-size:7px; padding:2px 4px;" data-bs-toggle="modal" data-bs-target="#modalEditar{{ doc.id }}"><i class="bi bi-pencil"></i> EDITAR</button>
+{% else %}
+<button class="btn btn-warning btn-sm btn-no-permiso" style="font-size:7px; padding:2px 4px;" title="Solo {{ doc.subido_por }} puede editar" onclick="alert('Solo {{ doc.subido_por }} (creador) puede editar este documento.'); return false;"><i class="bi bi-lock"></i> EDITAR 🔒</button>
+{% endif %}
+{% if puede_editar %}
 <form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar documento {{ doc.titulo }}?')" style="display:inline;">
 <button type="submit" class="btn btn-danger btn-sm w-100" style="font-size:7px; padding:2px 4px;"><i class="bi bi-trash"></i> ELIMINAR</button>
 </form>
+{% else %}
+<button class="btn btn-danger btn-sm w-100 btn-no-permiso" style="font-size:7px; padding:2px 4px;" onclick="alert('Solo {{ doc.subido_por }} (creador) puede eliminar este documento.'); return false;"><i class="bi bi-lock"></i> ELIMINAR 🔒</button>
+{% endif %}
 </div>
 </td>
 </tr>
+
+<!-- MODAL VER DETALLE - CLICK EN LA LINEA -->
+<div class="modal fade" id="modalVer{{ doc.id }}" tabindex="-1">
+<div class="modal-dialog modal-lg">
+<div class="modal-content" style="border:3px solid #17458F;">
+<div class="modal-header" style="background:#17458F; color:white;">
+<h6 class="modal-title" style="font-size:12px; font-weight:900;">📄 {{ doc.tipo }} - {{ doc.titulo }}</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" style="font-size:11px; text-transform:none; background:#f9f9f9;">
+<div class="row mb-3" style="font-size:11px;">
+<div class="col-md-3"><strong>TIPO:</strong> <span class="badge badge-tipo-{{ doc.tipo }}">{{ doc.tipo }}</span></div>
+<div class="col-md-3"><strong>ESTADO:</strong> <span class="badge {{ 'bg-success' if doc.estado=='VIGENTE' else 'bg-secondary' }}">{{ doc.estado }}</span></div>
+<div class="col-md-3"><strong>FECHA DOC:</strong> {{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '-' }}</div>
+<div class="col-md-3"><strong>CREADO POR:</strong> <span class="badge bg-dark">{{ doc.subido_por or '-' }}</span></div>
+</div>
+<div class="mb-2 p-3 bg-white" style="border:2px solid #000; border-radius:8px;">
+<strong style="font-size:12px; text-transform:uppercase;">TITULO:</strong><br><span style="font-size:14px; font-weight:900;">{{ doc.titulo }}</span>
+</div>
+<div class="mb-3 p-3 bg-white" style="border:1px solid #ccc; border-radius:8px; max-height:250px; overflow-y:auto;">
+<strong>DESCRIPCION / CONTENIDO COMPLETO:</strong><br><span style="font-size:12px; white-space:pre-wrap;">{{ doc.descripcion or 'Sin descripcion' }}</span>
+</div>
+<div class="row mb-3" style="font-size:11px;">
+<div class="col-md-6"><strong>SUBIDO POR:</strong> {{ doc.subido_por or '-' }}</div>
+<div class="col-md-6"><strong>FECHA SUBIDA:</strong> {{ doc.fecha_subida.strftime('%d/%m/%Y %H:%M') if doc.fecha_subida else '-' }}</div>
+</div>
+{% if doc.tiene_fechas or doc.fecha_inicio or doc.fecha_termino %}
+<div class="card mb-3" style="border:2px solid #198754;">
+<div class="card-header bg-success text-white fw-bold" style="font-size:11px;">⏰ SEGUIMIENTO</div>
+<div class="card-body" style="font-size:11px;">
+INICIO: {{ doc.fecha_inicio.strftime('%d/%m/%Y') if doc.fecha_inicio else '-' }} | TERMINO: {{ doc.fecha_termino.strftime('%d/%m/%Y') if doc.fecha_termino else '-' }}<br>
+RESPONSABLE: {{ doc.responsable or '-' }} | PRIORIDAD: {{ doc.prioridad or '-' }} | AVANCE: {{ doc.porcentaje_avance or 0 }}%
+</div>
+</div>
+{% endif %}
+{% if doc.fecha_ejecucion %}
+<div class="card mb-3" style="border:2px solid #fd7e14; background:#fff3e6;">
+<div class="card-header text-white fw-bold" style="background:#fd7e14; font-size:11px;">📅 FECHA DE EJECUCION</div>
+<div class="card-body" style="font-size:12px; font-weight:900;">{{ doc.fecha_ejecucion.strftime('%d/%m/%Y') }} - Aparece en Menu Principal scroleando con cumpleaños</div>
+</div>
+{% endif %}
+<div class="card mb-3" style="border:2px solid #000;">
+<div class="card-header bg-dark text-white fw-bold" style="font-size:11px;">📎 ARCHIVO PDF</div>
+<div class="card-body text-center">
+{% if doc.archivo_base64 %}
+<p style="font-size:11px;"><strong>{{ doc.archivo_nombre or 'PDF' }}</strong></p>
+<a href="/gestion-rotaria/ver/{{ doc.id }}" target="_blank" class="btn btn-primary btn-sm fw-bold">VER PDF</a>
+<a href="/gestion-rotaria/descargar/{{ doc.id }}" class="btn btn-success btn-sm fw-bold">DESCARGAR PDF</a>
+{% else %}
+<p style="font-size:11px; color:#999;">SIN PDF - CREADO EN SISTEMA</p>
+{% endif %}
+</div>
+</div>
+<div class="card" style="border:2px solid #dc3545;">
+<div class="card-header bg-danger text-white fw-bold" style="font-size:11px;">⚙️ ACCIONES - SOLO CREADOR PUEDE EDITAR</div>
+<div class="card-body">
+{% if puede_editar %}
+<div class="d-flex gap-2 flex-wrap">
+<button class="btn btn-warning fw-bold btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditar{{ doc.id }}" onclick="var m=bootstrap.Modal.getInstance(document.getElementById('modalVer{{ doc.id }}')); if(m) m.hide();">✏️ EDITAR (TU ERES EL CREADOR)</button>
+<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar {{ doc.titulo }}?')" style="display:inline;"><button type="submit" class="btn btn-danger btn-sm fw-bold">ELIMINAR</button></form>
+</div>
+{% else %}
+<div class="alert alert-warning py-2 mb-0" style="font-size:11px;">🔒 Solo <strong>{{ doc.subido_por }}</strong> (creador) puede editar o eliminar este documento. Tu usuario es <strong>{{ session.get('username') }}</strong>. Puedes ver y descargar el PDF, pero no modificarlo.</div>
+{% endif %}
+<button type="button" class="btn btn-secondary btn-sm mt-2" data-bs-dismiss="modal">CERRAR</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
 
 <!-- MODAL EDITAR -->
 <div class="modal fade" id="modalEditar{{ doc.id }}" tabindex="-1">
