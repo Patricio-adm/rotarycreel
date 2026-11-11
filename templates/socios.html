@@ -8,7 +8,8 @@
 <style>
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
-.tabla-socios { border:2px solid #000; border-collapse:collapse; }
+.tabla-socios { border:2px solid #000; border-collapse:collapse; margin:0 auto; max-width:1050px; }
+.contenedor-socios { max-width:1100px; margin:0 auto; }
 .tabla-socios th { font-size:11px; background:#17458F; color:white; text-align:center; border:1px solid #000; padding:8px 4px; font-weight:900; }
 .tabla-socios td { font-size:12px; text-align:center; border:1px solid #000; padding:8px 4px; vertical-align:middle; }
 .tabla-socios tr:hover { background:#e8f0ff; }
@@ -47,7 +48,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 </div>
 
-<div class="container-fluid py-3">
+<div class="container-fluid py-3 contenedor-socios">
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 {% for category, message in messages %}
@@ -66,7 +67,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <th style="width:80px;">TIPO</th>
 <th style="width:140px;">TELEFONO</th>
 <th style="width:220px;">CORREO</th>
-<th style="width:130px;">USUARIO / CONTRASEÑA</th><th style="width:100px;">ACCIONES</th>
+<th style="width:100px;">ACCIONES</th>
 </tr>
 </thead>
 <tbody>
@@ -78,25 +79,11 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <td><span class="badge badge-activo">{{ socio.tipo_socio or 'ACTIVO' }}</span></td>
 <td class="telefono">{{ socio.telefono or '-' }}</td>
 <td class="correo">{{ socio.correo or '-' }}</td>
-<td style="font-size:10px;">
-{% set u = usuarios_por_socio.get(socio.id) if usuarios_por_socio else None %}
-{% if u %}
-<strong>{{ u.username }}</strong><br>
-{% if u.debe_crear_password or not u.password_hash %}<span class="badge bg-warning text-dark" style="font-size:8px;">⏳ SIN CONTRASEÑA</span>{% else %}<span class="badge bg-success" style="font-size:8px;">✅ TIENE CONTRASEÑA</span>{% endif %}<br>
-{% if session.get('rol') == 'ADMIN' %}
-<form method="POST" action="/admin/usuarios/reset/{{ u.id }}" onclick="event.stopPropagation();" onsubmit="return confirm('¿Borrar contraseña de {{ u.username }}? El socio la creara de nuevo.')" style="display:inline;"><button class="btn btn-danger btn-sm" style="font-size:8px;padding:2px 6px;">🗑️ BORRAR CONTRASEÑA</button></form>
-{% endif %}
-{% else %}
-<span class="badge bg-secondary" style="font-size:8px;">SIN USUARIO</span><br><small style="font-size:8px;">Se crea al guardar</small>
-{% endif %}
-</td>
 <td>
 {% set es_mio = (session.get('rol') == 'ADMIN') or (mi_socio_id is defined and mi_socio_id and socio.id == mi_socio_id) %}
 {% if es_mio %}
 <button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}" style="font-size:10px; padding:5px 12px;"><i class="bi bi-pencil"></i> EDITAR</button>
-{% if session.get('rol') == 'ADMIN' %}<br><small style="font-size:8px;color:#666;">ADMIN puede editar a todos</small>{% else %}<br><small style="font-size:8px;color:#198754;">TUS DATOS</small>{% endif %}
-{% else %}
-<button class="btn btn-warning btn-sm btn-no-permiso" style="font-size:10px; padding:5px 12px; opacity:0.45;" onclick="event.stopPropagation(); alert('Solo puedes editar TUS datos personales. Este socio es {{ socio.nombre_completo }}.'); return false;"><i class="bi bi-lock"></i> EDITAR 🔒</button><br><small style="font-size:8px;color:#999;">SOLO SUS DATOS</small>
+{% if session.get('rol') == 'ADMIN' %}<br><small style="font-size:8px;color:#666;">ADMIN</small>{% else %}<br><small style="font-size:8px;color:#198754;">TUS DATOS</small>{% endif %}
 {% endif %}
 </td>
 </tr>
