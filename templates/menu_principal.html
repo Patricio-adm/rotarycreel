@@ -16,13 +16,12 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 .card-tesoreria { border-top-color:#28a745; }
 .icono { font-size:46px; margin-bottom:10px; line-height:1; }
 @media (max-width:576px){ .grid-2x2{grid-template-columns:1fr; max-width:340px;} .card-modulo{height:150px;} .icono{font-size:36px;} }
-.barra-cumple { background:#fff3cd; border-bottom:2px solid #000; height:42px; display:flex; align-items:center; overflow:hidden; position:relative; cursor:pointer; }
-.barra-cumple:hover { background:#ffe69c; }
-.ticker-viewport { width:100%; height:100%; overflow:hidden; position:relative; display:flex; align-items:center; justify-content:center; }
-.ticker-item { position:absolute; width:100%; text-align:center; font-size:13px; font-weight:800; color:#000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0; transform:translateY(30px); transition: transform 0.6s ease, opacity 0.6s ease; }
-.ticker-item.active { opacity:1; transform:translateY(0); }
-.ticker-item.prev { opacity:0; transform:translateY(-30px); }
-.ticker-item.es-evento { background:#fff3e6; color:#7a3a00; }
+/* BARRA FIJA - SIN SCROLL / SIN TICKER */
+.barra-cumple { background:#fff3cd; border-bottom:2px solid #000; position:sticky; top:0; z-index:1030; padding:8px 12px; }
+.barra-titulo { font-size:13px; font-weight:900; color:#000; white-space:nowrap; }
+.barra-lista { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; }
+.barra-item { font-size:12px; font-weight:800; color:#000; }
+.barra-item.es-evento { background:#fff3e6; color:#7a3a00; padding:2px 6px; border-radius:6px; }
 .badge-dia { background:#17458F; color:white; font-size:11px; padding:3px 10px; border-radius:12px; margin-right:8px; font-weight:900; }
 .badge-dia-evento { background:#fd7e14; color:white; font-size:11px; padding:3px 10px; border-radius:12px; margin-right:8px; font-weight:900; }
 .punto { width:10px; height:10px; background:#dc3545; border-radius:50%; display:inline-block; margin-right:8px; animation: pulse 1.2s infinite; }
@@ -39,27 +38,26 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 </div>
 </div>
 
-<!-- BARRA SCROLLING - CUMPLEAÑOS + FECHA DE EJECUCION - 3 SEG POR NOMBRE -->
-<div class="barra-cumple" id="barraCumple" title="Click para ver todos">
+<!-- BARRA FIJA - EVENTOS IMPORTANTES - SIN SCROLL, SIN CLICK -->
+<div class="barra-cumple" id="barraCumple">
+<div class="d-flex flex-wrap align-items-center gap-2">
+<span class="barra-titulo">EVENTOS IMPORTANTES - {{ mes_actual_nombre }}</span>
 {% if festividades_mes %}
-<div class="ticker-viewport" id="tickerViewport">
+<span class="barra-titulo">|</span>
+<div class="barra-lista">
 {% for f in festividades_mes %}
-<div class="ticker-item {% if loop.first %}active{% endif %} {% if f.es_evento %}es-evento{% endif %}" data-index="{{ loop.index0 }}">
-{% if f.es_evento %}
-<span class="badge-dia-evento">📅 {{ f.dia }} {{ mes_actual_nombre[:3] }}</span>
-📅 EVENTO: <span style="color:#fd7e14;">{{ f.persona }}</span>
-{% else %}
+<span class="barra-item {% if f.es_evento %}es-evento{% endif %}">
 <span class="punto"></span>
 <span class="badge-dia">🎂 {{ f.dia }} {{ mes_actual_nombre[:3] }}</span>
 {{ f.tipo }}: <span style="color:#17458F;">{{ f.persona }}</span>
-{% endif %}
-<span style="font-size:9px; margin-left:10px; background:#000; color:#F7A81B; padding:3px 8px; border-radius:10px;">{{ loop.index }}/{{ festividades_mes|length }} CLICK PARA VER TODOS</span>
-</div>
+</span>
 {% endfor %}
 </div>
 {% else %}
-<div class="text-center w-100" style="font-size:11px; color:#666;">📅 {{ mes_actual_nombre }} - SIN FESTIVIDADES ESTE MES - SISTEMA ROTARY CREEL</div>
+<span class="barra-titulo">|</span>
+<span style="font-size:11px; color:#666;">📅 {{ mes_actual_nombre }} - SIN FESTIVIDADES ESTE MES</span>
 {% endif %}
+</div>
 </div>
 
 <div class="container py-4">
@@ -174,37 +172,6 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const items = document.querySelectorAll('.ticker-item');
-  let currentIndex = 0;
-  let intervalo = null;
-  function mostrarSiguiente() {
-    if (items.length <= 1) return;
-    const actual = items[currentIndex];
-    actual.classList.remove('active'); actual.classList.add('prev');
-    currentIndex = (currentIndex + 1) % items.length;
-    const siguiente = items[currentIndex];
-    setTimeout(() => { actual.classList.remove('prev'); siguiente.classList.add('active'); }, 300);
-  }
-  function iniciarTicker() {
-    if (items.length > 1) { clearInterval(intervalo); intervalo = setInterval(mostrarSiguiente, 3000); }
-  }
-  function pausarTicker() { if (intervalo) { clearInterval(intervalo); intervalo = null; } }
-  iniciarTicker();
-  const barra = document.getElementById('barraCumple');
-  if (barra) {
-    barra.addEventListener('mouseenter', pausarTicker);
-    barra.addEventListener('mouseleave', iniciarTicker);
-    barra.addEventListener('click', function() {
-      pausarTicker();
-      const modalEl = document.getElementById('modalCumple');
-      const modal = new bootstrap.Modal(modalEl);
-      modal.show();
-      modalEl.addEventListener('hidden.bs.modal', function() { iniciarTicker(); }, {once:true});
-    });
-  }
-});
-</script>
+
 </body>
 </html>
