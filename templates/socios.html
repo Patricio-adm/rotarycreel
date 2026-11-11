@@ -71,10 +71,10 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </thead>
 <tbody>
 {% for socio in socios %}
-<tr>
+<tr data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}" style="cursor:pointer;" title="Click para ver informacion del socio y su familia">
 <td>{% if socio.foto_url %}<img src="{{ socio.foto_url }}" class="foto-socio">{% else %}<div class="foto-placeholder">👤</div>{% endif %}</td>
 <td style="font-weight:800; font-size:13px; color:#17458F;">{{ socio.numero_socio or '' }}</td>
-<td class="nombre-socio"><a href="#" data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}" style="color:#000; text-decoration:none;" title="Click para ver informacion del socio y su familia">👁️ {{ socio.nombre_completo }}</a><br><small style="font-size:8px; color:#0d6efd;">👆 CLICK PARA VER DETALLE</small></td>
+<td class="nombre-socio">{{ socio.nombre_completo }}</td>
 <td><span class="badge badge-activo">{{ socio.tipo_socio or 'ACTIVO' }}</span></td>
 <td class="telefono">{{ socio.telefono or '-' }}</td>
 <td class="correo">{{ socio.correo or '-' }}</td>
@@ -84,20 +84,19 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <strong>{{ u.username }}</strong><br>
 {% if u.debe_crear_password or not u.password_hash %}<span class="badge bg-warning text-dark" style="font-size:8px;">⏳ SIN CONTRASEÑA</span>{% else %}<span class="badge bg-success" style="font-size:8px;">✅ TIENE CONTRASEÑA</span>{% endif %}<br>
 {% if session.get('rol') == 'ADMIN' %}
-<form method="POST" action="/admin/usuarios/reset/{{ u.id }}" onsubmit="return confirm('¿Borrar contraseña de {{ u.username }}? El socio la creara de nuevo.')" style="display:inline;"><button class="btn btn-danger btn-sm" style="font-size:8px;padding:2px 6px;">🗑️ BORRAR CONTRASEÑA</button></form>
+<form method="POST" action="/admin/usuarios/reset/{{ u.id }}" onclick="event.stopPropagation();" onsubmit="return confirm('¿Borrar contraseña de {{ u.username }}? El socio la creara de nuevo.')" style="display:inline;"><button class="btn btn-danger btn-sm" style="font-size:8px;padding:2px 6px;">🗑️ BORRAR CONTRASEÑA</button></form>
 {% endif %}
 {% else %}
 <span class="badge bg-secondary" style="font-size:8px;">SIN USUARIO</span><br><small style="font-size:8px;">Se crea al guardar</small>
 {% endif %}
 </td>
 <td>
-<button class="btn btn-info btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}" style="font-size:10px; padding:5px 12px; color:#fff;">👁️ VER</button><br>
 {% set es_mio = (session.get('rol') == 'ADMIN') or (mi_socio_id is defined and mi_socio_id and socio.id == mi_socio_id) %}
 {% if es_mio %}
 <button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}" style="font-size:10px; padding:5px 12px;"><i class="bi bi-pencil"></i> EDITAR</button>
 {% if session.get('rol') == 'ADMIN' %}<br><small style="font-size:8px;color:#666;">ADMIN puede editar a todos</small>{% else %}<br><small style="font-size:8px;color:#198754;">TUS DATOS</small>{% endif %}
 {% else %}
-<button class="btn btn-warning btn-sm btn-no-permiso" style="font-size:10px; padding:5px 12px; opacity:0.45;" onclick="alert('Solo puedes editar TUS datos personales. Este socio es {{ socio.nombre_completo }}.'); return false;"><i class="bi bi-lock"></i> EDITAR 🔒</button><br><small style="font-size:8px;color:#999;">SOLO SUS DATOS</small>
+<button class="btn btn-warning btn-sm btn-no-permiso" style="font-size:10px; padding:5px 12px; opacity:0.45;" onclick="event.stopPropagation(); alert('Solo puedes editar TUS datos personales. Este socio es {{ socio.nombre_completo }}.'); return false;"><i class="bi bi-lock"></i> EDITAR 🔒</button><br><small style="font-size:8px;color:#999;">SOLO SUS DATOS</small>
 {% endif %}
 </td>
 </tr>
