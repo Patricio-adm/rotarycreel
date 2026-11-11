@@ -304,6 +304,17 @@ def crear_usuario_para_socio(socio):
     db.session.commit()
     return nuevo_u
 
+
+def validar_password_segura(pw):
+    """Regla 8+1+1: min 8 caracteres, al menos 1 MAYUSCULA y al menos 1 NUMERO."""
+    if not pw or len(pw) < 8:
+        return False, 'La contraseña debe tener al menos 8 caracteres.'
+    if not any(ch.isupper() for ch in pw):
+        return False, 'La contraseña debe tener al menos 1 MAYUSCULA.'
+    if not any(ch.isdigit() for ch in pw):
+        return False, 'La contraseña debe tener al menos 1 NUMERO.'
+    return True, ''
+
 def get_mes_anio_actual():
     now = datetime.now()
     return f"{MESES_NOMBRES[now.month-1]} {now.year}"
@@ -372,8 +383,9 @@ def crear_password():
     if request.method == 'POST':
         pw1 = request.form.get('password1','')
         pw2 = request.form.get('password2','')
-        if len(pw1) < 6:
-            flash('La contraseña debe tener al menos 6 caracteres.', 'danger')
+        ok, msg = validar_password_segura(pw1)
+        if not ok:
+            flash(f'{msg} Regla: 8+1+1 = min 8 caracteres, 1 MAYUSCULA y 1 NUMERO. Ej: Rotary2026', 'danger')
             return render_template('crear_password.html', username=user.username)
         if pw1 != pw2:
             flash('Las contraseñas no coinciden.', 'danger')
@@ -392,7 +404,7 @@ def crear_password():
     try:
         return render_template('crear_password.html', username=user.username)
     except Exception:
-        return render_template_string(f'<h3>CREA TU CONTRASEÑA - {user.username}</h3><form method="POST"><label>NUEVA CONTRASEÑA (min 6):</label><input type="password" name="password1" required><br><label>REPITE:</label><input type="password" name="password2" required><br><button>CREAR CONTRASEÑA</button></form><p>⚠️ Falta subir crear_password.html a Render</p>')
+        return render_template_string(f'<h3>CREA TU CONTRASEÑA - {user.username}</h3><form method="POST"><label>NUEVA CONTRASEÑA (min 8, 1 MAYUSCULA y 1 NUMERO):</label><input type="password" name="password1" required><br><label>REPITE:</label><input type="password" name="password2" required><br><button>CREAR CONTRASEÑA</button></form><p>⚠️ Falta subir crear_password.html a Render</p>')
 
 @app.route('/admin/usuarios')
 def admin_usuarios():
@@ -409,7 +421,7 @@ def admin_usuarios():
         for u in usuarios:
             nombre = u.socio.nombre_completo if getattr(u, 'socio', None) else '- CUENTA FIJA -'
             estado = '⏳ SIN CONTRASEÑA - DEBE CREARLA' if (u.debe_crear_password or not u.password_hash) else '✅ TIENE CONTRASEÑA'
-            btn = f'<form method="POST" action="/admin/usuarios/reset/{u.id}" onsubmit="return confirm(\'¿Borrar contraseña de {u.username}?\')"><button class="btn btn-danger btn-sm fw-bold">🗑️ BORRAR CONTRASEÑA</button></form>' if u.username.lower() not in ('admin','presidente','tesorero') else '<small>Cuenta fija</small>'
+            btn = f'<form method="POST" action="/admin/usuarios/cambiar/{u.id}" style="display:inline;"><input name="nueva_password" placeholder="Nueva (8+1+1)" style="width:110px;font-size:11px;" required><button class="btn btn-warning btn-sm fw-bold">✏️ CAMBIAR</button></form> <form method="POST" action="/admin/usuarios/reset/{u.id}" style="display:inline;"><button class="btn btn-danger btn-sm fw-bold">🗑️ BORRAR</button></form>'
             filas += f"<tr><td><b>{u.username}</b></td><td>{u.rol}</td><td>{nombre}</td><td>{estado}</td><td>{btn}</td></tr>"
         html = f'''<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Usuarios - ADMIN</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head><body><div class="container py-3"><div class="alert alert-warning">⚠️ Falta subir <b>admin_usuarios.html</b> a Render. Esta es la vista de emergencia, funciona igual para borrar contraseñas.</div><a href="/menu" class="btn btn-secondary btn-sm">MENÚ</a><form method="POST" action="/admin/usuarios/crear-faltantes" class="my-3"><button class="btn btn-success btn-sm fw-bold">+ CREAR USUARIOS FALTANTES</button></form><table class="table table-bordered bg-white"><thead style="background:#17458F;color:white;"><tr><th>USUARIO</th><th>ROL</th><th>SOCIO</th><th>ESTADO</th><th>ACCION</th></tr></thead><tbody>{filas}</tbody></table></div></body></html>'''
         return render_template_string(html)
@@ -421,14 +433,47 @@ def admin_reset_password(user_id):
         flash('Solo ADMIN puede resetear contraseñas.', 'danger')
         return redirect(url_for('menu_principal'))
     user = Usuario.query.get_or_404(user_id)
-    if user.username.lower() in ('admin', 'presidente', 'tesorero'):
-        flash('No se puede resetear cuentas fijas de sistema desde aqui.', 'warning')
-        return redirect(url_for('admin_usuarios'))
+    # AHORA SI se puede borrar incluso cuentas fijas - lo pidio el ADMIN
+    # Si ADMIN se borra a si mismo, en su proximo login creara contraseña nueva
     user.password_hash = None
     user.debe_crear_password = True
     user.fecha_creacion_password = None
     db.session.commit()
     flash(f'Contraseña de {user.username} borrada. El socio la creara de nuevo en su proximo ingreso.', 'success')
+    return redirect(url_for('admin_usuarios'))
+
+@app.route('/admin/usuarios/cambiar/<int:user_id>', methods=['POST'])
+def admin_cambiar_password(user_id):
+    # SOLO ADMIN puede ver/editar/cambiar contraseña de cualquier usuario, incluidas fijas
+    if 'user_id' not in session or session.get('rol') != 'ADMIN':
+        flash('Solo ADMIN puede cambiar contraseñas.', 'danger')
+        return redirect(url_for('menu_principal'))
+    user = Usuario.query.get_or_404(user_id)
+    nueva = request.form.get('nueva_password','').strip()
+    ok, msg = validar_password_segura(nueva)
+    if not ok:
+        flash(f'No se cambio {user.username}: {msg} Regla 8+1+1 = min 8, 1 MAYUSCULA y 1 NUMERO. Ej: Rotary2026', 'danger')
+        return redirect(url_for('admin_usuarios'))
+    user.password_hash = generate_password_hash(nueva)
+    user.debe_crear_password = False
+    user.fecha_creacion_password = datetime.now()
+    db.session.commit()
+    flash(f'Contraseña de {user.username} cambiada por ADMIN. Ya puede entrar con la nueva.', 'success')
+    return redirect(url_for('admin_usuarios'))
+
+@app.route('/admin/usuarios/eliminar/<int:user_id>', methods=['POST'])
+def admin_eliminar_usuario(user_id):
+    if 'user_id' not in session or session.get('rol') != 'ADMIN':
+        return redirect(url_for('menu_principal'))
+    user = Usuario.query.get_or_404(user_id)
+    if user.username.lower() == 'admin':
+        flash('No puedes eliminar tu propia cuenta ADMIN.', 'danger')
+        return redirect(url_for('admin_usuarios'))
+    # Si es duplicado RCREEL/RCCREEL o socio dado de baja, ADMIN puede eliminarlo
+    nombre = user.username
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'Usuario {nombre} eliminado por ADMIN.', 'warning')
     return redirect(url_for('admin_usuarios'))
 
 @app.route('/admin/usuarios/crear-faltantes', methods=['POST'])
