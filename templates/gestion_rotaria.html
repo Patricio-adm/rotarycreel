@@ -106,6 +106,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <tbody>
 {% for doc in documentos %}
 {% set puede_editar = (doc.subido_por == session.get('username')) or (session.get('rol') == 'ADMIN') %}
+{% set puede_borrar = (session.get('rol') in ['ADMIN', 'PRESIDENTE']) %}
 <tr class="fila-doc" data-bs-toggle="modal" data-bs-target="#modalVer{{ doc.id }}" title="Click para ver detalle completo - Creado por {{ doc.subido_por }}">
 <td class="fw-bold">{{ doc.id }}</td>
 <td><span class="badge badge-tipo-{{ doc.tipo }}" style="font-size:7px;">{{ doc.tipo }}</span></td>
@@ -136,12 +137,12 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 {% else %}
 <button class="btn btn-warning btn-sm btn-no-permiso" style="font-size:7px; padding:2px 4px;" title="Solo {{ doc.subido_por }} puede editar" onclick="alert('Solo {{ doc.subido_por }} (creador) puede editar este documento.'); return false;"><i class="bi bi-lock"></i> EDITAR 🔒</button>
 {% endif %}
-{% if puede_editar %}
-<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar documento {{ doc.titulo }}?')" style="display:inline;">
+{% if puede_borrar %}
+<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar documento {{ doc.titulo }}? Solo PRESIDENTE y ADMIN pueden borrar.')" style="display:inline;">
 <button type="submit" class="btn btn-danger btn-sm w-100" style="font-size:7px; padding:2px 4px;"><i class="bi bi-trash"></i> ELIMINAR</button>
 </form>
 {% else %}
-<button class="btn btn-danger btn-sm w-100 btn-no-permiso" style="font-size:7px; padding:2px 4px;" onclick="alert('Solo {{ doc.subido_por }} (creador) puede eliminar este documento.'); return false;"><i class="bi bi-lock"></i> ELIMINAR 🔒</button>
+<button class="btn btn-danger btn-sm w-100 btn-no-permiso" style="font-size:7px; padding:2px 4px;" onclick="alert('Solo PRESIDENTE y ADMIN pueden borrar en ERP. Aunque tu lo creaste, no puedes borrarlo.'); return false;"><i class="bi bi-lock"></i> ELIMINAR 🔒</button>
 {% endif %}
 </div>
 </td>
@@ -200,16 +201,21 @@ RESPONSABLE: {{ doc.responsable or '-' }} | PRIORIDAD: {{ doc.prioridad or '-' }
 </div>
 </div>
 <div class="card" style="border:2px solid #dc3545;">
-<div class="card-header bg-danger text-white fw-bold" style="font-size:11px;">⚙️ ACCIONES - SOLO CREADOR PUEDE EDITAR</div>
+<div class="card-header bg-danger text-white fw-bold" style="font-size:11px;">⚙️ ACCIONES - EDITAR: SOLO CREADOR | BORRAR: SOLO PRESIDENTE Y ADMIN</div>
 <div class="card-body">
-{% if puede_editar %}
 <div class="d-flex gap-2 flex-wrap">
+{% if puede_editar %}
 <button class="btn btn-warning fw-bold btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditar{{ doc.id }}" onclick="var m=bootstrap.Modal.getInstance(document.getElementById('modalVer{{ doc.id }}')); if(m) m.hide();">✏️ EDITAR (TU ERES EL CREADOR)</button>
-<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar {{ doc.titulo }}?')" style="display:inline;"><button type="submit" class="btn btn-danger btn-sm fw-bold">ELIMINAR</button></form>
-</div>
 {% else %}
-<div class="alert alert-warning py-2 mb-0" style="font-size:11px;">🔒 Solo <strong>{{ doc.subido_por }}</strong> (creador) puede editar o eliminar este documento. Tu usuario es <strong>{{ session.get('username') }}</strong>. Puedes ver y descargar el PDF, pero no modificarlo.</div>
+<span class="badge bg-warning text-dark" style="font-size:10px;">🔒 EDITAR: Solo {{ doc.subido_por }} (creador) o ADMIN</span>
 {% endif %}
+{% if puede_borrar %}
+<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar {{ doc.titulo }}? Solo PRESIDENTE y ADMIN.')" style="display:inline;"><button type="submit" class="btn btn-danger btn-sm fw-bold">ELIMINAR</button></form>
+{% else %}
+<span class="badge bg-danger" style="font-size:10px;">🔒 BORRAR: Solo PRESIDENTE y ADMIN</span>
+{% endif %}
+</div>
+<div class="alert alert-info py-2 mt-2 mb-0" style="font-size:11px;">Tu usuario es <strong>{{ session.get('username') }}</strong> ({{ session.get('rol') }}). Puedes ver y descargar el PDF.</div>
 <button type="button" class="btn btn-secondary btn-sm mt-2" data-bs-dismiss="modal">CERRAR</button>
 </div>
 </div>
