@@ -255,14 +255,16 @@ with app.app_context():
         ('rccreel', pass_hash, 'SOCIO')
     ]
     for usr, phash, r in credenciales:
-        u_db = Usuario.query.filter_by(username=usr).first()
+        u_db = Usuario.query.filter(func.lower(Usuario.username) == usr.lower()).first()
         if not u_db:
             db.session.add(Usuario(username=usr, password_hash=phash, rol=r, debe_crear_password=False))
         else:
             u_db.rol = r
-            # Los fijos ya tienen contraseña, no pedir crear
-            if u_db.password_hash:
-                u_db.debe_crear_password = False
+            # REPARACION: si la cuenta fija quedo sin contraseña por la migracion (DEFAULT TRUE), restaurarla
+            if not u_db.password_hash:
+                u_db.password_hash = phash
+            # Los fijos ya tienen contraseña, nunca pedir crear
+            u_db.debe_crear_password = False
     db.session.commit()
     # SINCRONIZAR USUARIOS DESDE SOCIOS - numero_socio = username
     try:
@@ -291,7 +293,7 @@ def crear_usuario_para_socio(socio):
     if not socio or not socio.numero_socio:
         return None
     uname = socio.numero_socio.strip().upper()
-    existente = Usuario.query.filter_by(username=uname).first()
+    existente = Usuario.query.filter(func.lower(Usuario.username) == uname.lower()).first()
     if existente:
         if not existente.socio_id:
             existente.socio_id = socio.id
@@ -314,22 +316,32 @@ def index_publico():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username'].strip().upper()
+        username_raw = request.form['username'].strip()
+        username = username_raw.upper()
         password = request.form.get('password','')
-        user = Usuario.query.filter_by(username=username).first()
+        # FIX: busqueda sin importar mayusculas - "admin" en BD vs "ADMIN" que escribia el usuario
+        user = Usuario.query.filter(func.lower(Usuario.username) == username_raw.lower()).first()
+        if user:
+            username = user.username  # usar como esta guardado: admin, PRESIDENTE, 5, etc.
         if not user:
             # Intentar sincronizar por si el socio se acaba de crear
-            socio = Socio.query.filter_by(numero_socio=username).first()
+            socio = Socio.query.filter(func.lower(Socio.numero_socio) == username_raw.lower()).first()
             if socio:
                 user = crear_usuario_para_socio(socio)
+                if user:
+                    username = user.username
         if not user:
             flash('Usuario no encontrado. Tu usuario es tu NUMERO DE SOCIO. Pregunta a ADMIN si no lo tienes.', 'danger')
             return render_template('login.html')
         # PRIMER INGRESO O RESETEADO POR ADMIN - sin contraseña
+        # FIX: cuentas fijas (admin/presidente/tesorero) nunca van a crear-password si ya tienen hash
+        if user.username.lower() in ('admin','presidente','tesorero','rccreel') and user.password_hash:
+            user.debe_crear_password = False
+            db.session.commit()
         if user.debe_crear_password or not user.password_hash:
             session['pending_user_id'] = user.id
             session['pending_username'] = user.username
-            flash(f'Hola {username}, es tu primer ingreso. Crea tu contraseña.', 'info')
+            flash(f'Hola {user.username}, es tu primer ingreso. Crea tu contraseña.', 'info')
             return redirect(url_for('crear_password'))
         if user.password_hash and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
@@ -392,7 +404,7 @@ def admin_reset_password(user_id):
         flash('Solo ADMIN puede resetear contraseñas.', 'danger')
         return redirect(url_for('menu_principal'))
     user = Usuario.query.get_or_404(user_id)
-    if user.username in ('admin', 'presidente', 'tesorero'):
+    if user.username.lower() in ('admin', 'presidente', 'tesorero'):
         flash('No se puede resetear cuentas fijas de sistema desde aqui.', 'warning')
         return redirect(url_for('admin_usuarios'))
     user.password_hash = None
