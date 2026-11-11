@@ -44,9 +44,13 @@ MESES_NOMBRES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", 
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
+    username = db.Column(db.String(50), unique=True, nullable=False)  # = numero_socio para socios, o admin/presidente/tesorero
+    password_hash = db.Column(db.String(255), nullable=True)  # NULL = sin contraseña, debe crearla en primer ingreso
     rol = db.Column(db.String(50), default='SOCIO')
+    socio_id = db.Column(db.Integer, db.ForeignKey('socios.id'), nullable=True)
+    debe_crear_password = db.Column(db.Boolean, default=True)  # True = primer ingreso / reseteado por ADMIN
+    fecha_creacion_password = db.Column(db.DateTime, nullable=True)
+    socio = db.relationship('Socio', backref='usuario', uselist=False)
 
 class Hijo(db.Model):
     __tablename__ = 'hijos'
@@ -234,6 +238,11 @@ with app.app_context():
         db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS porcentaje_avance INTEGER DEFAULT 0;"))
         db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS tiene_fecha_ejecucion BOOLEAN DEFAULT FALSE;"))
         db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS fecha_ejecucion DATE;"))
+        db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS socio_id INTEGER;"))
+        db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS debe_crear_password BOOLEAN DEFAULT TRUE;"))
+        db.session.execute(db.text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_creacion_password TIMESTAMP;"))
+        # password_hash ahora puede ser NULL (sin contraseña = primer ingreso)
+        db.session.execute(db.text("ALTER TABLE usuarios ALTER COLUMN password_hash DROP NOT NULL;"))
         db.session.commit()
     except Exception as e:
         print(f"Migracion ingresos_extraordinarios: {e}")
@@ -248,10 +257,25 @@ with app.app_context():
     for usr, phash, r in credenciales:
         u_db = Usuario.query.filter_by(username=usr).first()
         if not u_db:
-            db.session.add(Usuario(username=usr, password_hash=phash, rol=r))
+            db.session.add(Usuario(username=usr, password_hash=phash, rol=r, debe_crear_password=False))
         else:
             u_db.rol = r
+            # Los fijos ya tienen contraseña, no pedir crear
+            if u_db.password_hash:
+                u_db.debe_crear_password = False
     db.session.commit()
+    # SINCRONIZAR USUARIOS DESDE SOCIOS - numero_socio = username
+    try:
+        for s in Socio.query.all():
+            if not s.numero_socio:
+                continue
+            uname = s.numero_socio.strip().upper()
+            if not Usuario.query.filter_by(username=uname).first():
+                db.session.add(Usuario(username=uname, password_hash=None, rol='SOCIO', socio_id=s.id, debe_crear_password=True))
+        db.session.commit()
+    except Exception as e:
+        print(f"Sync usuarios socios: {e}")
+        db.session.rollback()
     if not ConfiguracionTesoreria.query.first():
         db.session.add(ConfiguracionTesoreria(saldo_inicial=0.0))
         db.session.commit()
@@ -260,6 +284,23 @@ with app.app_context():
         p = Proyecto(nombre='PROYECTO BOMBERA', descripcion='Proyecto activo recaudacion para bomberos Creel', activo=True)
         db.session.add(p)
         db.session.commit()
+
+
+def crear_usuario_para_socio(socio):
+    """Crea usuario con username=numero_socio, sin contraseña, debe crearla en primer ingreso."""
+    if not socio or not socio.numero_socio:
+        return None
+    uname = socio.numero_socio.strip().upper()
+    existente = Usuario.query.filter_by(username=uname).first()
+    if existente:
+        if not existente.socio_id:
+            existente.socio_id = socio.id
+            db.session.commit()
+        return existente
+    nuevo_u = Usuario(username=uname, password_hash=None, rol='SOCIO', socio_id=socio.id, debe_crear_password=True)
+    db.session.add(nuevo_u)
+    db.session.commit()
+    return nuevo_u
 
 def get_mes_anio_actual():
     now = datetime.now()
@@ -273,17 +314,105 @@ def index_publico():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password']
+        username = request.form['username'].strip().upper()
+        password = request.form.get('password','')
         user = Usuario.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password_hash, password):
+        if not user:
+            # Intentar sincronizar por si el socio se acaba de crear
+            socio = Socio.query.filter_by(numero_socio=username).first()
+            if socio:
+                user = crear_usuario_para_socio(socio)
+        if not user:
+            flash('Usuario no encontrado. Tu usuario es tu NUMERO DE SOCIO. Pregunta a ADMIN si no lo tienes.', 'danger')
+            return render_template('login.html')
+        # PRIMER INGRESO O RESETEADO POR ADMIN - sin contraseña
+        if user.debe_crear_password or not user.password_hash:
+            session['pending_user_id'] = user.id
+            session['pending_username'] = user.username
+            flash(f'Hola {username}, es tu primer ingreso. Crea tu contraseña.', 'info')
+            return redirect(url_for('crear_password'))
+        if user.password_hash and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
             session['username'] = user.username
             session['rol'] = user.rol
+            session.pop('pending_user_id', None)
             return redirect(url_for('menu_principal'))
         else:
-            flash('Usuario o contraseña incorrectos', 'danger')
+            flash('Contraseña incorrecta. Si la olvidaste, pide a ADMIN que la borre para crear una nueva.', 'danger')
     return render_template('login.html')
+
+@app.route('/crear-password', methods=['GET', 'POST'])
+def crear_password():
+    # Solo quien esta en primer ingreso / reseteado puede entrar aqui
+    pending_id = session.get('pending_user_id')
+    if not pending_id:
+        return redirect(url_for('login'))
+    user = Usuario.query.get(pending_id)
+    if not user:
+        session.pop('pending_user_id', None)
+        return redirect(url_for('login'))
+    # Si ya tiene contraseña y no debe crear, volver a login
+    if user.password_hash and not user.debe_crear_password:
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        pw1 = request.form.get('password1','')
+        pw2 = request.form.get('password2','')
+        if len(pw1) < 6:
+            flash('La contraseña debe tener al menos 6 caracteres.', 'danger')
+            return render_template('crear_password.html', username=user.username)
+        if pw1 != pw2:
+            flash('Las contraseñas no coinciden.', 'danger')
+            return render_template('crear_password.html', username=user.username)
+        user.password_hash = generate_password_hash(pw1)
+        user.debe_crear_password = False
+        user.fecha_creacion_password = datetime.now()
+        db.session.commit()
+        session['user_id'] = user.id
+        session['username'] = user.username
+        session['rol'] = user.rol
+        session.pop('pending_user_id', None)
+        session.pop('pending_username', None)
+        flash(f'Contraseña creada. Bienvenido {user.username}!', 'success')
+        return redirect(url_for('menu_principal'))
+    return render_template('crear_password.html', username=user.username)
+
+@app.route('/admin/usuarios')
+def admin_usuarios():
+    if 'user_id' not in session or session.get('rol') != 'ADMIN':
+        flash('Solo ADMIN puede ver usuarios.', 'danger')
+        return redirect(url_for('menu_principal'))
+    usuarios = Usuario.query.order_by(Usuario.username.asc()).all()
+    socios = Socio.query.order_by(Socio.numero_socio.asc()).all()
+    return render_template('admin_usuarios.html', usuarios=usuarios, socios=socios)
+
+@app.route('/admin/usuarios/reset/<int:user_id>', methods=['POST'])
+def admin_reset_password(user_id):
+    # SOLO ADMIN puede borrar el campo de contraseña
+    if 'user_id' not in session or session.get('rol') != 'ADMIN':
+        flash('Solo ADMIN puede resetear contraseñas.', 'danger')
+        return redirect(url_for('menu_principal'))
+    user = Usuario.query.get_or_404(user_id)
+    if user.username in ('admin', 'presidente', 'tesorero'):
+        flash('No se puede resetear cuentas fijas de sistema desde aqui.', 'warning')
+        return redirect(url_for('admin_usuarios'))
+    user.password_hash = None
+    user.debe_crear_password = True
+    user.fecha_creacion_password = None
+    db.session.commit()
+    flash(f'Contraseña de {user.username} borrada. El socio la creara de nuevo en su proximo ingreso.', 'success')
+    return redirect(url_for('admin_usuarios'))
+
+@app.route('/admin/usuarios/crear-faltantes', methods=['POST'])
+def admin_crear_faltantes():
+    if 'user_id' not in session or session.get('rol') != 'ADMIN':
+        return redirect(url_for('menu_principal'))
+    creados = 0
+    for s in Socio.query.all():
+        if s.numero_socio and not Usuario.query.filter_by(username=s.numero_socio.strip().upper()).first():
+            crear_usuario_para_socio(s)
+            creados += 1
+    flash(f'{creados} usuarios creados desde socios.', 'success')
+    return redirect(url_for('admin_usuarios'))
 
 @app.route('/menu-principal')
 @app.route('/menu')
@@ -339,7 +468,19 @@ def gestion_socios():
                 if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual_num:
                     festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLE HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
     festividades = sorted(festividades, key=lambda x: x['dia'])
-    return render_template('socios.html', socios=lista_socios, festividades_mes=festividades, mes_actual_nombre=mes_actual_nombre)
+    usuarios_por_socio = {}
+    try:
+        for u in Usuario.query.all():
+            if u.socio_id:
+                usuarios_por_socio[u.socio_id] = u
+            else:
+                # Buscar por username = numero_socio
+                s_match = next((s for s in lista_socios if s.numero_socio and s.numero_socio.strip().upper() == u.username), None)
+                if s_match:
+                    usuarios_por_socio[s_match.id] = u
+    except:
+        pass
+    return render_template('socios.html', socios=lista_socios, festividades_mes=festividades, mes_actual_nombre=mes_actual_nombre, usuarios_por_socio=usuarios_por_socio)
 
 @app.route('/socios/agregar', methods=['POST'])
 def agregar_socio():
@@ -383,6 +524,14 @@ def agregar_socio():
             flash(f'Error foto: {e}', 'warning')
     db.session.add(nuevo)
     db.session.flush()
+    # CREAR USUARIO AUTOMATICO - numero_socio = username, sin contraseña
+    try:
+        if nuevo.numero_socio:
+            uname = nuevo.numero_socio.strip().upper()
+            if not Usuario.query.filter_by(username=uname).first():
+                db.session.add(Usuario(username=uname, password_hash=None, rol='SOCIO', socio_id=nuevo.id, debe_crear_password=True))
+    except Exception as e:
+        print(f"Crear usuario socio: {e}")
     cargo_inicial = request.form.get('cargo_inicial')
     periodo_inicial = request.form.get('periodo_inicial') or '2026-2027'
     if cargo_inicial:
