@@ -315,6 +315,24 @@ def validar_password_segura(pw):
         return False, 'La contraseña debe tener al menos 1 NUMERO.'
     return True, ''
 
+
+ROLES_TESORERIA = ['ADMIN', 'PRESIDENTE', 'TESORERO']
+def es_mi_socio(socio):
+    """True si el usuario logueado es ese socio (excepto ADMIN que puede todos)."""
+    if session.get('rol') == 'ADMIN':
+        return True
+    if not socio:
+        return False
+    u = Usuario.query.get(session.get('user_id')) if session.get('user_id') else None
+    if u and u.socio_id and u.socio_id == socio.id:
+        return True
+    if socio.numero_socio and session.get('username') and socio.numero_socio.strip().upper() == session.get('username','').strip().upper():
+        return True
+    return False
+
+def puede_tesoreria():
+    return session.get('rol') in ROLES_TESORERIA
+
 def get_mes_anio_actual():
     now = datetime.now()
     return f"{MESES_NOMBRES[now.month-1]} {now.year}"
@@ -554,11 +572,17 @@ def gestion_socios():
                     usuarios_por_socio[s_match.id] = u
     except:
         pass
-    return render_template('socios.html', socios=lista_socios, festividades_mes=festividades, mes_actual_nombre=mes_actual_nombre, usuarios_por_socio=usuarios_por_socio)
+    _u = Usuario.query.get(session.get('user_id')) if session.get('user_id') else None
+    mi_socio_id = _u.socio_id if _u else None
+    if not mi_socio_id and session.get('username'):
+        _s = next((s for s in lista_socios if s.numero_socio and s.numero_socio.strip().upper() == session.get('username','').strip().upper()), None)
+        mi_socio_id = _s.id if _s else None
+    return render_template('socios.html', socios=lista_socios, festividades_mes=festividades, mes_actual_nombre=mes_actual_nombre, usuarios_por_socio=usuarios_por_socio, mi_socio_id=mi_socio_id)
 
 @app.route('/socios/agregar', methods=['POST'])
 def agregar_socio():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    # REGLA: crear socio nuevo solo ADMIN (no es dato personal propio)
+    if 'user_id' not in session or session.get('rol') != 'ADMIN':
         flash('Acceso denegado.', 'danger')
         return redirect(url_for('gestion_socios'))
     def parse_date(date_str):
@@ -616,10 +640,13 @@ def agregar_socio():
 
 @app.route('/socios/editar/<int:socio_id>', methods=['POST'])
 def editar_socio(socio_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
-        flash('Acceso denegado.', 'danger')
-        return redirect(url_for('gestion_socios'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     socio = Socio.query.get_or_404(socio_id)
+    # REGLA DATOS PERSONALES: excepto ADMIN, solo puedes editar TUS datos
+    if not es_mi_socio(socio):
+        flash(f'Solo puedes editar tus datos personales. Este socio es {socio.nombre_completo}.', 'danger')
+        return redirect(url_for('gestion_socios'))
     def parse_date(date_str):
         if date_str:
             try:
@@ -627,7 +654,9 @@ def editar_socio(socio_id):
             except ValueError:
                 return None
         return None
-    socio.numero_socio = to_upper(request.form.get('numero_socio')) or socio.numero_socio
+    # Sin ser ADMIN no puede cambiar su numero_socio (es su usuario)
+    if session.get('rol') == 'ADMIN':
+        socio.numero_socio = to_upper(request.form.get('numero_socio')) or socio.numero_socio
     socio.nombre_completo = to_upper(request.form.get('nombre_completo')) or socio.nombre_completo
     socio.tipo_socio = to_upper(request.form.get('tipo_socio')) or socio.tipo_socio
     socio.telefono = to_upper(request.form.get('telefono')) or socio.telefono
@@ -822,9 +851,9 @@ def eliminar_documento_rotario(doc_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     doc = DocumentoRotario.query.get_or_404(doc_id)
-    # REGLA: Solo el creador puede eliminar (ADMIN override)
-    if doc.subido_por and doc.subido_por != session.get('username') and session.get('rol') != 'ADMIN':
-        flash(f'Solo {doc.subido_por} (creador) puede eliminar este documento.', 'danger')
+    # REGLA ERP BORRAR: solo PRESIDENTE y ADMIN (aunque el creador sea otro socio, no puede borrar)
+    if session.get('rol') not in ['ADMIN', 'PRESIDENTE']:
+        flash('Solo PRESIDENTE y ADMIN pueden borrar en ERP.', 'danger')
         return redirect(url_for('gestion_rotaria'))
     db.session.delete(doc)
     db.session.commit()
@@ -836,9 +865,9 @@ def editar_documento_rotario(doc_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     doc = DocumentoRotario.query.get_or_404(doc_id)
-    # REGLA: Solo el usuario que creo el documento puede editarlo (ADMIN puede como superusuario)
+    # REGLA ERP EDITAR: solo el creador o ADMIN. PRESIDENTE no edita lo de otros, solo puede borrar.
     if doc.subido_por and doc.subido_por != session.get('username') and session.get('rol') != 'ADMIN':
-        flash(f'Solo {doc.subido_por} (creador) puede editar este documento.', 'danger')
+        flash(f'Solo {doc.subido_por} (creador) o ADMIN puede editar este documento.', 'danger')
         return redirect(url_for('gestion_rotaria'))
     doc.tipo = request.form.get('tipo','ACTA').strip().upper()
     doc.titulo = request.form.get('titulo','').strip().upper()
@@ -899,6 +928,9 @@ def guardar_autoridad():
 
 @app.route('/autoridades/eliminar/<int:id>', methods=['POST'])
 def eliminar_autoridad(id):
+    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE']:
+        flash('Solo ADMIN o PRESIDENTE pueden borrar autoridades.', 'danger')
+        return redirect(url_for('gestion_autoridades'))
     aut = AutoridadRotaria.query.get_or_404(id)
     db.session.delete(aut)
     db.session.commit()
@@ -1001,6 +1033,10 @@ def registrar_pago_cuota():
 
 @app.route('/tesoreria/editar-pago/<int:pago_id>', methods=['POST'])
 def editar_pago_cuota(pago_id):
+    # REGLA TESORERIA: escribir/editar/borrar solo ADMIN/PRESIDENTE/TESORERO
+    if 'user_id' not in session or not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO pueden editar pagos.', 'danger')
+        return redirect(url_for('cuotas_sociales'))
     pago = PagoCuota.query.get_or_404(pago_id)
     if request.form.get('accion') == 'eliminar':
         db.session.delete(pago)
@@ -1051,7 +1087,8 @@ def estado_cuenta_pdf(socio_id):
 # ==================== NUEVO MODULO GASTOS ====================
 @app.route('/tesoreria/gastos')
 def tesoreria_gastos():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    # REGLA TESORERIA: ver lo puede cualquiera logueado, escribir solo ADMIN/PRESIDENTE/TESORERO
+    if 'user_id' not in session:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     gastos_mes = Gasto.query.filter_by(mes_anio=mes_filtro).order_by(Gasto.fecha.desc()).all()
@@ -1112,6 +1149,9 @@ def nuevo_gasto():
 
 @app.route('/tesoreria/gastos/eliminar/<int:gasto_id>', methods=['POST'])
 def eliminar_gasto(gasto_id):
+    if 'user_id' not in session or not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO pueden borrar gastos.', 'danger')
+        return redirect(url_for('tesoreria_gastos'))
     gasto = Gasto.query.get_or_404(gasto_id)
     mes = gasto.mes_anio
     db.session.delete(gasto)
@@ -1180,6 +1220,9 @@ def nuevo_evento_proyecto(proyecto_id):
 
 @app.route('/tesoreria/evento/<int:evento_id>/actualizar', methods=['POST'])
 def actualizar_evento(evento_id):
+    if 'user_id' not in session or not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO pueden editar eventos.', 'danger')
+        return redirect(url_for('tesoreria_proyectos'))
     evento = EventoProyecto.query.get_or_404(evento_id)
     evento.monto_recaudado = float(request.form.get('monto_recaudado'))
     evento.detalle_recaudado = request.form.get('detalle_recaudado')
@@ -1190,6 +1233,9 @@ def actualizar_evento(evento_id):
 
 @app.route('/tesoreria/evento/<int:evento_id>/eliminar', methods=['POST'])
 def eliminar_evento(evento_id):
+    if 'user_id' not in session or not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO pueden borrar eventos.', 'danger')
+        return redirect(url_for('tesoreria_proyectos'))
     evento = EventoProyecto.query.get_or_404(evento_id)
     pid = evento.proyecto_id
     db.session.delete(evento)
@@ -1201,7 +1247,8 @@ def eliminar_evento(evento_id):
 # ==================== ESTADO DE CUENTA MENSUAL ====================
 @app.route('/tesoreria/estado-cuenta-mensual')
 def estado_cuenta_mensual():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    # REGLA: TODOS pueden ver estado de cuenta mensual y meses anteriores
+    if 'user_id' not in session:
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     # meses lista
@@ -1343,7 +1390,8 @@ def estado_cuenta_pdf_mensual():
 
 @app.route('/tesoreria/recaudacion-mensual')
 def recaudacion_mensual():
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
+    # REGLA: TODOS pueden ver
+    if 'user_id' not in session:
         return redirect(url_for('login'))
     total_socios = Socio.query.filter_by(es_activo=True).count()
     if total_socios == 0:
@@ -1510,8 +1558,8 @@ def nuevo_ingreso_extraordinario():
 
 @app.route('/tesoreria/ingresos-extraordinarios/eliminar/<int:ingreso_id>', methods=['POST'])
 def eliminar_ingreso_extraordinario(ingreso_id):
-    if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'PRESIDENTE']:
-        flash('Solo ADMIN o PRESIDENTE puede eliminar.', 'danger')
+    if 'user_id' not in session or not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO puede eliminar.', 'danger')
         return redirect(url_for('ingresos_extraordinarios'))
     ingreso = IngresoExtraordinario.query.get_or_404(ingreso_id)
     mes = ingreso.mes_anio
