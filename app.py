@@ -41,41 +41,6 @@ MESES_CONTROL = [
 
 MESES_NOMBRES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"]
 
-def mes_anio_a_fecha(mes_anio_str, dia=15):
-    try:
-        partes = mes_anio_str.strip().upper().split()
-        if len(partes) >= 2:
-            mes_nom = partes[0]
-            anio = int(partes[1])
-            if mes_nom in MESES_NOMBRES:
-                mes_num = MESES_NOMBRES.index(mes_nom) + 1
-                from datetime import date
-                return date(anio, mes_num, dia)
-    except:
-        pass
-    return None
-
-def es_mes_historico_anterior_oct(mes_anio_str):
-    try:
-        partes = mes_anio_str.strip().upper().split()
-        if len(partes) >= 2:
-            mes_nom = partes[0]
-            anio = int(partes[1])
-            if anio < 2025:
-                return True
-            if anio == 2025:
-                mes_num = MESES_NOMBRES.index(mes_nom) + 1 if mes_nom in MESES_NOMBRES else 13
-                if mes_num < 10:  # Antes de OCT 2025
-                    return True
-            # Si anio == 2025 y mes >= OCT, no es historico anterior a 01 oct? Pero si usuario paga 2025 en 2026, sigue siendo historico
-            # Consideramos historico todo lo anterior a OCT 2025 inclusive?
-            # Para seguridad, todo mes_anio que no sea mes actual se considera historico para aplicar al mes que corresponde
-            return False
-    except:
-        return False
-    return False
-
-
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -221,13 +186,16 @@ class DocumentoRotario(db.Model):
     archivo_base64 = db.Column(db.Text, nullable=True)
     subido_por = db.Column(db.String(100), nullable=True)
     fecha_subida = db.Column(db.DateTime, default=datetime.utcnow)
-    # NUEVOS CAMPOS SEGUIMIENTO
+    # SEGUIMIENTO / EVENTO
     tiene_fechas = db.Column(db.Boolean, default=False)
     fecha_inicio = db.Column(db.Date, nullable=True)
     fecha_termino = db.Column(db.Date, nullable=True)
     responsable = db.Column(db.String(150), nullable=True)
+    prioridad = db.Column(db.String(20), default='MEDIA')
     porcentaje_avance = db.Column(db.Integer, default=0)
-    prioridad = db.Column(db.String(20), default='MEDIA')  # BAJA, MEDIA, ALTA, URGENTE
+    # FECHA DE EJECUCION - para scroll en menu principal junto con cumpleaños
+    tiene_fecha_ejecucion = db.Column(db.Boolean, default=False)
+    fecha_ejecucion = db.Column(db.Date, nullable=True)
 
 with app.app_context():
     db.create_all()
@@ -262,8 +230,10 @@ with app.app_context():
         db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS fecha_inicio DATE;"))
         db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS fecha_termino DATE;"))
         db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS responsable VARCHAR(150);"))
-        db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS porcentaje_avance INTEGER DEFAULT 0;"))
         db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS prioridad VARCHAR(20) DEFAULT 'MEDIA';"))
+        db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS porcentaje_avance INTEGER DEFAULT 0;"))
+        db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS tiene_fecha_ejecucion BOOLEAN DEFAULT FALSE;"))
+        db.session.execute(db.text("ALTER TABLE documentos_rotarios ADD COLUMN IF NOT EXISTS fecha_ejecucion DATE;"))
         db.session.commit()
     except Exception as e:
         print(f"Migracion ingresos_extraordinarios: {e}")
@@ -336,6 +306,14 @@ def menu_principal():
             for hijo in socio.hijos:
                 if hijo.fecha_nacimiento and hijo.fecha_nacimiento.month == mes_actual_num:
                     festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
+    # EVENTOS CON FECHA DE EJECUCION EN ESTE MES - para scroll junto con cumpleaños
+    try:
+        eventos_mes = DocumentoRotario.query.filter(DocumentoRotario.fecha_ejecucion.isnot(None)).all()
+        for ev in eventos_mes:
+            if ev.fecha_ejecucion and ev.fecha_ejecucion.month == mes_actual_num:
+                festividades.append({'dia': ev.fecha_ejecucion.day, 'tipo': '📅 EVENTO / FECHA DE EJECUCION', 'persona': ev.titulo, 'detalle': f"{ev.tipo} - EJECUCION: {ev.fecha_ejecucion.strftime('%d/%m/%Y')} - {ev.descripcion[:80] if ev.descripcion else ''}", 'es_evento': True, 'doc_id': ev.id})
+    except Exception as e:
+        print(f"Eventos ejecucion: {e}")
     festividades = sorted(festividades, key=lambda x: x['dia'])
     return render_template('menu_principal.html', mes_actual_nombre=mes_actual_nombre, festividades_mes=festividades)
 
@@ -495,8 +473,6 @@ def gestion_rotaria():
     total_fundacion = DocumentoRotario.query.filter_by(tipo='FUNDACION').count()
     total_servicios = DocumentoRotario.query.filter_by(tipo='SERVICIOS').count()
     
-    from datetime import date as date_cls
-    now_date = date_cls.today()
     return render_template('gestion_rotaria.html',
                            documentos=documentos,
                            tipos=tipos,
@@ -507,8 +483,7 @@ def gestion_rotaria():
                            total_presidencia=total_presidencia,
                            total_secretaria=total_secretaria,
                            total_fundacion=total_fundacion,
-                           total_servicios=total_servicios,
-                           now_date=now_date)
+                           total_servicios=total_servicios)
 
 @app.route('/gestion-rotaria/subir', methods=['POST'])
 def subir_documento_rotario():
@@ -523,6 +498,26 @@ def subir_documento_rotario():
         fecha_doc = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.now().date()
     except:
         fecha_doc = datetime.now().date()
+    # SEGUIMIENTO
+    def _parse(d):
+        try:
+            return datetime.strptime(d, '%Y-%m-%d').date() if d else None
+        except:
+            return None
+    tiene_fechas = request.form.get('tiene_fechas') == '1' or request.form.get('tiene_fechas') == 'on'
+    fecha_inicio = _parse(request.form.get('fecha_inicio'))
+    fecha_termino = _parse(request.form.get('fecha_termino'))
+    responsable = request.form.get('responsable','').strip().upper() or None
+    prioridad = request.form.get('prioridad','MEDIA').strip().upper()
+    try:
+        porcentaje_avance = int(request.form.get('porcentaje_avance') or 0)
+    except:
+        porcentaje_avance = 0
+    # FECHA DE EJECUCION - nueva opcion
+    tiene_fecha_ejecucion = request.form.get('tiene_fecha_ejecucion') == '1' or request.form.get('tiene_fecha_ejecucion') == 'on'
+    fecha_ejecucion = _parse(request.form.get('fecha_ejecucion'))
+    if fecha_ejecucion:
+        tiene_fecha_ejecucion = True
     
     archivo_nombre = None
     archivo_b64 = None
@@ -544,31 +539,6 @@ def subir_documento_rotario():
     if not archivo_b64:
         archivo_nombre = 'CREADO EN SISTEMA - SIN PDF'
     
-    # Nuevos campos de seguimiento
-    tiene_fechas = request.form.get('tiene_fechas') == '1' or request.form.get('tiene_fechas') == 'on'
-    fecha_inicio = None
-    fecha_termino = None
-    if tiene_fechas:
-        fi_str = request.form.get('fecha_inicio')
-        ft_str = request.form.get('fecha_termino')
-        try:
-            if fi_str:
-                fecha_inicio = datetime.strptime(fi_str, '%Y-%m-%d').date()
-        except:
-            pass
-        try:
-            if ft_str:
-                fecha_termino = datetime.strptime(ft_str, '%Y-%m-%d').date()
-        except:
-            pass
-    
-    responsable = request.form.get('responsable','').strip().upper() or None
-    prioridad = request.form.get('prioridad','MEDIA').strip().upper()
-    try:
-        avance = int(request.form.get('porcentaje_avance', 0))
-    except:
-        avance = 0
-    
     doc = DocumentoRotario(
         tipo=tipo,
         titulo=titulo,
@@ -583,7 +553,9 @@ def subir_documento_rotario():
         fecha_termino=fecha_termino,
         responsable=responsable,
         prioridad=prioridad,
-        porcentaje_avance=avance
+        porcentaje_avance=porcentaje_avance,
+        tiene_fecha_ejecucion=tiene_fecha_ejecucion,
+        fecha_ejecucion=fecha_ejecucion
     )
     db.session.add(doc)
     db.session.commit()
@@ -647,28 +619,25 @@ def editar_documento_rotario(doc_id):
             doc.fecha_documento = datetime.strptime(fecha_str, '%Y-%m-%d').date()
     except:
         pass
-    # Fechas seguimiento
+    # SEGUIMIENTO + FECHA EJECUCION en editar
+    def _parse2(d):
+        try:
+            return datetime.strptime(d, '%Y-%m-%d').date() if d else None
+        except:
+            return None
     doc.tiene_fechas = request.form.get('tiene_fechas') == '1' or request.form.get('tiene_fechas') == 'on'
-    if doc.tiene_fechas:
-        fi_str = request.form.get('fecha_inicio')
-        ft_str = request.form.get('fecha_termino')
-        try:
-            doc.fecha_inicio = datetime.strptime(fi_str, '%Y-%m-%d').date() if fi_str else doc.fecha_inicio
-        except:
-            pass
-        try:
-            doc.fecha_termino = datetime.strptime(ft_str, '%Y-%m-%d').date() if ft_str else doc.fecha_termino
-        except:
-            pass
-    else:
-        doc.fecha_inicio = None
-        doc.fecha_termino = None
-    doc.responsable = request.form.get('responsable','').strip().upper() or doc.responsable
+    doc.fecha_inicio = _parse2(request.form.get('fecha_inicio'))
+    doc.fecha_termino = _parse2(request.form.get('fecha_termino'))
+    doc.responsable = request.form.get('responsable','').strip().upper() or None
     doc.prioridad = request.form.get('prioridad','MEDIA').strip().upper()
     try:
-        doc.porcentaje_avance = int(request.form.get('porcentaje_avance', doc.porcentaje_avance or 0))
+        doc.porcentaje_avance = int(request.form.get('porcentaje_avance') or doc.porcentaje_avance or 0)
     except:
         pass
+    doc.tiene_fecha_ejecucion = request.form.get('tiene_fecha_ejecucion') == '1' or request.form.get('tiene_fecha_ejecucion') == 'on'
+    doc.fecha_ejecucion = _parse2(request.form.get('fecha_ejecucion'))
+    if doc.fecha_ejecucion:
+        doc.tiene_fecha_ejecucion = True
     if 'archivo' in request.files:
         f = request.files['archivo']
         if f and f.filename and f.filename.lower().endswith('.pdf'):
@@ -678,21 +647,6 @@ def editar_documento_rotario(doc_id):
                 doc.archivo_base64 = base64.b64encode(data).decode('utf-8')
     db.session.commit()
     flash('Documento actualizado.', 'success')
-    return redirect(url_for('gestion_rotaria'))
-
-@app.route('/gestion-rotaria/actualizar-avance/<int:doc_id>', methods=['POST'])
-def actualizar_avance_documento(doc_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    doc = DocumentoRotario.query.get_or_404(doc_id)
-    try:
-        doc.porcentaje_avance = int(request.form.get('porcentaje_avance', 0))
-        if doc.porcentaje_avance >= 100:
-            doc.estado = 'ARCHIVADO'
-    except:
-        pass
-    db.session.commit()
-    flash(f'Avance de {doc.titulo} actualizado a {doc.porcentaje_avance}%', 'success')
     return redirect(url_for('gestion_rotaria'))
 
 @app.route('/autoridades')
@@ -780,7 +734,7 @@ def actualizar_saldo_inicial():
         else:
             config.saldo_inicial = nuevo_saldo
         db.session.commit()
-        flash('Saldo inicial actualizado.', 'success')
+        flash('Saldo actualizado!', 'success')
     else:
         flash('Contraseña incorrecta.', 'danger')
     return redirect(url_for('cuotas_sociales'))
@@ -794,52 +748,21 @@ def registrar_pago_cuota():
     meses_pagados = request.form.getlist('meses')
     metodo = to_upper(request.form.get('metodo_pago'))
     referencia = to_upper(request.form.get('referencia'))
-    fecha_pago_str = request.form.get('fecha_pago')
-    es_historico_check = request.form.get('es_historico') == '1' or request.form.get('es_historico') == 'on'
-    
     if not socio_id or not meses_pagados:
         flash('Debe seleccionar al menos un mes y un socio.', 'warning')
         return redirect(url_for('cuotas_sociales'))
-    
-    # Fecha de pago general si se proporciona
-    fecha_pago_general = None
-    if fecha_pago_str:
-        try:
-            fecha_pago_general = datetime.strptime(fecha_pago_str, '%Y-%m-%d').date()
-        except:
-            fecha_pago_general = None
-    
     pagos_creados_ids = []
     for m in meses_pagados:
         mes_limpio = m.strip().upper()
         existente = PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=mes_limpio).first()
         if not existente:
-            # Lógica historial: si es anterior a 01 OCT 2025 o marcado como histórico, fecha_pago = fecha del mes que corresponde
-            # Esto hace que JUN 2025 pagado el 10 OCT 2026 quede aplicado en JUNIO para el historial
-            fecha_para_registro = None
-            if fecha_pago_general and not es_historico_check:
-                fecha_para_registro = fecha_pago_general
-            else:
-                # Si es histórico o no se dio fecha, usar fecha del mes_anio (15 del mes correspondiente)
-                fecha_del_mes = mes_anio_a_fecha(mes_limpio, dia=15)
-                if fecha_del_mes:
-                    fecha_para_registro = fecha_del_mes
-                else:
-                    fecha_para_registro = fecha_pago_general or datetime.now().date()
-            
-            # Si es histórico anterior a 01 OCT 2025, siempre va al mes que corresponde
-            if es_historico_check or es_mes_historico_anterior_oct(mes_limpio):
-                fecha_del_mes = mes_anio_a_fecha(mes_limpio, dia=15)
-                if fecha_del_mes:
-                    fecha_para_registro = fecha_del_mes
-            
-            pago = PagoCuota(socio_id=socio_id, mes_anio=mes_limpio, monto=500.0, metodo_pago=metodo, referencia=referencia, fecha_pago=fecha_para_registro)
+            pago = PagoCuota(socio_id=socio_id, mes_anio=mes_limpio, monto=500.0, metodo_pago=metodo, referencia=referencia)
             db.session.add(pago)
             db.session.flush()
             pagos_creados_ids.append(str(pago.id))
     db.session.commit()
     if pagos_creados_ids:
-        flash(f'{len(pagos_creados_ids)} pago(s) registrado(s) aplicado(s) al mes que corresponde (Historial).', 'success')
+        flash(f'{len(pagos_creados_ids)} pago(s) registrado(s).', 'success')
         return redirect(url_for('cuotas_sociales', recibo_ids=','.join(pagos_creados_ids)))
     else:
         flash('Ya estaban pagados.', 'info')
