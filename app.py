@@ -1,5 +1,5 @@
 from sqlalchemy import func
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 import os
 import base64
@@ -351,7 +351,10 @@ def login():
             return redirect(url_for('menu_principal'))
         else:
             flash('Contraseña incorrecta. Si la olvidaste, pide a ADMIN que la borre para crear una nueva.', 'danger')
-    return render_template('login.html')
+    try:
+        return render_template('login.html')
+    except Exception:
+        return render_template_string('<h3>LOGIN ROTARY CREEL</h3><form method="POST"><label>USUARIO (NUMERO DE SOCIO):</label><input name="username" required><br><label>CONTRASEÑA:</label><input type="password" name="password"><br><button>INGRESAR</button></form><p>⚠️ Falta subir login.html a Render</p>')
 
 @app.route('/crear-password', methods=['GET', 'POST'])
 def crear_password():
@@ -386,7 +389,10 @@ def crear_password():
         session.pop('pending_username', None)
         flash(f'Contraseña creada. Bienvenido {user.username}!', 'success')
         return redirect(url_for('menu_principal'))
-    return render_template('crear_password.html', username=user.username)
+    try:
+        return render_template('crear_password.html', username=user.username)
+    except Exception:
+        return render_template_string(f'<h3>CREA TU CONTRASEÑA - {user.username}</h3><form method="POST"><label>NUEVA CONTRASEÑA (min 6):</label><input type="password" name="password1" required><br><label>REPITE:</label><input type="password" name="password2" required><br><button>CREAR CONTRASEÑA</button></form><p>⚠️ Falta subir crear_password.html a Render</p>')
 
 @app.route('/admin/usuarios')
 def admin_usuarios():
@@ -395,7 +401,18 @@ def admin_usuarios():
         return redirect(url_for('menu_principal'))
     usuarios = Usuario.query.order_by(Usuario.username.asc()).all()
     socios = Socio.query.order_by(Socio.numero_socio.asc()).all()
-    return render_template('admin_usuarios.html', usuarios=usuarios, socios=socios)
+    try:
+        return render_template('admin_usuarios.html', usuarios=usuarios, socios=socios)
+    except Exception:
+        # FALLBACK: si admin_usuarios.html no se subio a Render, no dar 500
+        filas = ""
+        for u in usuarios:
+            nombre = u.socio.nombre_completo if getattr(u, 'socio', None) else '- CUENTA FIJA -'
+            estado = '⏳ SIN CONTRASEÑA - DEBE CREARLA' if (u.debe_crear_password or not u.password_hash) else '✅ TIENE CONTRASEÑA'
+            btn = f'<form method="POST" action="/admin/usuarios/reset/{u.id}" onsubmit="return confirm(\'¿Borrar contraseña de {u.username}?\')"><button class="btn btn-danger btn-sm fw-bold">🗑️ BORRAR CONTRASEÑA</button></form>' if u.username.lower() not in ('admin','presidente','tesorero') else '<small>Cuenta fija</small>'
+            filas += f"<tr><td><b>{u.username}</b></td><td>{u.rol}</td><td>{nombre}</td><td>{estado}</td><td>{btn}</td></tr>"
+        html = f'''<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Usuarios - ADMIN</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head><body><div class="container py-3"><div class="alert alert-warning">⚠️ Falta subir <b>admin_usuarios.html</b> a Render. Esta es la vista de emergencia, funciona igual para borrar contraseñas.</div><a href="/menu" class="btn btn-secondary btn-sm">MENÚ</a><form method="POST" action="/admin/usuarios/crear-faltantes" class="my-3"><button class="btn btn-success btn-sm fw-bold">+ CREAR USUARIOS FALTANTES</button></form><table class="table table-bordered bg-white"><thead style="background:#17458F;color:white;"><tr><th>USUARIO</th><th>ROL</th><th>SOCIO</th><th>ESTADO</th><th>ACCION</th></tr></thead><tbody>{filas}</tbody></table></div></body></html>'''
+        return render_template_string(html)
 
 @app.route('/admin/usuarios/reset/<int:user_id>', methods=['POST'])
 def admin_reset_password(user_id):
