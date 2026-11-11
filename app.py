@@ -689,6 +689,18 @@ def editar_socio(socio_id):
     socio.telefono = to_upper(request.form.get('telefono')) or socio.telefono
     socio.correo = request.form.get('correo') or socio.correo
     socio.fecha_nacimiento = parse_date(request.form.get('fecha_nacimiento')) or socio.fecha_nacimiento
+    # FIX: guardar familia / domicilio / emergencia - el form los mandaba pero aqui se ignoraban
+    socio.ciudad = to_upper(request.form.get('ciudad')) or socio.ciudad
+    socio.calle_numero = to_upper(request.form.get('calle_numero')) or socio.calle_numero
+    socio.colonia = to_upper(request.form.get('colonia')) or socio.colonia
+    socio.codigo_postal = to_upper(request.form.get('codigo_postal')) or socio.codigo_postal
+    socio.estado = to_upper(request.form.get('estado')) or socio.estado
+    socio.estado_civil = to_upper(request.form.get('estado_civil')) or socio.estado_civil
+    socio.telefono_emergencia = to_upper(request.form.get('telefono_emergencia')) or socio.telefono_emergencia
+    socio.nombre_esposa = to_upper(request.form.get('nombre_esposa')) or socio.nombre_esposa
+    socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa')) or socio.fecha_nacimiento_esposa
+    socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio')) or socio.aniversario_matrimonio
+    socio.telefono_esposa = to_upper(request.form.get('telefono_esposa')) or socio.telefono_esposa
     foto_archivo = request.files.get('foto_archivo')
     if foto_archivo and foto_archivo.filename and allowed_file(foto_archivo.filename):
         contenido = foto_archivo.read()
