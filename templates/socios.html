@@ -42,7 +42,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 🎂 CUMPLEAÑOS {{ mes_actual_nombre }} (0)
 </button>
 {% endif %}
-<a href="/menu" class="btn btn-outline-light btn-sm fw-bold" style="font-size:11px; padding:6px 12px;">MENÚ</a>
+{% if session.get('rol') == 'ADMIN' %}<a href="/admin/usuarios" class="btn btn-warning btn-sm fw-bold" style="font-size:11px; padding:6px 12px;">👥 USUARIOS</a>{% endif %}<a href="/menu" class="btn btn-outline-light btn-sm fw-bold" style="font-size:11px; padding:6px 12px;">MENÚ</a>
 <a href="/logout" class="btn btn-warning btn-sm fw-bold" style="font-size:11px; padding:6px 12px;">SALIR</a>
 </div>
 </div>
@@ -66,7 +66,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <th style="width:80px;">TIPO</th>
 <th style="width:140px;">TELEFONO</th>
 <th style="width:220px;">CORREO</th>
-<th style="width:100px;">ACCIONES</th>
+<th style="width:130px;">USUARIO / CONTRASEÑA</th><th style="width:100px;">ACCIONES</th>
 </tr>
 </thead>
 <tbody>
@@ -78,6 +78,18 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <td><span class="badge badge-activo">{{ socio.tipo_socio or 'ACTIVO' }}</span></td>
 <td class="telefono">{{ socio.telefono or '-' }}</td>
 <td class="correo">{{ socio.correo or '-' }}</td>
+<td style="font-size:10px;">
+{% set u = usuarios_por_socio.get(socio.id) if usuarios_por_socio else None %}
+{% if u %}
+<strong>{{ u.username }}</strong><br>
+{% if u.debe_crear_password or not u.password_hash %}<span class="badge bg-warning text-dark" style="font-size:8px;">⏳ SIN CONTRASEÑA</span>{% else %}<span class="badge bg-success" style="font-size:8px;">✅ TIENE CONTRASEÑA</span>{% endif %}<br>
+{% if session.get('rol') == 'ADMIN' %}
+<form method="POST" action="/admin/usuarios/reset/{{ u.id }}" onsubmit="return confirm('¿Borrar contraseña de {{ u.username }}? El socio la creara de nuevo.')" style="display:inline;"><button class="btn btn-danger btn-sm" style="font-size:8px;padding:2px 6px;">🗑️ BORRAR CONTRASEÑA</button></form>
+{% endif %}
+{% else %}
+<span class="badge bg-secondary" style="font-size:8px;">SIN USUARIO</span><br><small style="font-size:8px;">Se crea al guardar</small>
+{% endif %}
+</td>
 <td>
 <button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}" style="font-size:10px; padding:5px 12px;"><i class="bi bi-pencil"></i> EDITAR</button>
 </td>
@@ -119,8 +131,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <hr style="margin:8px 0;">
 <small class="fw-bold text-primary">DATOS FAMILIARES</small>
 <div class="row mt-2">
-<div class="col-md-4 mb-2"><label class="fw-bold">NOMBRE ESPOSA(O):</label><input type="text" name="nombre_esposa" class="form-control form-control-sm" value="{{ socio.nombre_esposa or '' }}"></div>
-<div class="col-md-2 mb-2"><label class="fw-bold">TEL ESPOSA:</label><input type="text" name="telefono_esposa" class="form-control form-control-sm" value="{{ socio.telefono_esposa or '' }}"></div>
+<div class="col-md-6 mb-2"><label class="fw-bold">NOMBRE ESPOSA(O):</label><input type="text" name="nombre_esposa" class="form-control form-control-sm" value="{{ socio.nombre_esposa or '' }}"></div>
 <div class="col-md-3 mb-2"><label class="fw-bold">F. NAC ESPOSA:</label><input type="date" name="fecha_nacimiento_esposa" class="form-control form-control-sm" value="{{ socio.fecha_nacimiento_esposa.strftime('%Y-%m-%d') if socio.fecha_nacimiento_esposa else '' }}"></div>
 <div class="col-md-3 mb-2"><label class="fw-bold">ANIVERSARIO:</label><input type="date" name="aniversario_matrimonio" class="form-control form-control-sm" value="{{ socio.aniversario_matrimonio.strftime('%Y-%m-%d') if socio.aniversario_matrimonio else '' }}"></div>
 </div>

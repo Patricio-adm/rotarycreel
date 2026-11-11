@@ -1,75 +1,15 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Rotary Club Creel</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { 
-            background: linear-gradient(135deg, #17458F 0%, #0c2340 100%); 
-            height: 100vh; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-        }
-        .login-card { 
-            width: 100%; 
-            max-width: 420px; 
-            padding: 35px; 
-            border-radius: 16px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
-            background: white; 
-            border-top: 6px solid #F7A81B;
-        }
-        .rotary-blue { color: #17458F; }
-        .btn-rotary { 
-            background-color: #17458F; 
-            color: white; 
-            font-weight: 600;
-        }
-        .btn-rotary:hover { 
-            background-color: #0f326b; 
-            color: white; 
-        }
-        .rotary-logo {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 15px;
-        }
-    </style>
-</head>
-<body>
-    <div class="login-card text-center">
-        <!-- Rueda / Logo oficial de Rotary International -->
-        <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/Rotary_International_Logo.svg" alt="Rotary International" class="rotary-logo">
-        
-        <h4 class="fw-bold rotary-blue mb-1">ROTARY CLUB CREEL</h4>
-        <p class="text-muted small mb-4">Sistema de Gestión de Socios y Tesorería</p>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <form method="POST">
-            <div class="mb-3 text-start">
-                <label for="username" class="form-label text-secondary fw-semibold small">USUARIO</label>
-                <input type="text" class="form-control" id="username" name="username" required autofocus>
-            </div>
-            <div class="mb-3 text-start">
-                <label for="password" class="form-label text-secondary fw-semibold small">CONTRASEÑA</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <button type="submit" class="btn btn-rotary w-100 py-2 mt-2 shadow-sm">Ingresar al Sistema</button>
-        </form>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<html lang="es"><head><meta charset="UTF-8"><title>Login - Rotary Creel</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>body{font-family:'Segoe UI',sans-serif;background:#f4f6f9;text-transform:uppercase;}.card-login{max-width:420px;margin:60px auto;border-top:6px solid #17458F;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15);}</style></head>
+<body><div class="container"><div class="card card-login"><div class="card-body p-4">
+<div class="text-center mb-3"><h5 class="fw-bold" style="color:#17458F;">CLUB ROTARIO CREEL</h5><small>DISTRITO 4110 - SISTEMA INTEGRAL</small></div>
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} py-2" style="font-size:12px;text-transform:none;">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
+<form method="POST" action="/login">
+<div class="mb-3"><label class="fw-bold" style="font-size:12px;">USUARIO - TU NUMERO DE SOCIO:</label><input type="text" name="username" class="form-control fw-bold" placeholder="EJ: 5, 12, 101" required autofocus style="font-size:18px;text-align:center;"></div>
+<div class="mb-3"><label class="fw-bold" style="font-size:12px;">CONTRASEÑA:</label><input type="password" name="password" class="form-control" placeholder="Si es tu primer ingreso, dejala en blanco"></div>
+<button type="submit" class="btn btn-primary w-100 fw-bold">INGRESAR</button>
+</form>
+<hr><div class="alert alert-info py-2" style="font-size:11px;text-transform:none;"><strong>¿Primer ingreso?</strong><br>Tu usuario es tu <strong>NUMERO DE SOCIO</strong>. Entra con tu numero y sin contraseña, el sistema te pedira crear tu contraseña.<br><br><strong>¿Olvidaste tu contraseña?</strong><br>Pide a <strong>ADMIN</strong> que la borre. En tu proximo ingreso la creas de nuevo.</div>
+<div class="text-center"><small style="font-size:10px;color:#999;">ADMIN / PRESIDENTE / TESORERO usan su usuario fijo</small></div>
+</div></div></div></body></html>

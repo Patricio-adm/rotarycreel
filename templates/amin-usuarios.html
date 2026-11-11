@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Usuarios - ADMIN - Rotary Creel</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>body{font-family:'Segoe UI',sans-serif;background:#f4f6f9;text-transform:uppercase;font-size:11px;}.header-rotary{background:#17458F;color:white;padding:10px 20px;border-bottom:4px solid #F7A81B;}</style></head>
+<body>
+<div class="header-rotary d-flex justify-content-between"><div><h6 class="mb-0 fw-bold">👥 USUARIOS - SOLO ADMIN</h6><small>NUMERO DE SOCIO = USUARIO | PRIMER INGRESO CREA CONTRASEÑA</small></div><div class="d-flex gap-2"><a href="/menu" class="btn btn-outline-light btn-sm">MENÚ</a><a href="/logout" class="btn btn-warning btn-sm">SALIR</a></div></div>
+<div class="container py-3">
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} py-2" style="text-transform:none;">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
+<div class="alert alert-info" style="text-transform:none;font-size:12px;"><strong>Regla:</strong> Cada socio entra con su <strong>NUMERO DE SOCIO</strong> como usuario. En primer ingreso crea su contraseña. Si la olvida, solo ADMIN puede <strong>borrarla</strong> (boton BORRAR CONTRASEÑA) para que la cree de nuevo. ADMIN nunca ve la contraseña.</div>
+<form method="POST" action="/admin/usuarios/crear-faltantes" class="mb-3"><button class="btn btn-success btn-sm fw-bold">+ CREAR USUARIOS FALTANTES DESDE SOCIOS</button></form>
+<table class="table table-bordered bg-white"><thead style="background:#17458F;color:white;"><tr><th>USUARIO</th><th>ROL</th><th>SOCIO</th><th>ESTADO CONTRASEÑA</th><th>ACCION</th></tr></thead><tbody>
+{% for u in usuarios %}<tr>
+<td class="fw-bold">{{ u.username }}</td><td><span class="badge bg-primary">{{ u.rol }}</span></td>
+<td>{% if u.socio %}{{ u.socio.nombre_completo }}{% else %}- CUENTA FIJA -{% endif %}</td>
+<td>{% if u.debe_crear_password or not u.password_hash %}<span class="badge bg-warning text-dark">⏳ SIN CONTRASEÑA - DEBE CREARLA</span>{% else %}<span class="badge bg-success">✅ TIENE CONTRASEÑA</span><br><small style="text-transform:none;">Creada: {{ u.fecha_creacion_password.strftime('%d/%m/%Y %H:%M') if u.fecha_creacion_password else '-' }}</small>{% endif %}</td>
+<td>{% if u.username not in ('admin','presidente','tesorero') %}<form method="POST" action="/admin/usuarios/reset/{{ u.id }}" onsubmit="return confirm('¿Borrar contraseña de {{ u.username }}? El socio la creara de nuevo en su proximo ingreso.')"><button class="btn btn-danger btn-sm fw-bold">🗑️ BORRAR CONTRASEÑA</button></form>{% else %}<small>Cuenta fija - no se resetea aqui</small>{% endif %}</td>
+</tr>{% endfor %}</tbody></table>
+</div></body></html>
