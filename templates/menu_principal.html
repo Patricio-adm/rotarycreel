@@ -16,18 +16,18 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 .card-tesoreria { border-top-color:#28a745; }
 .icono { font-size:46px; margin-bottom:10px; line-height:1; }
 @media (max-width:576px){ .grid-2x2{grid-template-columns:1fr; max-width:340px;} .card-modulo{height:150px;} .icono{font-size:36px;} }
-
-/* BARRA CUMPLEAÑOS - FIX SCROLL */
-.barra-cumple { background:#fff3cd; border-bottom:2px solid #000; height:42px; display:flex; align-items:center; overflow:hidden; position:relative; cursor:pointer; user-select:none; }
+.barra-cumple { background:#fff3cd; border-bottom:2px solid #000; height:42px; display:flex; align-items:center; overflow:hidden; position:relative; cursor:pointer; }
 .barra-cumple:hover { background:#ffe69c; }
 .ticker-viewport { width:100%; height:100%; overflow:hidden; position:relative; display:flex; align-items:center; justify-content:center; }
-.ticker-item { position:absolute; width:100%; text-align:center; font-size:13px; font-weight:800; color:#000; white-space:nowrap; opacity:0; transform:translateY(30px); transition: transform 0.6s cubic-bezier(0.4,0,0.2,1), opacity 0.6s ease; pointer-events:none; }
-.ticker-item.active { opacity:1; transform:translateY(0); pointer-events:auto; }
+.ticker-item { position:absolute; width:100%; text-align:center; font-size:13px; font-weight:800; color:#000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0; transform:translateY(30px); transition: transform 0.6s ease, opacity 0.6s ease; }
+.ticker-item.active { opacity:1; transform:translateY(0); }
 .ticker-item.prev { opacity:0; transform:translateY(-30px); }
+.ticker-item.es-evento { background:#fff3e6; color:#7a3a00; }
 .badge-dia { background:#17458F; color:white; font-size:11px; padding:3px 10px; border-radius:12px; margin-right:8px; font-weight:900; }
-.punto { width:10px; height:10px; background:#dc3545; border-radius:50%; display:inline-block; margin-right:8px; animation: pulse 1.2s infinite; vertical-align:middle; }
+.badge-dia-evento { background:#fd7e14; color:white; font-size:11px; padding:3px 10px; border-radius:12px; margin-right:8px; font-weight:900; }
+.punto { width:10px; height:10px; background:#dc3545; border-radius:50%; display:inline-block; margin-right:8px; animation: pulse 1.2s infinite; }
 @keyframes pulse { 0%{transform:scale(1);} 50%{transform:scale(1.5);} 100%{transform:scale(1);} }
-.contador-badge { font-size:9px; margin-left:10px; background:#000; color:#F7A81B; padding:3px 8px; border-radius:10px; }
+
 </style>
 </head>
 <body>
@@ -39,17 +39,21 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 </div>
 </div>
 
-<!-- BARRA SCROLLING CUMPLEAÑOS - FIX -->
+<!-- BARRA SCROLLING - CUMPLEAÑOS + FECHA DE EJECUCION - 3 SEG POR NOMBRE -->
 <div class="barra-cumple" id="barraCumple" title="Click para ver todos">
 {% if festividades_mes %}
 <div class="ticker-viewport" id="tickerViewport">
 {% for f in festividades_mes %}
-<div class="ticker-item {% if loop.first %}active{% endif %}" data-index="{{ loop.index0 }}">
+<div class="ticker-item {% if loop.first %}active{% endif %} {% if f.es_evento %}es-evento{% endif %}" data-index="{{ loop.index0 }}">
+{% if f.es_evento %}
+<span class="badge-dia-evento">📅 {{ f.dia }} {{ mes_actual_nombre[:3] }}</span>
+📅 EVENTO: <span style="color:#fd7e14;">{{ f.persona }}</span>
+{% else %}
 <span class="punto"></span>
 <span class="badge-dia">🎂 {{ f.dia }} {{ mes_actual_nombre[:3] }}</span>
 {{ f.tipo }}: <span style="color:#17458F;">{{ f.persona }}</span>
-<span style="color:#555; font-weight:400; text-transform:none; font-size:11px;">- {{ f.detalle }} - {{ f.dia }}/{{ mes_actual_nombre }}</span>
-<span class="contador-badge">{{ loop.index }}/{{ festividades_mes|length }} CLICK PARA VER TODOS</span>
+{% endif %}
+<span style="font-size:9px; margin-left:10px; background:#000; color:#F7A81B; padding:3px 8px; border-radius:10px;">{{ loop.index }}/{{ festividades_mes|length }} CLICK PARA VER TODOS</span>
 </div>
 {% endfor %}
 </div>
@@ -81,6 +85,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 {% endwith %}
 
 <div class="grid-2x2">
+
 {% if session.get('rol') != 'RCREEL' %}
 <a href="/tesoreria" class="text-decoration-none">
 <div class="card card-modulo card-tesoreria text-center p-3">
@@ -90,6 +95,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 <small style="font-size:7px; color:#28a745; font-weight:700; margin-top:6px; display:block;">CUOTAS • GASTOS • PROYECTOS • ESTADO CUENTA</small>
 </div>
 </a>
+
 <a href="/gestion-rotaria" class="text-decoration-none">
 <div class="card card-modulo card-gestion text-center p-3">
 <div class="icono">📚</div>
@@ -102,6 +108,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 <div style="height:180px; display:flex; align-items:center; justify-content:center; border:2px dashed #ccc; border-radius:14px; background:#f8f9fa; color:#999; font-size:10px; text-align:center;">ACCESO RESTRINGIDO<br>SOLO SOCIOS Y AUTORIDADES</div>
 <div style="height:180px; display:flex; align-items:center; justify-content:center; border:2px dashed #ccc; border-radius:14px; background:#f8f9fa; color:#999; font-size:10px; text-align:center;">ACCESO RESTRINGIDO<br>SOLO SOCIOS Y AUTORIDADES</div>
 {% endif %}
+
 <a href="/socios" class="text-decoration-none">
 <div class="card card-modulo card-socios text-center p-3">
 <div class="icono">👥</div>
@@ -110,6 +117,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 {% if session.get('rol') == 'RCREEL' %}<span class="badge bg-success mt-2" style="font-size:7px;">ACCESO PERMITIDO</span>{% endif %}
 </div>
 </a>
+
 <a href="/autoridades" class="text-decoration-none">
 <div class="card card-modulo card-autoridades text-center p-3">
 <div class="icono">🏛️</div>
@@ -118,26 +126,28 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 {% if session.get('rol') == 'RCREEL' %}<span class="badge bg-success mt-2" style="font-size:7px;">ACCESO PERMITIDO</span>{% endif %}
 </div>
 </a>
-</div>
+
 </div>
 
-<!-- MODAL CUMPLEAÑOS -->
+</div>
+
+<!-- MODAL CUMPLEAÑOS + EVENTOS -->
 <div class="modal fade" id="modalCumple" tabindex="-1">
 <div class="modal-dialog modal-lg">
 <div class="modal-content" style="border:3px solid #F7A81B;">
 <div class="modal-header" style="background:#17458F; color:white;">
-<h6 class="modal-title" style="font-size:14px; font-weight:900;">🎂 FESTIVIDADES DEL MES: {{ mes_actual_nombre }} - {{ festividades_mes|length }} EVENTOS</h6>
+<h6 class="modal-title" style="font-size:14px; font-weight:900;">🎂📅 FESTIVIDADES Y EVENTOS: {{ mes_actual_nombre }} - {{ festividades_mes|length }} EVENTOS</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body" style="background:#fffdf0; max-height:70vh; overflow-y:auto;">
 {% if festividades_mes %}
 <table class="table table-bordered table-hover bg-white" style="font-size:12px;">
-<thead style="background:#17458F; color:white; text-align:center;"><tr><th style="width:50px;">DIA</th><th>TIPO</th><th>PERSONA</th><th>DETALLE</th></tr></thead>
+<thead style="background:#17458F; color:white; text-align:center;"><tr><th style="width:50px;">DIA</th><th>TIPO</th><th>PERSONA / EVENTO</th><th>DETALLE</th></tr></thead>
 <tbody>
 {% for f in festividades_mes %}
-<tr>
-<td class="text-center fw-bold" style="background:#fff3cd; font-size:14px;"><span class="badge bg-primary">{{ f.dia }}</span></td>
-<td style="font-size:11px;"><span class="badge {{ 'bg-success' if 'SOCIO' in f.tipo else 'bg-info' if 'CÓNYUGE' in f.tipo else 'bg-warning text-dark' if 'BODAS' in f.tipo else 'bg-secondary' }}" style="font-size:9px;">{{ f.tipo }}</span></td>
+<tr style="{{ 'background:#fff3e6;' if f.es_evento else '' }}">
+<td class="text-center fw-bold" style="font-size:14px;"><span class="badge {{ 'bg-warning text-dark' if f.es_evento else 'bg-primary' }}">{{ f.dia }}</span></td>
+<td style="font-size:11px;"><span class="badge {{ 'bg-warning text-dark' if f.es_evento else 'bg-success' }}" style="font-size:9px;">{{ f.tipo }}</span></td>
 <td class="fw-bold" style="font-size:12px;">{{ f.persona }}</td>
 <td style="font-size:10px; text-transform:none;">{{ f.detalle }}</td>
 </tr>
@@ -148,55 +158,29 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 <div class="text-center py-4" style="color:#999;">SIN FESTIVIDADES ESTE MES</div>
 {% endif %}
 </div>
-<div class="modal-footer py-2">
-<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+<div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button></div>
 </div>
 </div>
 </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const items = document.querySelectorAll('.ticker-item');
-  console.log('Ticker items encontrados:', items.length);
   let currentIndex = 0;
   let intervalo = null;
-
   function mostrarSiguiente() {
     if (items.length <= 1) return;
     const actual = items[currentIndex];
-    actual.classList.remove('active');
-    actual.classList.add('prev');
-    
+    actual.classList.remove('active'); actual.classList.add('prev');
     currentIndex = (currentIndex + 1) % items.length;
     const siguiente = items[currentIndex];
-    
-    setTimeout(() => {
-      actual.classList.remove('prev');
-      siguiente.classList.add('active');
-    }, 300);
+    setTimeout(() => { actual.classList.remove('prev'); siguiente.classList.add('active'); }, 300);
   }
-
   function iniciarTicker() {
-    if (items.length > 1) {
-      clearInterval(intervalo);
-      intervalo = setInterval(mostrarSiguiente, 3000);
-      console.log('Ticker iniciado cada 3s');
-    } else if (items.length === 1) {
-      console.log('Solo 1 festividad, sin scroll necesario');
-    }
+    if (items.length > 1) { clearInterval(intervalo); intervalo = setInterval(mostrarSiguiente, 3000); }
   }
-
-  function pausarTicker() {
-    if (intervalo) {
-      clearInterval(intervalo);
-      intervalo = null;
-    }
-  }
-
+  function pausarTicker() { if (intervalo) { clearInterval(intervalo); intervalo = null; } }
   iniciarTicker();
-
   const barra = document.getElementById('barraCumple');
   if (barra) {
     barra.addEventListener('mouseenter', pausarTicker);
@@ -206,9 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const modalEl = document.getElementById('modalCumple');
       const modal = new bootstrap.Modal(modalEl);
       modal.show();
-      modalEl.addEventListener('hidden.bs.modal', function() {
-        iniciarTicker();
-      }, {once:true});
+      modalEl.addEventListener('hidden.bs.modal', function() { iniciarTicker(); }, {once:true});
     });
   }
 });

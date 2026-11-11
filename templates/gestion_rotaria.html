@@ -6,9 +6,9 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
-body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; background:#f4f6f9; }
+body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 11px; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
-.card-header-rotary { background:#17458F; color:white; font-weight:700; font-size:13px; }
+.card-header-rotary { background:#17458F; color:white; font-weight:700; font-size:11px; }
 .card-tipo { border:none; border-radius:10px; border-top:4px solid #17458F; transition:0.2s; cursor:pointer; }
 .card-tipo:hover { transform:translateY(-2px); box-shadow:0 6px 15px rgba(0,0,0,0.12); }
 .badge-tipo-ACTA { background:#0d6efd; }
@@ -20,22 +20,20 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 .badge-tipo-TESORERIA { background:#6f42c1; }
 .badge-tipo-MEMBRESIA { background:#d63384; }
 .badge-tipo-OTRO { background:#6c757d; }
-.tabla-docs { border:2px solid #000; border-collapse:collapse; width:100%; }
-.tabla-docs th { font-size:13px; background:#17458F; color:white; text-align:center; border:1.5px solid #000; padding:12px 8px; font-weight:900; }
-.tabla-docs td { font-size:13px; text-align:center; padding:10px 8px; border:1px solid #000; vertical-align:middle; }
-.titulo-col { text-align:left !important; font-weight:800; min-width:400px; max-width:700px; white-space: normal; cursor:pointer; font-size:14px; line-height:1.35; }
-.titulo-col:hover { background:#e8f0ff !important; color:#0d6efd; }
+.tabla-docs { border:2px solid #000; border-collapse:collapse; }
+.tabla-docs th { font-size:9px; background:#17458F; color:white; text-align:center; border:1px solid #000; padding:5px 3px; }
+.tabla-docs td { font-size:9px; text-align:center; padding:4px 3px; border:1px solid #000; vertical-align:middle; }
+.titulo-col { text-align:left !important; font-weight:700; min-width:200px; max-width:300px; white-space: normal; }
+.pdf-icon { font-size:18px; color:#dc3545; }
 .filtro-activo { background:#17458F !important; color:white !important; border-color:#17458F !important; }
-.badge-grande { font-size:12px; padding:6px 12px; }
-.seguimiento-text { font-size:12px; text-align:left; line-height:1.4; }
 </style>
 </head>
 <body>
 <div class="header-rotary d-flex justify-content-between align-items-center">
-<div><h6 class="mb-0 fw-bold" style="font-size:15px;">📚 GESTIÓN ROTARIA - ERP</h6><small style="font-size:10px;">ACTAS, ACUERDOS, PRESIDENCIA, SECRETARIA, FUNDACION, SERVICIOS</small></div>
+<div><h6 class="mb-0 fw-bold" style="font-size:14px;">📚 GESTIÓN ROTARIA - ERP</h6><small style="font-size:9px;">ACTAS, ACUERDOS, PRESIDENCIA, SECRETARIA, FUNDACION, SERVICIOS</small></div>
 <div class="d-flex gap-2">
-<a href="/menu" class="btn btn-outline-light btn-sm fw-bold" style="font-size:11px;">MENÚ PRINCIPAL</a>
-<a href="/logout" class="btn btn-warning btn-sm fw-bold" style="font-size:11px;">SALIR</a>
+<a href="/menu" class="btn btn-outline-light btn-sm fw-bold" style="font-size:10px;">MENÚ PRINCIPAL</a>
+<a href="/logout" class="btn btn-warning btn-sm fw-bold" style="font-size:10px;">SALIR</a>
 </div>
 </div>
 
@@ -44,7 +42,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 {% for category, message in messages %}
-<div class="alert alert-{{ category }} alert-dismissible fade show py-2" style="font-size:13px; text-transform:none;">
+<div class="alert alert-{{ category }} alert-dismissible fade show py-2" style="font-size:11px; text-transform:none;">
 {{ message }}
 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
@@ -54,12 +52,12 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 
 <!-- RESUMEN CONTADORES -->
 <div class="row g-2 mb-3">
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('ACTA')"><strong style="font-size:18px; color:#0d6efd;">{{ total_actas }}</strong><br><small style="font-size:10px;">ACTAS</small></div></div>
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('ACUERDO')" style="border-top-color:#dc3545;"><strong style="font-size:18px; color:#dc3545;">{{ total_acuerdos }}</strong><br><small style="font-size:10px;">ACUERDOS</small></div></div>
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('PRESIDENCIA')" style="border-top-color:#17458F;"><strong style="font-size:18px; color:#17458F;">{{ total_presidencia }}</strong><br><small style="font-size:10px;">PRESIDENCIA</small></div></div>
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('SECRETARIA')" style="border-top-color:#0dcaf0;"><strong style="font-size:18px; color:#0dcaf0;">{{ total_secretaria }}</strong><br><small style="font-size:10px;">SECRETARIA</small></div></div>
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('FUNDACION')" style="border-top-color:#198754;"><strong style="font-size:18px; color:#198754;">{{ total_fundacion }}</strong><br><small style="font-size:10px;">FUNDACION</small></div></div>
-<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('SERVICIOS')" style="border-top-color:#fd7e14;"><strong style="font-size:18px; color:#fd7e14;">{{ total_servicios }}</strong><br><small style="font-size:10px;">SERVICIOS</small></div></div>
+<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('ACTA')"><strong style="font-size:16px; color:#0d6efd;">{{ total_actas }}</strong><br><small style="font-size:8px;">ACTAS</small></div></div>
+<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('ACUERDO')" style="border-top-color:#dc3545;"><strong style="font-size:16px; color:#dc3545;">{{ total_acuerdos }}</strong><br><small style="font-size:8px;">ACUERDOS</small></div></div>
+<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('PRESIDENCIA')" style="border-top-color:#17458F;"><strong style="font-size:16px; color:#17458F;">{{ total_presidencia }}</strong><br><small style="font-size:8px;">PRESIDENCIA</small></div></div>
+<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('SECRETARIA')" style="border-top-color:#0dcaf0;"><strong style="font-size:16px; color:#0dcaf0;">{{ total_secretaria }}</strong><br><small style="font-size:8px;">SECRETARIA</small></div></div>
+<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('FUNDACION')" style="border-top-color:#198754;"><strong style="font-size:16px; color:#198754;">{{ total_fundacion }}</strong><br><small style="font-size:8px;">FUNDACION</small></div></div>
+<div class="col-2"><div class="card card-tipo text-center p-2" onclick="filtrarTipo('SERVICIOS')" style="border-top-color:#fd7e14;"><strong style="font-size:16px; color:#fd7e14;">{{ total_servicios }}</strong><br><small style="font-size:8px;">SERVICIOS</small></div></div>
 </div>
 
 <!-- FILTROS Y BOTON SUBIR -->
@@ -67,177 +65,105 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="card-header card-header-rotary d-flex justify-content-between align-items-center">
 <span>📁 DOCUMENTOS - {{ tipo_filtro }} | ESTADO: {{ estado_filtro }} | TOTAL: {{ documentos|length }}</span>
 <div class="d-flex gap-2">
-<button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalCrearSistema" style="font-size:11px;"><i class="bi bi-pencil-square"></i> CREAR EN SISTEMA</button>
-<button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalSubir" style="font-size:11px;"><i class="bi bi-cloud-upload"></i> SUBIR PDF</button>
+<button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalCrearSistema" style="font-size:10px;"><i class="bi bi-pencil-square"></i> CREAR EN SISTEMA</button>
+<button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalSubir" style="font-size:10px;"><i class="bi bi-cloud-upload"></i> SUBIR PDF</button>
 </div>
 </div>
 <div class="card-body py-2" style="background:#f8f9fa;">
 <div class="d-flex gap-2 flex-wrap align-items-center">
-<small class="fw-bold" style="font-size:11px;">TIPO:</small>
-<a href="/gestion-rotaria?tipo=TODOS&estado={{ estado_filtro }}" class="btn btn-sm {{ 'filtro-activo' if tipo_filtro=='TODOS' else 'btn-outline-primary' }}" style="font-size:10px;">TODOS</a>
+<small class="fw-bold">TIPO:</small>
+<a href="/gestion-rotaria?tipo=TODOS&estado={{ estado_filtro }}" class="btn btn-sm {{ 'filtro-activo' if tipo_filtro=='TODOS' else 'btn-outline-primary' }}" style="font-size:8px;">TODOS</a>
 {% for t in tipos %}
-<a href="/gestion-rotaria?tipo={{ t }}&estado={{ estado_filtro }}" class="btn btn-sm {{ 'filtro-activo' if tipo_filtro==t else 'btn-outline-dark' }}" style="font-size:10px;">{{ t }}</a>
+<a href="/gestion-rotaria?tipo={{ t }}&estado={{ estado_filtro }}" class="btn btn-sm {{ 'filtro-activo' if tipo_filtro==t else 'btn-outline-dark' }}" style="font-size:8px;">{{ t }}</a>
 {% endfor %}
-<span class="ms-3 fw-bold" style="font-size:11px;">ESTADO:</span>
-<a href="/gestion-rotaria?tipo={{ tipo_filtro }}&estado=TODOS" class="btn btn-sm {{ 'filtro-activo' if estado_filtro=='TODOS' else 'btn-outline-secondary' }}" style="font-size:10px;">TODOS</a>
-<a href="/gestion-rotaria?tipo={{ tipo_filtro }}&estado=VIGENTE" class="btn btn-sm {{ 'btn-success' if estado_filtro=='VIGENTE' else 'btn-outline-success' }}" style="font-size:10px;">VIGENTE</a>
-<a href="/gestion-rotaria?tipo={{ tipo_filtro }}&estado=ARCHIVADO" class="btn btn-sm {{ 'btn-secondary' if estado_filtro=='ARCHIVADO' else 'btn-outline-secondary' }}" style="font-size:10px;">ARCHIVADO</a>
+<span class="ms-3 fw-bold">ESTADO:</span>
+<a href="/gestion-rotaria?tipo={{ tipo_filtro }}&estado=TODOS" class="btn btn-sm {{ 'filtro-activo' if estado_filtro=='TODOS' else 'btn-outline-secondary' }}" style="font-size:8px;">TODOS</a>
+<a href="/gestion-rotaria?tipo={{ tipo_filtro }}&estado=VIGENTE" class="btn btn-sm {{ 'btn-success' if estado_filtro=='VIGENTE' else 'btn-outline-success' }}" style="font-size:8px;">VIGENTE</a>
+<a href="/gestion-rotaria?tipo={{ tipo_filtro }}&estado=ARCHIVADO" class="btn btn-sm {{ 'btn-secondary' if estado_filtro=='ARCHIVADO' else 'btn-outline-secondary' }}" style="font-size:8px;">ARCHIVADO</a>
 </div>
 </div>
 </div>
 
-<!-- TABLA DOCUMENTOS - 4 COLUMNAS SIN ID, ORDEN POR FECHA DOC -->
+<!-- TABLA DOCUMENTOS -->
 <div class="table-responsive">
 <table class="table tabla-docs table-hover bg-white">
 <thead>
 <tr>
-<th style="width:120px;">TIPO</th>
-<th>👉 TITULO / DESCRIPCION - CLICK PARA VER DETALLE, PDF, ESTADO Y ACCIONES</th>
-<th style="width:200px;">SEGUIMIENTO</th>
-<th style="width:130px;">FECHA DOC</th>
+<th style="width:40px;">ID</th>
+<th style="width:70px;">TIPO</th>
+<th>TITULO / DESCRIPCION</th>
+<th style="width:90px;">FECHA DOC</th>
+<th style="width:100px;">ARCHIVO PDF</th>
+<th style="width:70px;">ESTADO</th>
+<th style="width:60px;">SUBIDO POR</th>
+<th style="width:140px;">ACCIONES</th>
 </tr>
 </thead>
 <tbody>
 {% for doc in documentos %}
-<tr style="{{ 'background:#fff3cd;' if doc.tiene_fechas and doc.fecha_termino and doc.fecha_termino < now_date else '' }}">
+<tr>
+<td class="fw-bold">{{ doc.id }}</td>
+<td><span class="badge badge-tipo-{{ doc.tipo }}" style="font-size:7px;">{{ doc.tipo }}</span></td>
+<td class="titulo-col">
+<strong style="font-size:9px;">{{ doc.titulo }}</strong><br>
+<small style="font-size:7px; text-transform:none; color:#666;">{{ doc.descripcion[:120] if doc.descripcion else '' }}</small>
+</td>
+<td style="font-size:8px;">{{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '-' }}<br><small style="font-size:6px;">Subida: {{ doc.fecha_subida.strftime('%d/%m %H:%M') if doc.fecha_subida else '' }}</small></td>
 <td>
-<span class="badge badge-tipo-{{ doc.tipo }} badge-grande">{{ doc.tipo }}</span><br>
-{% if doc.prioridad %}<span class="badge {{ 'bg-danger' if doc.prioridad=='URGENTE' else 'bg-warning text-dark' if doc.prioridad=='ALTA' else 'bg-secondary' }} mt-1" style="font-size:11px;">{{ doc.prioridad }}</span><br>{% endif %}
-<span class="badge {{ 'bg-success' if doc.estado=='VIGENTE' else 'bg-secondary' }} mt-1" style="font-size:10px;">{{ doc.estado }}</span>
-</td>
-<td class="titulo-col" data-bs-toggle="modal" data-bs-target="#modalVer{{ doc.id }}">
-<strong style="font-size:15px; color:#000;">{{ doc.titulo }}</strong><br>
-<small style="font-size:13px; text-transform:none; color:#444; font-weight:400;">{{ doc.descripcion[:250] if doc.descripcion else '' }}{% if doc.descripcion and doc.descripcion|length > 250 %}...{% endif %}</small>
-{% if doc.responsable %}<br><small style="font-size:12px; color:#17458F; font-weight:700;">👤 {{ doc.responsable }}</small>{% endif %}
-{% if doc.archivo_base64 %}<br><span style="font-size:11px; color:#dc3545; font-weight:900;">📄 TIENE PDF - CLICK PARA ABRIR</span>{% else %}<br><small style="font-size:11px; color:#999;">SISTEMA - SIN PDF</small>{% endif %}
-</td>
-<td class="seguimiento-text">
-{% if doc.tiene_fechas %}
-<span style="color:#198754; font-weight:900; font-size:12px;">⏰ CON SEGUIMIENTO</span><br>
-<small style="font-size:12px;">INICIO: {{ doc.fecha_inicio.strftime('%d/%m/%Y') if doc.fecha_inicio else '-' }}</small><br>
-<small style="font-size:12px;">TERMINO: {{ doc.fecha_termino.strftime('%d/%m/%Y') if doc.fecha_termino else '-' }}</small><br>
-{% if doc.fecha_termino %}
-{% set dias_rest = (doc.fecha_termino - now_date).days if doc.fecha_termino else 0 %}
-<small style="font-weight:900; font-size:12px; color:{{ 'red' if dias_rest < 0 else 'orange' if dias_rest < 7 else 'green' }};">{{ dias_rest }} días {{ 'ATRASO' if dias_rest < 0 else 'restantes' }}</small><br>
-{% endif %}
-<div class="progress mt-1" style="height:14px;"><div class="progress-bar {{ 'bg-success' if doc.porcentaje_avance==100 else 'bg-primary' }}" style="width: {{ doc.porcentaje_avance or 0 }}%;">{{ doc.porcentaje_avance or 0 }}%</div></div>
-{% else %}
-<small style="color:#999; font-size:13px;">SIN FECHAS</small>
-{% endif %}
-</td>
-<td style="font-size:14px; font-weight:800;">{{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '-' }}<br><small style="font-size:11px; color:#666;">{{ doc.fecha_subida.strftime('%d/%m/%Y') if doc.fecha_subida else '' }}</small></td>
-</tr>
-
-<!-- MODAL VER DETALLE - AQUI VAN PDF, ESTADO Y ACCIONES -->
-<div class="modal fade" id="modalVer{{ doc.id }}" tabindex="-1">
-<div class="modal-dialog modal-lg">
-<div class="modal-content" style="border:3px solid #17458F;">
-<div class="modal-header" style="background:#17458F; color:white;">
-<h6 class="modal-title" style="font-size:14px; font-weight:900;">📄 {{ doc.tipo }} - {{ doc.titulo[:60] }}</h6>
-<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-</div>
-<div class="modal-body" style="font-size:13px; text-transform:none; background:#f9f9f9;">
-<div class="row mb-3" style="font-size:12px;">
-<div class="col-md-4"><strong>TIPO:</strong> <span class="badge badge-tipo-{{ doc.tipo }} badge-grande">{{ doc.tipo }}</span></div>
-<div class="col-md-4"><strong>ESTADO:</strong> <span class="badge {{ 'bg-success' if doc.estado=='VIGENTE' else 'bg-secondary' }} badge-grande">{{ doc.estado }}</span></div>
-<div class="col-md-4"><strong>FECHA:</strong> {{ doc.fecha_documento.strftime('%d/%m/%Y') if doc.fecha_documento else '-' }}</div>
-</div>
-<div class="mb-3 p-3 bg-white" style="border:2px solid #000; border-radius:8px;">
-<strong style="font-size:13px; text-transform:uppercase;">TITULO:</strong><br>
-<span style="font-size:16px; font-weight:900;">{{ doc.titulo }}</span>
-</div>
-<div class="mb-3 p-3 bg-white" style="border:1px solid #ccc; border-radius:8px; max-height:300px; overflow-y:auto;">
-<strong style="font-size:12px;">DESCRIPCION COMPLETA:</strong><br>
-<span style="font-size:14px; white-space:pre-wrap;">{{ doc.descripcion or 'Sin descripcion' }}</span>
-</div>
-{% if doc.tiene_fechas %}
-<div class="card mb-3" style="border:2px solid #198754;">
-<div class="card-header bg-success text-white fw-bold" style="font-size:12px;">⏰ SEGUIMIENTO - FECHAS INICIO Y TERMINO</div>
-<div class="card-body" style="font-size:13px;">
-<div class="row">
-<div class="col-6"><strong>INICIO:</strong> {{ doc.fecha_inicio.strftime('%d/%m/%Y') if doc.fecha_inicio else '-' }}</div>
-<div class="col-6"><strong>TERMINO:</strong> {{ doc.fecha_termino.strftime('%d/%m/%Y') if doc.fecha_termino else '-' }}</div>
-<div class="col-6 mt-2"><strong>RESPONSABLE:</strong> {{ doc.responsable or '-' }}</div>
-<div class="col-6 mt-2"><strong>PRIORIDAD:</strong> {{ doc.prioridad or '-' }}</div>
-</div>
-<div class="mt-3">
-<label class="fw-bold">% AVANCE:</label>
-<div class="progress" style="height:22px;"><div class="progress-bar {{ 'bg-success' if doc.porcentaje_avance==100 else 'bg-primary' }}" style="width: {{ doc.porcentaje_avance or 0 }}%;">{{ doc.porcentaje_avance or 0 }}%</div></div>
-<form method="POST" action="/gestion-rotaria/actualizar-avance/{{ doc.id }}" class="d-flex gap-2 mt-2">
-<input type="number" name="porcentaje_avance" min="0" max="100" value="{{ doc.porcentaje_avance or 0 }}" class="form-control form-control-sm" style="width:80px;">
-<button type="submit" class="btn btn-primary btn-sm fw-bold">Actualizar %</button>
-</form>
-</div>
-</div>
-</div>
-{% endif %}
-<div class="card mb-3" style="border:2px solid #000;">
-<div class="card-header bg-dark text-white fw-bold" style="font-size:12px;">📎 ARCHIVO PDF</div>
-<div class="card-body text-center">
 {% if doc.archivo_base64 %}
-<p style="font-size:13px;"><strong>{{ doc.archivo_nombre or 'PDF' }}</strong></p>
-<div class="d-flex gap-2 justify-content-center flex-wrap">
-<a href="/gestion-rotaria/ver/{{ doc.id }}" target="_blank" class="btn btn-primary fw-bold"><i class="bi bi-eye"></i> VER PDF</a>
-<a href="/gestion-rotaria/descargar/{{ doc.id }}" class="btn btn-success fw-bold"><i class="bi bi-download"></i> DESCARGAR PDF</a>
-</div>
+<span class="pdf-icon">📄</span><br><small style="font-size:6px;">{{ doc.archivo_nombre or 'PDF' }}</small>
 {% else %}
-<p style="font-size:13px; color:#999;">DOCUMENTO CREADO EN SISTEMA - SIN PDF ADJUNTO</p>
+<small style="font-size:7px; color:#999;">SIN PDF</small>
 {% endif %}
-</div>
-</div>
-<div class="card" style="border:2px solid #dc3545;">
-<div class="card-header bg-danger text-white fw-bold" style="font-size:12px;">⚙️ ACCIONES - PDF, ESTADO Y EDITAR</div>
-<div class="card-body d-flex gap-2 flex-wrap">
-<button class="btn btn-warning fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditar{{ doc.id }}" onclick="var m=bootstrap.Modal.getInstance(document.getElementById('modalVer{{ doc.id }}')); if(m) m.hide();"><i class="bi bi-pencil"></i> EDITAR</button>
-<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar {{ doc.titulo }}?')" style="display:inline;">
-<button type="submit" class="btn btn-danger fw-bold"><i class="bi bi-trash"></i> ELIMINAR</button>
+</td>
+<td><span class="badge {{ 'bg-success' if doc.estado=='VIGENTE' else 'bg-secondary' }}" style="font-size:7px;">{{ doc.estado }}</span></td>
+<td style="font-size:7px;">{{ doc.subido_por or '-' }}</td>
+<td>
+<div class="btn-group-vertical gap-1" style="width:100%;">
+{% if doc.archivo_base64 %}
+<a href="/gestion-rotaria/ver/{{ doc.id }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:7px; padding:2px 4px;"><i class="bi bi-eye"></i> VER PDF</a>
+<a href="/gestion-rotaria/descargar/{{ doc.id }}" class="btn btn-success btn-sm" style="font-size:7px; padding:2px 4px;"><i class="bi bi-download"></i> DESCARGAR</a>
+{% endif %}
+<button class="btn btn-warning btn-sm" style="font-size:7px; padding:2px 4px;" data-bs-toggle="modal" data-bs-target="#modalEditar{{ doc.id }}"><i class="bi bi-pencil"></i> EDITAR</button>
+<form method="POST" action="/gestion-rotaria/eliminar/{{ doc.id }}" onsubmit="return confirm('¿Eliminar documento {{ doc.titulo }}?')" style="display:inline;">
+<button type="submit" class="btn btn-danger btn-sm w-100" style="font-size:7px; padding:2px 4px;"><i class="bi bi-trash"></i> ELIMINAR</button>
 </form>
-<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">CERRAR</button>
 </div>
-</div>
-</div>
-</div>
-</div>
-</div>
+</td>
+</tr>
 
 <!-- MODAL EDITAR -->
 <div class="modal fade" id="modalEditar{{ doc.id }}" tabindex="-1">
-<div class="modal-dialog modal-lg">
+<div class="modal-dialog">
 <div class="modal-content">
 <form method="POST" action="/gestion-rotaria/editar/{{ doc.id }}" enctype="multipart/form-data">
 <div class="modal-header" style="background:#ffc107; color:#000;">
-<h6 class="modal-title" style="font-size:13px;">✏️ EDITAR - {{ doc.tipo }} - {{ doc.titulo[:40] }}</h6>
+<h6 class="modal-title" style="font-size:11px;">✏️ EDITAR DOCUMENTO - {{ doc.tipo }}</h6>
 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
-<div class="modal-body" style="font-size:12px; text-transform:none;">
-<div class="row">
-<div class="col-md-4 mb-2"><label class="fw-bold">TIPO:</label><select name="tipo" class="form-select form-select-sm">{% for t in tipos %}<option value="{{ t }}" {{ 'selected' if doc.tipo==t else '' }}>{{ t }}</option>{% endfor %}</select></div>
-<div class="col-md-4 mb-2"><label class="fw-bold">FECHA DOC:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" value="{{ doc.fecha_documento.strftime('%Y-%m-%d') if doc.fecha_documento else '' }}"></div>
-<div class="col-md-4 mb-2"><label class="fw-bold">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE" {{ 'selected' if doc.estado=='VIGENTE' else '' }}>VIGENTE</option><option value="ARCHIVADO" {{ 'selected' if doc.estado=='ARCHIVADO' else '' }}>ARCHIVADO</option><option value="BORRADOR" {{ 'selected' if doc.estado=='BORRADOR' else '' }}>BORRADOR</option></select></div>
-</div>
+<div class="modal-body" style="font-size:10px; text-transform:none;">
+<div class="mb-2"><label class="fw-bold">TIPO:</label><select name="tipo" class="form-select form-select-sm">{% for t in tipos %}<option value="{{ t }}" {{ 'selected' if doc.tipo==t else '' }}>{{ t }}</option>{% endfor %}</select></div>
 <div class="mb-2"><label class="fw-bold">TITULO:</label><input type="text" name="titulo" class="form-control form-control-sm" value="{{ doc.titulo }}" required></div>
-<div class="mb-2"><label class="fw-bold">DESCRIPCION:</label><textarea name="descripcion" class="form-control form-control-sm" rows="4">{{ doc.descripcion or '' }}</textarea></div>
-<div class="card mb-2" style="border:2px dashed #0d6efd; background:#e8f0ff;">
+<div class="mb-2"><label class="fw-bold">DESCRIPCION:</label><textarea name="descripcion" class="form-control form-control-sm" rows="2">{{ doc.descripcion or '' }}</textarea></div>
+<div class="row"><div class="col-6"><label class="fw-bold">FECHA DOC:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" value="{{ doc.fecha_documento.strftime('%Y-%m-%d') if doc.fecha_documento else '' }}"></div><div class="col-6"><label class="fw-bold">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE" {{ 'selected' if doc.estado=='VIGENTE' else '' }}>VIGENTE</option><option value="ARCHIVADO" {{ 'selected' if doc.estado=='ARCHIVADO' else '' }}>ARCHIVADO</option><option value="BORRADOR" {{ 'selected' if doc.estado=='BORRADOR' else '' }}>BORRADOR</option></select></div></div>
+
+<div class="card mt-2" style="border:2px dashed #fd7e14; background:#fff3e6;">
 <div class="card-body py-2">
-<div class="form-check mb-2">
-<input class="form-check-input" type="checkbox" name="tiene_fechas" id="checkFechasEdit{{ doc.id }}" value="1" {{ 'checked' if doc.tiene_fechas else '' }} onchange="document.getElementById('fechasEdit{{ doc.id }}').style.display=this.checked?'block':'none'">
-<label class="form-check-label fw-bold" for="checkFechasEdit{{ doc.id }}" style="font-size:12px; color:#0d6efd;">⏰ ¿TIENE FECHA DE INICIO Y TERMINO?</label>
+<div class="form-check mb-1">
+<input class="form-check-input" type="checkbox" name="tiene_fecha_ejecucion" id="checkEjecEdit{{ doc.id }}" value="1" {{ 'checked' if doc.tiene_fecha_ejecucion else '' }} onchange="document.getElementById('divEjecEdit{{ doc.id }}').style.display=this.checked?'block':'none'">
+<label class="form-check-label fw-bold" for="checkEjecEdit{{ doc.id }}" style="font-size:11px; color:#fd7e14;">📅 ¿TIENE FECHA DE EJECUCION? - APARECERA EN MENU PRINCIPAL</label>
 </div>
-<div id="fechasEdit{{ doc.id }}" style="display:{{ 'block' if doc.tiene_fechas else 'none' }};">
-<div class="row">
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">INICIO:</label><input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ doc.fecha_inicio.strftime('%Y-%m-%d') if doc.fecha_inicio else '' }}"></div>
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">TERMINO:</label><input type="date" name="fecha_termino" class="form-control form-control-sm" value="{{ doc.fecha_termino.strftime('%Y-%m-%d') if doc.fecha_termino else '' }}"></div>
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">RESPONSABLE:</label><input type="text" name="responsable" class="form-control form-control-sm" value="{{ doc.responsable or '' }}"></div>
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">PRIORIDAD:</label><select name="prioridad" class="form-select form-select-sm"><option value="BAJA" {{ 'selected' if doc.prioridad=='BAJA' else '' }}>BAJA</option><option value="MEDIA" {{ 'selected' if doc.prioridad=='MEDIA' else '' }}>MEDIA</option><option value="ALTA" {{ 'selected' if doc.prioridad=='ALTA' else '' }}>ALTA</option><option value="URGENTE" {{ 'selected' if doc.prioridad=='URGENTE' else '' }}>URGENTE</option></select></div>
-</div>
-<div class="mb-2"><label class="fw-bold" style="font-size:11px;">% AVANCE:</label><input type="range" name="porcentaje_avance" min="0" max="100" value="{{ doc.porcentaje_avance or 0 }}" class="form-range" oninput="this.nextElementSibling.value=this.value+'%'"><output style="font-size:12px; font-weight:900;">{{ doc.porcentaje_avance or 0 }}%</output></div>
+<div id="divEjecEdit{{ doc.id }}" style="display:{{ 'block' if doc.tiene_fecha_ejecucion else 'none' }};">
+<label class="fw-bold" style="font-size:10px;">FECHA DE EJECUCION:</label>
+<input type="date" name="fecha_ejecucion" class="form-control form-control-sm" value="{{ doc.fecha_ejecucion.strftime('%Y-%m-%d') if doc.fecha_ejecucion else '' }}">
+<small style="font-size:9px; color:#666;">Se mostrara en Menu Principal scroleando con cumpleaños del mes de ejecucion.</small>
 </div>
 </div>
 </div>
 <div class="mt-2"><label class="fw-bold">REEMPLAZAR PDF (opcional):</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf"></div>
-{% if doc.archivo_nombre %}<small style="font-size:10px;">Actual: {{ doc.archivo_nombre }}</small>{% endif %}
+{% if doc.archivo_nombre %}<small style="font-size:8px;">Actual: {{ doc.archivo_nombre }}</small>{% endif %}
 </div>
-<div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">GUARDAR</button></div>
+<div class="modal-footer py-1"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">GUARDAR</button></div>
 </form>
 </div>
 </div>
@@ -245,7 +171,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 
 {% endfor %}
 {% if not documentos %}
-<tr><td colspan="4" class="text-center py-4" style="font-size:14px; color:#999;">NO HAY DOCUMENTOS EN ESTE FILTRO</td></tr>
+<tr><td colspan="8" class="text-center py-4" style="font-size:11px; color:#999;">NO HAY DOCUMENTOS EN ESTE FILTRO - SUBE UNA ACTA O ACUERDO EN PDF</td></tr>
 {% endif %}
 </tbody>
 </table>
@@ -253,87 +179,123 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 
 </div>
 
-<!-- MODAL CREAR EN SISTEMA -->
+<!-- MODAL CREAR EN SISTEMA (CON FECHAS SEGUIMIENTO) -->
 <div class="modal fade" id="modalCrearSistema" tabindex="-1">
 <div class="modal-dialog modal-lg">
 <div class="modal-content">
 <form method="POST" action="/gestion-rotaria/subir" enctype="multipart/form-data">
 <input type="hidden" name="modo" value="SISTEMA">
 <div class="modal-header" style="background:#198754; color:white;">
-<h6 class="modal-title" style="font-size:13px;">📝 CREAR EN SISTEMA - ACUERDO / ACTA / SEGUIMIENTO</h6>
+<h6 class="modal-title" style="font-size:12px;">📝 CREAR EN SISTEMA - ACUERDO / ACTA / SEGUIMIENTO</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
-<div class="modal-body" style="font-size:12px; text-transform:none;">
+<div class="modal-body" style="font-size:11px; text-transform:none;">
 <div class="row">
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:11px; text-transform:uppercase;">TIPO:</label><select name="tipo" class="form-select form-select-sm fw-bold" required><option value="ACUERDO">🤝 ACUERDO</option><option value="ACTA">📄 ACTA</option><option value="PRESIDENCIA">👑 PRESIDENCIA</option><option value="SECRETARIA">📝 SECRETARIA</option><option value="FUNDACION">💚 FUNDACION</option><option value="SERVICIOS">🛠️ SERVICIOS</option><option value="TESORERIA">💰 TESORERIA</option><option value="MEMBRESIA">👥 MEMBRESIA</option><option value="OTRO">📁 OTRO</option></select></div>
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:11px;">FECHA DOCUMENTO:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" required></div>
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:11px;">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE">VIGENTE</option><option value="BORRADOR">BORRADOR</option><option value="ARCHIVADO">ARCHIVADO</option></select></div>
+<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px; text-transform:uppercase;">TIPO:</label><select name="tipo" class="form-select form-select-sm fw-bold" required><option value="ACUERDO">🤝 ACUERDO</option><option value="ACTA">📄 ACTA</option><option value="PRESIDENCIA">👑 PRESIDENCIA</option><option value="SECRETARIA">📝 SECRETARIA</option><option value="FUNDACION">💚 FUNDACION</option><option value="SERVICIOS">🛠️ SERVICIOS</option><option value="TESORERIA">💰 TESORERIA</option><option value="MEMBRESIA">👥 MEMBRESIA</option><option value="OTRO">📁 OTRO</option></select></div>
+<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px;">FECHA DOCUMENTO:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" required></div>
+<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px;">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE">VIGENTE</option><option value="BORRADOR">BORRADOR</option><option value="ARCHIVADO">ARCHIVADO</option></select></div>
 </div>
-<div class="mb-2"><label class="fw-bold" style="font-size:11px;">TITULO (OBLIGATORIO):</label><input type="text" name="titulo" class="form-control form-control-sm fw-bold" placeholder="EJ: ACUERDO APOYO DESPENSA COMUNIDAD RARAMURI" required></div>
-<div class="mb-2"><label class="fw-bold" style="font-size:11px;">DESCRIPCION / ACUERDO / CONTENIDO COMPLETO:</label><textarea name="descripcion" class="form-control form-control-sm" rows="4" placeholder="Escribe aqui el contenido completo..." required></textarea></div>
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">TITULO (OBLIGATORIO):</label><input type="text" name="titulo" class="form-control form-control-sm fw-bold" placeholder="EJ: ACUERDO APOYO DESPENSA COMUNIDAD RARAMURI" required></div>
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">DESCRIPCION / ACUERDO / CONTENIDO COMPLETO:</label><textarea name="descripcion" class="form-control form-control-sm" rows="4" placeholder="Escribe aqui el contenido completo del acuerdo..." required></textarea></div>
+
 <div class="card mb-2" style="border:2px dashed #0d6efd; background:#e8f0ff;">
 <div class="card-body py-2">
 <div class="form-check mb-2">
 <input class="form-check-input" type="checkbox" name="tiene_fechas" id="checkFechasNuevo" value="1" onchange="toggleFechas('nuevo')">
-<label class="form-check-label fw-bold" for="checkFechasNuevo" style="font-size:12px; color:#0d6efd;">⏰ ¿TIENE FECHA DE INICIO Y TERMINO?</label>
+<label class="form-check-label fw-bold" for="checkFechasNuevo" style="font-size:11px; color:#0d6efd;">⏰ ¿TIENE FECHA DE INICIO Y TERMINO? (Para seguimiento del acuerdo)</label>
 </div>
 <div id="fechasNuevo" style="display:none;">
 <div class="row">
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">FECHA INICIO:</label><input type="date" name="fecha_inicio" class="form-control form-control-sm"></div>
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">FECHA TERMINO:</label><input type="date" name="fecha_termino" class="form-control form-control-sm"></div>
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">RESPONSABLE:</label><input type="text" name="responsable" class="form-control form-control-sm" placeholder="Ej: DAVID BAEZA"></div>
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">PRIORIDAD:</label><select name="prioridad" class="form-select form-select-sm"><option value="BAJA">BAJA</option><option value="MEDIA" selected>MEDIA</option><option value="ALTA">ALTA</option><option value="URGENTE">URGENTE</option></select></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">FECHA INICIO:</label><input type="date" name="fecha_inicio" class="form-control form-control-sm"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">FECHA TERMINO:</label><input type="date" name="fecha_termino" class="form-control form-control-sm"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">RESPONSABLE:</label><input type="text" name="responsable" class="form-control form-control-sm" placeholder="Ej: DAVID BAEZA"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">PRIORIDAD:</label><select name="prioridad" class="form-select form-select-sm"><option value="BAJA">BAJA</option><option value="MEDIA" selected>MEDIA</option><option value="ALTA">ALTA</option><option value="URGENTE">URGENTE</option></select></div>
+</div>
+<!-- FECHA DE EJECUCION - ABAJO DE INICIO Y TERMINO -->
+<div class="row" style="border-top:2px dashed #fd7e14; padding-top:8px; margin-top:4px; background:#fff3e6;">
+<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px; color:#fd7e14;">📅 FECHA DE EJECUCION:</label><input type="date" name="fecha_ejecucion" class="form-control form-control-sm" style="border:2px solid #fd7e14;"></div>
+<div class="col-md-8 mb-2"><small style="font-size:9px; color:#666; text-transform:none;">Fecha en que se realizara el evento. Se mostrara en Menu Principal scroleando junto con los cumpleaños del mes de ejecucion.</small><br>
+<div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="tiene_fecha_ejecucion" id="checkEjecNuevo" value="1"><label class="form-check-label fw-bold" for="checkEjecNuevo" style="font-size:9px; color:#fd7e14;">MOSTRAR EN MENU PRINCIPAL</label></div></div>
 </div>
 <div class="row">
-<div class="col-md-6 mb-2"><label class="fw-bold" style="font-size:10px;">% AVANCE INICIAL:</label><input type="range" name="porcentaje_avance" min="0" max="100" value="0" class="form-range" oninput="this.nextElementSibling.value=this.value+'%'"><output style="font-size:11px; font-weight:900;">0%</output></div>
-<div class="col-md-6"><small style="font-size:10px; color:#555;">Al activar fechas, el acuerdo aparecerá en seguimiento con barra de progreso.</small></div>
+<div class="col-md-6 mb-2"><label class="fw-bold" style="font-size:9px;">% AVANCE INICIAL:</label><input type="range" name="porcentaje_avance" min="0" max="100" value="0" class="form-range" oninput="this.nextElementSibling.value=this.value+'%'"><output style="font-size:10px; font-weight:900;">0%</output></div>
+<div class="col-md-6"><small style="font-size:8px; color:#555;">Al activar fechas, el acuerdo aparecerá en seguimiento con barra de progreso y días restantes.</small></div>
 </div>
 </div>
 </div>
 </div>
-<div class="mb-2"><label class="fw-bold" style="font-size:11px;">ANEXAR PDF OPCIONAL:</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf"></div>
+
+<!-- FECHA DE EJECUCION SIEMPRE VISIBLE - OPCION INDEPENDIENTE -->
+<div class="card mb-2" style="border:2px dashed #fd7e14; background:#fff3e6;">
+<div class="card-body py-2">
+<div class="row">
+<div class="col-md-4"><label class="fw-bold" style="font-size:10px; color:#fd7e14;">📅 FECHA DE EJECUCION:</label><input type="date" name="fecha_ejecucion" class="form-control form-control-sm" style="border:2px solid #fd7e14;"></div>
+<div class="col-md-8"><small style="font-size:9px; color:#666; text-transform:none;">Si el evento se realiza en una fecha determinada, ponla aqui. Aparecera en Menu Principal scroleando junto con cumpleaños del mes.</small></div>
 </div>
-<div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">💾 CREAR ACUERDO</button></div>
+</div>
+</div>
+
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">ANEXAR PDF OPCIONAL:</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf"></div>
+</div>
+<div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">💾 CREAR ACUERDO EN SISTEMA</button></div>
 </form>
 </div>
 </div>
 </div>
 
-<!-- MODAL SUBIR PDF -->
+<!-- MODAL SUBIR PDF (CON FECHAS OPCIONALES) -->
 <div class="modal fade" id="modalSubir" tabindex="-1">
 <div class="modal-dialog modal-lg">
 <div class="modal-content">
 <form method="POST" action="/gestion-rotaria/subir" enctype="multipart/form-data">
 <input type="hidden" name="modo" value="PDF">
 <div class="modal-header" style="background:#17458F; color:white;">
-<h6 class="modal-title" style="font-size:13px;">📤 SUBIR PDF - GESTION ROTARIA ERP</h6>
+<h6 class="modal-title" style="font-size:12px;">📤 SUBIR PDF - GESTION ROTARIA ERP</h6>
 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
-<div class="modal-body" style="font-size:12px; text-transform:none;">
+<div class="modal-body" style="font-size:11px; text-transform:none;">
 <div class="row">
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:11px; text-transform:uppercase;">TIPO:</label><select name="tipo" class="form-select form-select-sm fw-bold" required><option value="ACTA">📄 ACTA</option><option value="ACUERDO">🤝 ACUERDO</option><option value="PRESIDENCIA">👑 PRESIDENCIA</option><option value="SECRETARIA">📝 SECRETARIA</option><option value="FUNDACION">💚 FUNDACION</option><option value="SERVICIOS">🛠️ SERVICIOS</option><option value="TESORERIA">💰 TESORERIA</option><option value="MEMBRESIA">👥 MEMBRESIA</option><option value="OTRO">📁 OTRO</option></select></div>
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:11px;">FECHA DOC:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" required></div>
-<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:11px;">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE">VIGENTE</option><option value="BORRADOR">BORRADOR</option><option value="ARCHIVADO">ARCHIVADO</option></select></div>
+<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px; text-transform:uppercase;">TIPO:</label><select name="tipo" class="form-select form-select-sm fw-bold" required><option value="ACTA">📄 ACTA</option><option value="ACUERDO">🤝 ACUERDO</option><option value="PRESIDENCIA">👑 PRESIDENCIA</option><option value="SECRETARIA">📝 SECRETARIA</option><option value="FUNDACION">💚 FUNDACION</option><option value="SERVICIOS">🛠️ SERVICIOS</option><option value="TESORERIA">💰 TESORERIA</option><option value="MEMBRESIA">👥 MEMBRESIA</option><option value="OTRO">📁 OTRO</option></select></div>
+<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px;">FECHA DOC:</label><input type="date" name="fecha_documento" class="form-control form-control-sm" required></div>
+<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px;">ESTADO:</label><select name="estado" class="form-select form-select-sm"><option value="VIGENTE">VIGENTE</option><option value="BORRADOR">BORRADOR</option><option value="ARCHIVADO">ARCHIVADO</option></select></div>
 </div>
-<div class="mb-2"><label class="fw-bold" style="font-size:11px;">TITULO:</label><input type="text" name="titulo" class="form-control form-control-sm fw-bold" required></div>
-<div class="mb-2"><label class="fw-bold" style="font-size:11px;">DESCRIPCION:</label><textarea name="descripcion" class="form-control form-control-sm" rows="2"></textarea></div>
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">TITULO:</label><input type="text" name="titulo" class="form-control form-control-sm fw-bold" placeholder="EJ: ACTA SESION ORDINARIA 15 NOV 2026" required></div>
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">DESCRIPCION:</label><textarea name="descripcion" class="form-control form-control-sm" rows="2"></textarea></div>
+
 <div class="card mb-2" style="border:2px dashed #17458F; background:#e8f0ff;">
 <div class="card-body py-2">
 <div class="form-check mb-2">
 <input class="form-check-input" type="checkbox" name="tiene_fechas" id="checkFechasPdf" value="1" onchange="toggleFechas('pdf')">
-<label class="form-check-label fw-bold" for="checkFechasPdf" style="font-size:12px; color:#17458F;">⏰ ¿TIENE FECHA DE INICIO Y TERMINO?</label>
+<label class="form-check-label fw-bold" for="checkFechasPdf" style="font-size:11px; color:#17458F;">⏰ ¿TIENE FECHA DE INICIO Y TERMINO?</label>
 </div>
 <div id="fechasPdf" style="display:none;">
 <div class="row">
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">INICIO:</label><input type="date" name="fecha_inicio" class="form-control form-control-sm"></div>
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">TERMINO:</label><input type="date" name="fecha_termino" class="form-control form-control-sm"></div>
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">RESPONSABLE:</label><input type="text" name="responsable" class="form-control form-control-sm"></div>
-<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:10px;">PRIORIDAD:</label><select name="prioridad" class="form-select form-select-sm"><option value="BAJA">BAJA</option><option value="MEDIA" selected>MEDIA</option><option value="ALTA">ALTA</option><option value="URGENTE">URGENTE</option></select></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">INICIO:</label><input type="date" name="fecha_inicio" class="form-control form-control-sm"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">TERMINO:</label><input type="date" name="fecha_termino" class="form-control form-control-sm"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">RESPONSABLE:</label><input type="text" name="responsable" class="form-control form-control-sm" placeholder="Responsable"></div>
+<div class="col-md-3 mb-2"><label class="fw-bold" style="font-size:9px;">PRIORIDAD:</label><select name="prioridad" class="form-select form-select-sm"><option value="BAJA">BAJA</option><option value="MEDIA" selected>MEDIA</option><option value="ALTA">ALTA</option><option value="URGENTE">URGENTE</option></select></div>
+</div>
+<!-- FECHA DE EJECUCION - ABAJO DE INICIO Y TERMINO -->
+<div class="row" style="border-top:2px dashed #fd7e14; padding-top:8px; margin-top:4px; background:#fff3e6;">
+<div class="col-md-4 mb-2"><label class="fw-bold" style="font-size:10px; color:#fd7e14;">📅 FECHA DE EJECUCION:</label><input type="date" name="fecha_ejecucion" class="form-control form-control-sm" style="border:2px solid #fd7e14;"></div>
+<div class="col-md-8 mb-2"><small style="font-size:9px; color:#666; text-transform:none;">Fecha en que se realizara el evento. Se mostrara en Menu Principal scroleando junto con los cumpleaños.</small><br>
+<div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="tiene_fecha_ejecucion" id="checkEjecPdf" value="1"><label class="form-check-label fw-bold" for="checkEjecPdf" style="font-size:9px; color:#fd7e14;">MOSTRAR EN MENU PRINCIPAL</label></div></div>
 </div>
 </div>
 </div>
 </div>
-<div class="mb-2"><label class="fw-bold" style="font-size:11px;">ARCHIVO PDF (MAX 20MB):</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf" required></div>
+
+<!-- FECHA DE EJECUCION SIEMPRE VISIBLE -->
+<div class="card mb-2" style="border:2px dashed #fd7e14; background:#fff3e6;">
+<div class="card-body py-2">
+<div class="row">
+<div class="col-md-4"><label class="fw-bold" style="font-size:10px; color:#fd7e14;">📅 FECHA DE EJECUCION:</label><input type="date" name="fecha_ejecucion" class="form-control form-control-sm" style="border:2px solid #fd7e14;"></div>
+<div class="col-md-8"><small style="font-size:9px; color:#666; text-transform:none;">Si el evento se realiza en una fecha determinada, ponla aqui. Aparecera en Menu Principal scroleando junto con cumpleaños del mes.</small></div>
+</div>
+</div>
+</div>
+
+<div class="mb-2"><label class="fw-bold" style="font-size:10px;">ARCHIVO PDF (MAX 20MB):</label><input type="file" name="archivo" class="form-control form-control-sm" accept=".pdf" required></div>
 </div>
 <div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">📤 SUBIR PDF</button></div>
 </form>
@@ -345,17 +307,6 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <script>
 function filtrarTipo(tipo) {
   window.location.href = '/gestion-rotaria?tipo=' + tipo + '&estado={{ estado_filtro }}';
-}
-function toggleFechas(modo) {
-  if (modo === 'nuevo') {
-    var check = document.getElementById('checkFechasNuevo');
-    var div = document.getElementById('fechasNuevo');
-    div.style.display = check.checked ? 'block' : 'none';
-  } else if (modo === 'pdf') {
-    var check = document.getElementById('checkFechasPdf');
-    var div = document.getElementById('fechasPdf');
-    div.style.display = check.checked ? 'block' : 'none';
-  }
 }
 </script>
 </body>
