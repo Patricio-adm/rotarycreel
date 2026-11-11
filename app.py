@@ -341,6 +341,18 @@ def solo_estado_cuenta():
     return False
 
 
+
+def _fecha_ejecucion_form():
+    """Toma el ultimo valor no vacio de fecha_ejecucion (por si el form trae duplicados)."""
+    vals = request.form.getlist('fecha_ejecucion') if hasattr(request.form, 'getlist') else [request.form.get('fecha_ejecucion')]
+    for v in reversed(vals):
+        if v and v.strip():
+            try:
+                return datetime.strptime(v.strip(), '%Y-%m-%d').date()
+            except:
+                continue
+    return None
+
 def get_mes_anio_actual():
     now = datetime.now()
     return f"{MESES_NOMBRES[now.month-1]} {now.year}"
@@ -537,10 +549,17 @@ def menu_principal():
                     festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
     # EVENTOS CON FECHA DE EJECUCION EN ESTE MES - para scroll junto con cumpleaños
     try:
-        eventos_mes = DocumentoRotario.query.filter(DocumentoRotario.fecha_ejecucion.isnot(None)).all()
+        eventos_mes = DocumentoRotario.query.all()
+        _vistos = set()
         for ev in eventos_mes:
-            if ev.fecha_ejecucion and ev.fecha_ejecucion.month == mes_actual_num:
+            # 1) Fecha de ejecucion (la que manda)
+            if ev.fecha_ejecucion and ev.fecha_ejecucion.month == mes_actual_num and ev.fecha_ejecucion.year == datetime.now().year:
                 festividades.append({'dia': ev.fecha_ejecucion.day, 'tipo': '📅 EVENTO / FECHA DE EJECUCION', 'persona': ev.titulo, 'detalle': f"{ev.tipo} - EJECUCION: {ev.fecha_ejecucion.strftime('%d/%m/%Y')} - {ev.descripcion[:80] if ev.descripcion else ''}", 'es_evento': True, 'doc_id': ev.id})
+                _vistos.add(ev.id)
+            # 2) Respaldo: si no tiene ejecucion pero si fecha_inicio en este mes, mostrarlo tambien (no duplicar)
+            elif ev.id not in _vistos and ev.fecha_inicio and ev.fecha_inicio.month == mes_actual_num and ev.fecha_inicio.year == datetime.now().year:
+                festividades.append({'dia': ev.fecha_inicio.day, 'tipo': '📅 EVENTO / FECHA INICIO', 'persona': ev.titulo, 'detalle': f"{ev.tipo} - INICIO: {ev.fecha_inicio.strftime('%d/%m/%Y')} - {ev.descripcion[:80] if ev.descripcion else ''}", 'es_evento': True, 'doc_id': ev.id})
+                _vistos.add(ev.id)
     except Exception as e:
         print(f"Eventos ejecucion: {e}")
     festividades = sorted(festividades, key=lambda x: x['dia'])
@@ -775,7 +794,7 @@ def subir_documento_rotario():
         porcentaje_avance = 0
     # FECHA DE EJECUCION - nueva opcion
     tiene_fecha_ejecucion = request.form.get('tiene_fecha_ejecucion') == '1' or request.form.get('tiene_fecha_ejecucion') == 'on'
-    fecha_ejecucion = _parse(request.form.get('fecha_ejecucion'))
+    fecha_ejecucion = _fecha_ejecucion_form() or _parse(request.form.get('fecha_ejecucion'))
     if fecha_ejecucion:
         tiene_fecha_ejecucion = True
     
@@ -903,7 +922,7 @@ def editar_documento_rotario(doc_id):
     except:
         pass
     doc.tiene_fecha_ejecucion = request.form.get('tiene_fecha_ejecucion') == '1' or request.form.get('tiene_fecha_ejecucion') == 'on'
-    doc.fecha_ejecucion = _parse2(request.form.get('fecha_ejecucion'))
+    doc.fecha_ejecucion = _fecha_ejecucion_form() or _parse2(request.form.get('fecha_ejecucion'))
     if doc.fecha_ejecucion:
         doc.tiene_fecha_ejecucion = True
     if 'archivo' in request.files:
