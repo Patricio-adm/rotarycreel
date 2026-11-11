@@ -16,12 +16,17 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 .card-tesoreria { border-top-color:#28a745; }
 .icono { font-size:46px; margin-bottom:10px; line-height:1; }
 @media (max-width:576px){ .grid-2x2{grid-template-columns:1fr; max-width:340px;} .card-modulo{height:150px;} .icono{font-size:36px;} }
-/* BARRA FIJA - SIN SCROLL / SIN TICKER */
-.barra-cumple { background:#fff3cd; border-bottom:2px solid #000; position:sticky; top:0; z-index:1030; padding:8px 12px; }
-.barra-titulo { font-size:13px; font-weight:900; color:#000; white-space:nowrap; }
-.barra-lista { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; }
-.barra-item { font-size:12px; font-weight:800; color:#000; }
+/* BARRA FIJA + SCROLL HORIZONTAL - SIN DESBORDE */
+.barra-cumple { background:#fff3cd; border-bottom:2px solid #000; position:sticky; top:0; z-index:1030; padding:8px 12px; display:flex; align-items:center; gap:10px; overflow-x:auto; overflow-y:hidden; white-space:nowrap; cursor:pointer; scrollbar-width:thin; scrollbar-color:#17458F #fff3cd; }
+.barra-cumple::-webkit-scrollbar { height:6px; }
+.barra-cumple::-webkit-scrollbar-track { background:#fff3cd; }
+.barra-cumple::-webkit-scrollbar-thumb { background:#17458F; border-radius:3px; }
+.barra-cumple:hover { background:#ffe69c; }
+.barra-titulo { font-size:13px; font-weight:900; color:#000; white-space:nowrap; flex-shrink:0; }
+.barra-lista { display:flex; flex-wrap:nowrap; gap:14px; align-items:center; flex-shrink:0; }
+.barra-item { font-size:12px; font-weight:800; color:#000; white-space:nowrap; flex-shrink:0; }
 .barra-item.es-evento { background:#fff3e6; color:#7a3a00; padding:2px 6px; border-radius:6px; }
+.btn-scroll-barra { flex-shrink:0; background:#17458F; color:#fff; border:none; border-radius:50%; width:26px; height:26px; font-size:12px; line-height:1; }
 .badge-dia { background:#17458F; color:white; font-size:11px; padding:3px 10px; border-radius:12px; margin-right:8px; font-weight:900; }
 .badge-dia-evento { background:#fd7e14; color:white; font-size:11px; padding:3px 10px; border-radius:12px; margin-right:8px; font-weight:900; }
 .punto { width:10px; height:10px; background:#dc3545; border-radius:50%; display:inline-block; margin-right:8px; animation: pulse 1.2s infinite; }
@@ -38,9 +43,9 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 </div>
 </div>
 
-<!-- BARRA FIJA - EVENTOS IMPORTANTES - SIN SCROLL, SIN CLICK -->
-<div class="barra-cumple" id="barraCumple">
-<div class="d-flex flex-wrap align-items-center gap-2">
+<!-- BARRA FIJA + SCROLL HORIZONTAL + CLICK = MODAL -->
+<div class="barra-cumple" id="barraCumple" title="Click para ver todos los eventos">
+<button type="button" class="btn-scroll-barra" id="btnScrollIzq" title="Anterior">◀</button>
 <span class="barra-titulo">EVENTOS IMPORTANTES - {{ mes_actual_nombre }}</span>
 {% if festividades_mes %}
 <span class="barra-titulo">|</span>
@@ -53,11 +58,12 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 </span>
 {% endfor %}
 </div>
+<span class="badge bg-dark" style="font-size:9px; flex-shrink:0;">👆 CLICK PARA VER TODOS ({{ festividades_mes|length }})</span>
 {% else %}
 <span class="barra-titulo">|</span>
 <span style="font-size:11px; color:#666;">📅 {{ mes_actual_nombre }} - SIN FESTIVIDADES ESTE MES</span>
 {% endif %}
-</div>
+<button type="button" class="btn-scroll-barra" id="btnScrollDer" title="Siguiente">▶</button>
 </div>
 
 <div class="container py-4">
@@ -172,6 +178,45 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var barra = document.getElementById('barraCumple');
+  if(!barra) return;
+  var intervalo = null, modalAbierto = false;
+  function iniciar(){
+    if(modalAbierto) return;
+    clearInterval(intervalo);
+    // Solo auto-scroll si hay desborde
+    if(barra.scrollWidth <= barra.clientWidth + 5) return;
+    intervalo = setInterval(function(){
+      // Si llego al final, regresar al inicio suave
+      if(barra.scrollLeft + barra.clientWidth >= barra.scrollWidth - 2){
+        barra.scrollTo({left:0, behavior:'smooth'});
+      } else {
+        barra.scrollBy({left:1, behavior:'auto'});
+      }
+    }, 30);
+  }
+  function pausar(){ clearInterval(intervalo); intervalo = null; }
+  iniciar();
+  barra.addEventListener('mouseenter', pausar);
+  barra.addEventListener('mouseleave', iniciar);
+  barra.addEventListener('touchstart', pausar, {passive:true});
+  // Flechas: no abren modal, solo mueven
+  var izq = document.getElementById('btnScrollIzq'), der = document.getElementById('btnScrollDer');
+  if(izq) izq.addEventListener('click', function(e){ e.stopPropagation(); pausar(); barra.scrollBy({left:-250, behavior:'smooth'}); setTimeout(iniciar, 2000); });
+  if(der) der.addEventListener('click', function(e){ e.stopPropagation(); pausar(); barra.scrollBy({left:250, behavior:'smooth'}); setTimeout(iniciar, 2000); });
+  // Click en barra (no en flechas) abre modal con todos
+  barra.addEventListener('click', function(){
+    pausar(); modalAbierto = true;
+    var modalEl = document.getElementById('modalCumple');
+    if(!modalEl) return;
+    var modal = new bootstrap.Modal(modalEl);
+    modal.show();
+    modalEl.addEventListener('hidden.bs.modal', function(){ modalAbierto = false; iniciar(); }, {once:true});
+  });
+});
+</script>
 
 </body>
 </html>
