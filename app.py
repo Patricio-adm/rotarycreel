@@ -341,18 +341,6 @@ def solo_estado_cuenta():
     return False
 
 
-
-def _fecha_ejecucion_form():
-    """Toma el ultimo valor no vacio de fecha_ejecucion (por si el form trae duplicados)."""
-    vals = request.form.getlist('fecha_ejecucion') if hasattr(request.form, 'getlist') else [request.form.get('fecha_ejecucion')]
-    for v in reversed(vals):
-        if v and v.strip():
-            try:
-                return datetime.strptime(v.strip(), '%Y-%m-%d').date()
-            except:
-                continue
-    return None
-
 def get_mes_anio_actual():
     now = datetime.now()
     return f"{MESES_NOMBRES[now.month-1]} {now.year}"
@@ -459,7 +447,7 @@ def admin_usuarios():
         for u in usuarios:
             nombre = u.socio.nombre_completo if getattr(u, 'socio', None) else '- CUENTA FIJA -'
             estado = '⏳ SIN CONTRASEÑA - DEBE CREARLA' if (u.debe_crear_password or not u.password_hash) else '✅ TIENE CONTRASEÑA'
-            btn = f'<form method="POST" action="/admin/usuarios/cambiar/{u.id}" style="display:inline;"><input name="nueva_password" placeholder="Nueva (8+1+1)" style="width:110px;font-size:11px;" required><button class="btn btn-warning btn-sm fw-bold">✏️ CAMBIAR</button></form> <form method="POST" action="/admin/usuarios/reset/{u.id}" style="display:inline;"><button class="btn btn-danger btn-sm fw-bold">🗑️ BORRAR</button></form>'
+            btn = f'<form method="POST" action="/admin/usuarios/cambiar/{u.id}" style="display:inline;"><input type="password" id="pass{u.id}" name="nueva_password" placeholder="Nueva (8+1+1)" style="width:110px;font-size:11px;" required><button type="button" onclick="var i=document.getElementById(\'pass{u.id}\'); i.type=(i.type==\'password\'?\'text\':\'password\'); this.textContent=(i.type==\'text\'?\'🙈\':\'👁️\');">👁️</button><button class="btn btn-warning btn-sm fw-bold">✏️ CAMBIAR</button></form> <form method="POST" action="/admin/usuarios/reset/{u.id}" style="display:inline;"><button class="btn btn-danger btn-sm fw-bold">🗑️ BORRAR</button></form>'
             filas += f"<tr><td><b>{u.username}</b></td><td>{u.rol}</td><td>{nombre}</td><td>{estado}</td><td>{btn}</td></tr>"
         html = f'''<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Usuarios - ADMIN</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head><body><div class="container py-3"><div class="alert alert-warning">⚠️ Falta subir <b>admin_usuarios.html</b> a Render. Esta es la vista de emergencia, funciona igual para borrar contraseñas.</div><a href="/menu" class="btn btn-secondary btn-sm">MENÚ</a><form method="POST" action="/admin/usuarios/crear-faltantes" class="my-3"><button class="btn btn-success btn-sm fw-bold">+ CREAR USUARIOS FALTANTES</button></form><table class="table table-bordered bg-white"><thead style="background:#17458F;color:white;"><tr><th>USUARIO</th><th>ROL</th><th>SOCIO</th><th>ESTADO</th><th>ACCION</th></tr></thead><tbody>{filas}</tbody></table></div></body></html>'''
         return render_template_string(html)
@@ -549,17 +537,10 @@ def menu_principal():
                     festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
     # EVENTOS CON FECHA DE EJECUCION EN ESTE MES - para scroll junto con cumpleaños
     try:
-        eventos_mes = DocumentoRotario.query.all()
-        _vistos = set()
+        eventos_mes = DocumentoRotario.query.filter(DocumentoRotario.fecha_ejecucion.isnot(None)).all()
         for ev in eventos_mes:
-            # 1) Fecha de ejecucion (la que manda)
-            if ev.fecha_ejecucion and ev.fecha_ejecucion.month == mes_actual_num and ev.fecha_ejecucion.year == datetime.now().year:
+            if ev.fecha_ejecucion and ev.fecha_ejecucion.month == mes_actual_num:
                 festividades.append({'dia': ev.fecha_ejecucion.day, 'tipo': '📅 EVENTO / FECHA DE EJECUCION', 'persona': ev.titulo, 'detalle': f"{ev.tipo} - EJECUCION: {ev.fecha_ejecucion.strftime('%d/%m/%Y')} - {ev.descripcion[:80] if ev.descripcion else ''}", 'es_evento': True, 'doc_id': ev.id})
-                _vistos.add(ev.id)
-            # 2) Respaldo: si no tiene ejecucion pero si fecha_inicio en este mes, mostrarlo tambien (no duplicar)
-            elif ev.id not in _vistos and ev.fecha_inicio and ev.fecha_inicio.month == mes_actual_num and ev.fecha_inicio.year == datetime.now().year:
-                festividades.append({'dia': ev.fecha_inicio.day, 'tipo': '📅 EVENTO / FECHA INICIO', 'persona': ev.titulo, 'detalle': f"{ev.tipo} - INICIO: {ev.fecha_inicio.strftime('%d/%m/%Y')} - {ev.descripcion[:80] if ev.descripcion else ''}", 'es_evento': True, 'doc_id': ev.id})
-                _vistos.add(ev.id)
     except Exception as e:
         print(f"Eventos ejecucion: {e}")
     festividades = sorted(festividades, key=lambda x: x['dia'])
@@ -689,18 +670,6 @@ def editar_socio(socio_id):
     socio.telefono = to_upper(request.form.get('telefono')) or socio.telefono
     socio.correo = request.form.get('correo') or socio.correo
     socio.fecha_nacimiento = parse_date(request.form.get('fecha_nacimiento')) or socio.fecha_nacimiento
-    # FIX: guardar familia / domicilio / emergencia - el form los mandaba pero aqui se ignoraban
-    socio.ciudad = to_upper(request.form.get('ciudad')) or socio.ciudad
-    socio.calle_numero = to_upper(request.form.get('calle_numero')) or socio.calle_numero
-    socio.colonia = to_upper(request.form.get('colonia')) or socio.colonia
-    socio.codigo_postal = to_upper(request.form.get('codigo_postal')) or socio.codigo_postal
-    socio.estado = to_upper(request.form.get('estado')) or socio.estado
-    socio.estado_civil = to_upper(request.form.get('estado_civil')) or socio.estado_civil
-    socio.telefono_emergencia = to_upper(request.form.get('telefono_emergencia')) or socio.telefono_emergencia
-    socio.nombre_esposa = to_upper(request.form.get('nombre_esposa')) or socio.nombre_esposa
-    socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa')) or socio.fecha_nacimiento_esposa
-    socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio')) or socio.aniversario_matrimonio
-    socio.telefono_esposa = to_upper(request.form.get('telefono_esposa')) or socio.telefono_esposa
     foto_archivo = request.files.get('foto_archivo')
     if foto_archivo and foto_archivo.filename and allowed_file(foto_archivo.filename):
         contenido = foto_archivo.read()
@@ -806,7 +775,7 @@ def subir_documento_rotario():
         porcentaje_avance = 0
     # FECHA DE EJECUCION - nueva opcion
     tiene_fecha_ejecucion = request.form.get('tiene_fecha_ejecucion') == '1' or request.form.get('tiene_fecha_ejecucion') == 'on'
-    fecha_ejecucion = _fecha_ejecucion_form() or _parse(request.form.get('fecha_ejecucion'))
+    fecha_ejecucion = _parse(request.form.get('fecha_ejecucion'))
     if fecha_ejecucion:
         tiene_fecha_ejecucion = True
     
@@ -934,7 +903,7 @@ def editar_documento_rotario(doc_id):
     except:
         pass
     doc.tiene_fecha_ejecucion = request.form.get('tiene_fecha_ejecucion') == '1' or request.form.get('tiene_fecha_ejecucion') == 'on'
-    doc.fecha_ejecucion = _fecha_ejecucion_form() or _parse2(request.form.get('fecha_ejecucion'))
+    doc.fecha_ejecucion = _parse2(request.form.get('fecha_ejecucion'))
     if doc.fecha_ejecucion:
         doc.tiene_fecha_ejecucion = True
     if 'archivo' in request.files:
@@ -1457,6 +1426,8 @@ def recaudacion_mensual():
         return redirect(url_for('login'))
     if solo_estado_cuenta():
         return redirect(url_for('estado_cuenta_mensual'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     total_socios = Socio.query.filter_by(es_activo=True).count()
     if total_socios == 0:
         total_socios = 12
