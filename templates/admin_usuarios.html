@@ -1,32 +1,66 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><title>Usuarios - ADMIN - Rotary Creel</title>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Gestion de Usuarios - ADMIN - Rotary Creel</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-<style>body{font-family:'Segoe UI',sans-serif;background:#f4f6f9;text-transform:uppercase;font-size:11px;}.header-rotary{background:#17458F;color:white;padding:10px 20px;border-bottom:4px solid #F7A81B;}</style></head>
+<style>
+body { font-family:'Segoe UI',sans-serif; text-transform:uppercase; font-size:12px; background:#f4f6f9; }
+.header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
+.input-pass { text-transform:none !important; }
+.btn-ojo { border:1px solid #ced4da; background:#fff; font-size:12px; padding:4px 8px; }
+</style>
+</head>
 <body>
-<div class="header-rotary d-flex justify-content-between"><div><h6 class="mb-0 fw-bold">👥 USUARIOS - SOLO ADMIN</h6><small>NUMERO DE SOCIO = USUARIO | ADMIN PUEDE VER / CAMBIAR / BORRAR CONTRASEÑAS</small></div><div class="d-flex gap-2"><a href="/menu" class="btn btn-outline-light btn-sm">MENÚ</a><a href="/logout" class="btn btn-warning btn-sm">SALIR</a></div></div>
+<div class="header-rotary d-flex justify-content-between align-items-center">
+<div><h5 class="mb-0 fw-bold" style="font-size:16px;">GESTION DE USUARIOS - SOLO ADMIN</h5><small style="font-size:10px;">ROTARY CREEL - DISTRITO 4110</small></div>
+<div class="d-flex gap-2"><a href="/menu" class="btn btn-outline-light btn-sm fw-bold">MENÚ</a><a href="/logout" class="btn btn-warning btn-sm fw-bold">SALIR</a></div>
+</div>
 <div class="container py-3">
-{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} py-2" style="text-transform:none;">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
-<div class="alert alert-info" style="text-transform:none;font-size:12px;"><strong>ADMIN - VER / EDITAR / BORRAR:</strong> Las contraseñas están encriptadas, no se pueden ver en texto. Regla 8+1+1: min 8 caracteres, 1 MAYUSCULA y 1 NUMERO. Pero ADMIN sí puede <strong>👁️ VER EL ESTADO</strong>, <strong>✏️ CAMBIARLA</strong> por una nueva, y <strong>🗑️ BORRARLA</strong> para que el usuario la cree de nuevo. Esto aplica también a ADMIN, PRESIDENTE, TESORERO y RCCREEL.</div>
-<form method="POST" action="/admin/usuarios/crear-faltantes" class="mb-3"><button class="btn btn-success btn-sm fw-bold">+ CREAR USUARIOS FALTANTES DESDE SOCIOS</button></form>
-<table class="table table-bordered bg-white"><thead style="background:#17458F;color:white;"><tr><th>USUARIO</th><th>ROL</th><th>SOCIO</th><th>CONTRASEÑA - VER</th><th>EDITAR / CAMBIAR</th><th>BORRAR</th><th>ELIMINAR USUARIO</th></tr></thead><tbody>
-{% for u in usuarios %}<tr>
-<td class="fw-bold">{{ u.username }}</td><td><span class="badge bg-primary">{{ u.rol }}</span></td>
-<td>{% if u.socio %}{{ u.socio.nombre_completo }}{% else %}- CUENTA FIJA -{% endif %}</td>
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} py-2" style="font-size:11px; text-transform:none;">{{ message }}</div>{% endfor %}{% endif %}
+{% endwith %}
+<div class="alert alert-warning py-2" style="font-size:11px; text-transform:none;">⚠️ <strong>No se puede ver la contraseña que el socio ya escribio:</strong> se guarda con hash (irreversible). El ojito 👁️ solo muestra lo que <strong>tu estas escribiendo ahora</strong> en NUEVA CONTRASEÑA. Si necesitas saberla, CAMBIALA por una que tu sepas (ej: Rotary2026) y avisale al socio, o BORRALA y que el la cree de nuevo.</div>
+<form method="POST" action="/admin/usuarios/crear-faltantes" class="mb-3"><button class="btn btn-success btn-sm fw-bold">+ CREAR USUARIOS FALTANTES</button></form>
+<div class="table-responsive">
+<table class="table table-bordered bg-white" style="font-size:11px;">
+<thead style="background:#17458F; color:white; text-align:center;"><tr><th>USUARIO</th><th>ROL</th><th>SOCIO</th><th>ESTADO</th><th style="min-width:280px;">NUEVA CONTRASEÑA</th><th>ACCION</th></tr></thead>
+<tbody>
+{% for u in usuarios %}
+<tr>
+<td><strong>{{ u.username }}</strong></td>
+<td>{{ u.rol }}</td>
+<td>{{ u.socio.nombre_completo if u.socio else '- CUENTA FIJA -' }}</td>
+<td>{% if u.debe_crear_password or not u.password_hash %}<span class="badge bg-warning text-dark" style="font-size:8px;">⏳ SIN CONTRASEÑA</span>{% else %}<span class="badge bg-success" style="font-size:8px;">✅ TIENE CONTRASEÑA</span>{% endif %}{% if u.fecha_creacion_password %}<br><small style="font-size:8px;">{{ u.fecha_creacion_password.strftime('%d/%m/%Y %H:%M') }}</small>{% endif %}</td>
 <td>
-{% if u.debe_crear_password or not u.password_hash %}<span class="badge bg-warning text-dark">⏳ SIN CONTRASEÑA - DEBE CREARLA</span>
-{% else %}<span class="badge bg-success">✅ TIENE CONTRASEÑA</span><br><small style="text-transform:none;">Creada: {{ u.fecha_creacion_password.strftime('%d/%m/%Y %H:%M') if u.fecha_creacion_password else '-' }}</small><br><small style="text-transform:none;color:#999;">•••••••• (encriptada, no se puede ver en texto)</small>{% endif %}
-</td>
-<td>
-<form method="POST" action="/admin/usuarios/cambiar/{{ u.id }}" class="d-flex gap-1" onsubmit="return confirm('¿Cambiar contraseña de {{ u.username }} por la nueva que escribiste?')">
-<input type="password" name="nueva_password" class="form-control form-control-sm" placeholder="Nueva (8+1+1: 8, 1 MAY, 1 NUM)" style="width:160px;text-transform:none;" required>
-<button class="btn btn-warning btn-sm fw-bold" style="white-space:nowrap;">✏️ CAMBIAR</button>
+<form method="POST" action="/admin/usuarios/cambiar/{{ u.id }}" style="display:flex; gap:4px;">
+<div class="input-group input-group-sm">
+<input type="password" name="nueva_password" id="pass{{ u.id }}" class="form-control input-pass" placeholder="Nueva (8+1+1)" required autocomplete="new-password">
+<button type="button" class="btn btn-ojo" onclick="togglePass({{ u.id }}, this)" title="Ver / ocultar lo que escribes">👁️</button>
+</div>
+<button type="submit" class="btn btn-warning btn-sm fw-bold" style="white-space:nowrap;">✏️ CAMBIAR</button>
 </form>
-<small style="text-transform:none;color:#666;">ADMIN escribe la nueva (8+1+1) y se la pasa al usuario. No se ve en pantalla.</small>
 </td>
-<td><form method="POST" action="/admin/usuarios/reset/{{ u.id }}" onsubmit="return confirm('¿Borrar contraseña de {{ u.username }}? El usuario la creara de nuevo en su proximo ingreso.')"><button class="btn btn-danger btn-sm fw-bold">🗑️ BORRAR</button></form></td>
-<td>{% if u.username.lower() != 'admin' %}<form method="POST" action="/admin/usuarios/eliminar/{{ u.id }}" onsubmit="return confirm('¿Eliminar por completo al usuario {{ u.username }}? Usalo para limpiar duplicados como RCREEL / RCCREEL.')"><button class="btn btn-outline-danger btn-sm fw-bold">❌ ELIMINAR USUARIO</button></form>{% else %}<small>No se puede eliminar ADMIN</small>{% endif %}</td>
-</tr>{% endfor %}</tbody></table>
+<td style="white-space:nowrap;">
+<form method="POST" action="/admin/usuarios/reset/{{ u.id }}" style="display:inline;" onsubmit="return confirm('¿Borrar contraseña de {{ u.username }}? El socio la creara de nuevo.')"><button class="btn btn-danger btn-sm fw-bold" style="font-size:9px;">🗑️ BORRAR</button></form>
+{% if u.username.lower() != 'admin' %}<form method="POST" action="/admin/usuarios/eliminar/{{ u.id }}" style="display:inline;" onsubmit="return confirm('¿Eliminar usuario {{ u.username }}?')"><button class="btn btn-dark btn-sm fw-bold" style="font-size:9px;">❌ ELIMINAR</button></form>{% endif %}
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body></html>
+<script>
+function togglePass(id, btn){
+  var input = document.getElementById('pass' + id);
+  if(!input) return;
+  var mostrar = input.type === 'password';
+  input.type = mostrar ? 'text' : 'password';
+  btn.textContent = mostrar ? '🙈' : '👁️';
+  btn.title = mostrar ? 'Ocultar' : 'Ver lo que escribes';
+}
+</script>
+</body>
+</html>
