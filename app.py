@@ -341,6 +341,17 @@ def solo_estado_cuenta():
     return False
 
 
+
+def _fecha_ejecucion_form():
+    vals = request.form.getlist('fecha_ejecucion') if hasattr(request.form, 'getlist') else [request.form.get('fecha_ejecucion')]
+    for v in reversed(vals):
+        if v and v.strip():
+            try:
+                return datetime.strptime(v.strip(), '%Y-%m-%d').date()
+            except:
+                continue
+    return None
+
 def get_mes_anio_actual():
     now = datetime.now()
     return f"{MESES_NOMBRES[now.month-1]} {now.year}"
@@ -537,9 +548,11 @@ def menu_principal():
                     festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
     # EVENTOS CON FECHA DE EJECUCION EN ESTE MES - para scroll junto con cumpleaños
     try:
-        eventos_mes = DocumentoRotario.query.filter(DocumentoRotario.fecha_ejecucion.isnot(None)).all()
+        eventos_mes = DocumentoRotario.query.all()
+        _vistos = set()
         for ev in eventos_mes:
-            if ev.fecha_ejecucion and ev.fecha_ejecucion.month == mes_actual_num:
+            if ev.fecha_ejecucion and ev.fecha_ejecucion.month == mes_actual_num and ev.fecha_ejecucion.year == datetime.now().year:
+                _vistos.add(ev.id)
                 festividades.append({'dia': ev.fecha_ejecucion.day, 'tipo': '📅 EVENTO / FECHA DE EJECUCION', 'persona': ev.titulo, 'detalle': f"{ev.tipo} - EJECUCION: {ev.fecha_ejecucion.strftime('%d/%m/%Y')} - {ev.descripcion[:80] if ev.descripcion else ''}", 'es_evento': True, 'doc_id': ev.id})
     except Exception as e:
         print(f"Eventos ejecucion: {e}")
@@ -670,6 +683,34 @@ def editar_socio(socio_id):
     socio.telefono = to_upper(request.form.get('telefono')) or socio.telefono
     socio.correo = request.form.get('correo') or socio.correo
     socio.fecha_nacimiento = parse_date(request.form.get('fecha_nacimiento')) or socio.fecha_nacimiento
+    # FAMILIA / DOMICILIO / EMERGENCIA (repuesto: el form los mandaba pero no se guardaban)
+    socio.ciudad = to_upper(request.form.get('ciudad')) or socio.ciudad
+    socio.calle_numero = to_upper(request.form.get('calle_numero')) or socio.calle_numero
+    socio.colonia = to_upper(request.form.get('colonia')) or socio.colonia
+    socio.codigo_postal = to_upper(request.form.get('codigo_postal')) or socio.codigo_postal
+    socio.estado = to_upper(request.form.get('estado')) or socio.estado
+    socio.estado_civil = to_upper(request.form.get('estado_civil')) or socio.estado_civil
+    socio.telefono_emergencia = to_upper(request.form.get('telefono_emergencia')) or socio.telefono_emergencia
+    socio.nombre_esposa = to_upper(request.form.get('nombre_esposa')) or socio.nombre_esposa
+    socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa')) or socio.fecha_nacimiento_esposa
+    socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio')) or socio.aniversario_matrimonio
+    socio.telefono_esposa = to_upper(request.form.get('telefono_esposa')) or socio.telefono_esposa
+    # CARGOS - actualizar existentes
+    for cargo in list(socio.cargos):
+        if request.form.get(f'cargo_eliminar_{cargo.id}') == '1':
+            db.session.delete(cargo)
+        else:
+            nc = request.form.get(f'cargo_nombre_{cargo.id}')
+            if nc and nc.strip():
+                cargo.cargo = nc.strip().upper()
+                cargo.periodo = request.form.get(f'cargo_periodo_{cargo.id}') or cargo.periodo
+                cargo.es_actual = request.form.get(f'cargo_actual_{cargo.id}') == '1'
+    # CARGOS - nuevos (hasta 10)
+    for i in range(1, 11):
+        n_cargo = request.form.get(f'nuevo_cargo_nombre_{i}')
+        n_periodo = request.form.get(f'nuevo_cargo_periodo_{i}')
+        if n_cargo and n_cargo.strip() and n_periodo:
+            db.session.add(HistorialCargo(socio_id=socio.id, cargo=n_cargo.strip().upper(), periodo=n_periodo.strip(), es_actual=(request.form.get(f'nuevo_cargo_actual_{i}') == '1')))
     foto_archivo = request.files.get('foto_archivo')
     if foto_archivo and foto_archivo.filename and allowed_file(foto_archivo.filename):
         contenido = foto_archivo.read()
@@ -775,7 +816,7 @@ def subir_documento_rotario():
         porcentaje_avance = 0
     # FECHA DE EJECUCION - nueva opcion
     tiene_fecha_ejecucion = request.form.get('tiene_fecha_ejecucion') == '1' or request.form.get('tiene_fecha_ejecucion') == 'on'
-    fecha_ejecucion = _parse(request.form.get('fecha_ejecucion'))
+    fecha_ejecucion = _fecha_ejecucion_form() or _parse(request.form.get('fecha_ejecucion'))
     if fecha_ejecucion:
         tiene_fecha_ejecucion = True
     
@@ -903,7 +944,7 @@ def editar_documento_rotario(doc_id):
     except:
         pass
     doc.tiene_fecha_ejecucion = request.form.get('tiene_fecha_ejecucion') == '1' or request.form.get('tiene_fecha_ejecucion') == 'on'
-    doc.fecha_ejecucion = _parse2(request.form.get('fecha_ejecucion'))
+    doc.fecha_ejecucion = _fecha_ejecucion_form() or _parse2(request.form.get('fecha_ejecucion'))
     if doc.fecha_ejecucion:
         doc.tiene_fecha_ejecucion = True
     if 'archivo' in request.files:
