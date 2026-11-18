@@ -8,8 +8,7 @@
 <style>
 body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size: 12px; background:#f4f6f9; }
 .header-rotary { background:#17458F; color:white; padding:10px 20px; border-bottom:4px solid #F7A81B; }
-.tabla-socios { border:2px solid #000; border-collapse:collapse; margin:0 auto; max-width:1050px; }
-.contenedor-socios { max-width:1100px; margin:0 auto; }
+.tabla-socios { border:2px solid #000; border-collapse:collapse; }
 .tabla-socios th { font-size:11px; background:#17458F; color:white; text-align:center; border:1px solid #000; padding:8px 4px; font-weight:900; }
 .tabla-socios td { font-size:12px; text-align:center; border:1px solid #000; padding:8px 4px; vertical-align:middle; }
 .tabla-socios tr:hover { background:#e8f0ff; }
@@ -48,7 +47,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 </div>
 
-<div class="container-fluid py-3 contenedor-socios">
+<div class="container-fluid py-3">
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 {% for category, message in messages %}
@@ -65,25 +64,42 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <th style="width:110px;">NO. SOCIO</th>
 <th>NOMBRE COMPLETO</th>
 <th style="width:80px;">TIPO</th>
+<th style="width:150px;">CARGO ACTUAL</th>
 <th style="width:140px;">TELEFONO</th>
 <th style="width:220px;">CORREO</th>
-<th style="width:100px;">ACCIONES</th>
+<th style="width:130px;">USUARIO / CONTRASEÑA</th><th style="width:100px;">ACCIONES</th>
 </tr>
 </thead>
 <tbody>
 {% for socio in socios %}
-<tr data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}" style="cursor:pointer;" title="Click para ver informacion del socio y su familia">
+<tr>
 <td>{% if socio.foto_url %}<img src="{{ socio.foto_url }}" class="foto-socio">{% else %}<div class="foto-placeholder">👤</div>{% endif %}</td>
 <td style="font-weight:800; font-size:13px; color:#17458F;">{{ socio.numero_socio or '' }}</td>
-<td class="nombre-socio">{{ socio.nombre_completo }}</td>
+<td class="nombre-socio"><a href="#" data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}" style="color:#000; text-decoration:none;" title="Click para ver informacion del socio y su familia">👁️ {{ socio.nombre_completo }}</a><br><small style="font-size:8px; color:#0d6efd;">👆 CLICK PARA VER DETALLE</small></td>
 <td><span class="badge badge-activo">{{ socio.tipo_socio or 'ACTIVO' }}</span></td>
+<td style="font-size:10px; font-weight:800;">{% set _ca = namespace(val='') %}{% for _c in socio.cargos %}{% if _c.es_actual %}{% set _ca.val = _c.cargo %}{% endif %}{% endfor %}{{ _ca.val or '-' }}{% if _ca.val %}<br><small style="font-size:8px; color:#666;">{% for _c in socio.cargos %}{% if _c.es_actual %}{{ _c.periodo }}{% endif %}{% endfor %}</small>{% endif %}</td>
 <td class="telefono">{{ socio.telefono or '-' }}</td>
 <td class="correo">{{ socio.correo or '-' }}</td>
+<td style="font-size:10px;">
+{% set u = usuarios_por_socio.get(socio.id) if usuarios_por_socio else None %}
+{% if u %}
+<strong>{{ u.username }}</strong><br>
+{% if u.debe_crear_password or not u.password_hash %}<span class="badge bg-warning text-dark" style="font-size:8px;">⏳ SIN CONTRASEÑA</span>{% else %}<span class="badge bg-success" style="font-size:8px;">✅ TIENE CONTRASEÑA</span>{% endif %}<br>
+{% if session.get('rol') == 'ADMIN' %}
+<form method="POST" action="/admin/usuarios/reset/{{ u.id }}" onsubmit="return confirm('¿Borrar contraseña de {{ u.username }}? El socio la creara de nuevo.')" style="display:inline;"><button class="btn btn-danger btn-sm" style="font-size:8px;padding:2px 6px;">🗑️ BORRAR CONTRASEÑA</button></form>
+{% endif %}
+{% else %}
+<span class="badge bg-secondary" style="font-size:8px;">SIN USUARIO</span><br><small style="font-size:8px;">Se crea al guardar</small>
+{% endif %}
+</td>
 <td>
+<button class="btn btn-info btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalVer{{ socio.id }}" style="font-size:10px; padding:5px 12px; color:#fff;">👁️ VER</button><br>
 {% set es_mio = (session.get('rol') == 'ADMIN') or (mi_socio_id is defined and mi_socio_id and socio.id == mi_socio_id) %}
 {% if es_mio %}
 <button class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}" style="font-size:10px; padding:5px 12px;"><i class="bi bi-pencil"></i> EDITAR</button>
-{% if session.get('rol') == 'ADMIN' %}<br><small style="font-size:8px;color:#666;">ADMIN</small>{% else %}<br><small style="font-size:8px;color:#198754;">TUS DATOS</small>{% endif %}
+{% if session.get('rol') == 'ADMIN' %}<br><small style="font-size:8px;color:#666;">ADMIN puede editar a todos</small>{% else %}<br><small style="font-size:8px;color:#198754;">TUS DATOS</small>{% endif %}
+{% else %}
+<button class="btn btn-warning btn-sm btn-no-permiso" style="font-size:10px; padding:5px 12px; opacity:0.45;" onclick="alert('Solo puedes editar TUS datos personales. Este socio es {{ socio.nombre_completo }}.'); return false;"><i class="bi bi-lock"></i> EDITAR 🔒</button><br><small style="font-size:8px;color:#999;">SOLO SUS DATOS</small>
 {% endif %}
 </td>
 </tr>
@@ -158,6 +174,36 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 
 </div>
+
+<hr style="margin:10px 0;">
+<div class="d-flex justify-content-between align-items-center mb-2">
+<small class="fw-bold" style="font-size:12px;">🏛️ CARGOS - ACTUAL Y PASADOS</small>
+<button type="button" class="btn btn-primary btn-sm fw-bold" style="font-size:9px;" onclick="agregarCargo{{ socio.id }}()">+ AGREGAR CARGO</button>
+</div>
+<div class="mb-1"><small style="font-size:9px; color:#666;">Marca ✅ ACTUAL solo en el cargo vigente. Los demas quedan como pasados.</small></div>
+<div id="cargos-existentes-{{ socio.id }}" class="mb-2">
+{% if socio.cargos %}
+{% for cargo in socio.cargos %}
+<div class="row align-items-end mb-2 p-2" style="background:#eef2ff; border:1px solid #b8c6ff; border-radius:6px;">
+<div class="col-5"><label class="fw-bold" style="font-size:8px;">CARGO {{ loop.index }}:</label><select name="cargo_nombre_{{ cargo.id }}" class="form-select form-select-sm">{% for _cg in ['PRESIDENTE','PAST PRESIDENT','TESORERO','SECRETARIO','MACERO','FUNDACION ROTARIA','FACILITADOR DE APRENDIZAJE','COMITE DE MEMBRESIA','COMITE DE IMAGEN PUBLICA','VICEPRESIDENTE','PROGRAMA DE LIDERES JOVENES'] %}<option value="{{ _cg }}" {{ 'selected' if cargo.cargo==_cg else '' }}>{{ _cg }}</option>{% endfor %}</select></div>
+<div class="col-3"><label class="fw-bold" style="font-size:8px;">PERIODO:</label><select name="cargo_periodo_{{ cargo.id }}" class="form-select form-select-sm">{% for _p in ['2023-2024','2024-2025','2025-2026','2026-2027'] %}<option value="{{ _p }}" {{ 'selected' if cargo.periodo==_p else '' }}>{{ _p }}</option>{% endfor %}</select></div>
+<div class="col-2"><div class="form-check mt-3"><input type="checkbox" name="cargo_actual_{{ cargo.id }}" value="1" class="form-check-input" {{ 'checked' if cargo.es_actual else '' }}><label class="form-check-label" style="font-size:8px;">ACTUAL</label></div></div>
+<div class="col-2"><div class="form-check mt-3"><input type="checkbox" name="cargo_eliminar_{{ cargo.id }}" value="1" class="form-check-input"><label class="form-check-label" style="font-size:8px;">Eliminar</label></div></div>
+</div>
+{% endfor %}
+{% else %}
+<small style="font-size:10px; color:#999;">Sin cargos. Usa + AGREGAR CARGO.</small>
+{% endif %}
+</div>
+<div id="contenedor-nuevos-cargos-{{ socio.id }}">
+<div class="row cargos-nuevo-row align-items-end mb-2 p-2" style="background:#fff8e1; border:1px dashed #ffb300; border-radius:6px;">
+<div class="col-5"><label class="fw-bold" style="font-size:8px;">NUEVO CARGO:</label><select name="nuevo_cargo_nombre_1" class="form-select form-select-sm"><option value="">-- SELECCIONA CARGO --</option>{% for _cg in ['PRESIDENTE','PAST PRESIDENT','TESORERO','SECRETARIO','MACERO','FUNDACION ROTARIA','FACILITADOR DE APRENDIZAJE','COMITE DE MEMBRESIA','COMITE DE IMAGEN PUBLICA','VICEPRESIDENTE','PROGRAMA DE LIDERES JOVENES'] %}<option value="{{ _cg }}">{{ _cg }}</option>{% endfor %}</select></div>
+<div class="col-3"><label class="fw-bold" style="font-size:8px;">PERIODO:</label><select name="nuevo_cargo_periodo_1" class="form-select form-select-sm"><option value="">-- PERIODO --</option>{% for _p in ['2023-2024','2024-2025','2025-2026','2026-2027'] %}<option value="{{ _p }}">{{ _p }}</option>{% endfor %}</select></div>
+<div class="col-2"><div class="form-check mt-3"><input type="checkbox" name="nuevo_cargo_actual_1" value="1" class="form-check-input"><label class="form-check-label" style="font-size:8px;">ACTUAL</label></div></div>
+<div class="col-2"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.cargos-nuevo-row').remove()">×</button></div>
+</div>
+</div>
+
 <div class="modal-footer py-2" style="background:#fff;"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-success btn-sm fw-bold">💾 GUARDAR CAMBIOS</button></div>
 </form>
 </div>
@@ -197,13 +243,10 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <small style="color:#999;">Sin hijos registrados.</small>
 {% endif %}
 </div>
-{% if socio.cargos %}
 <div class="mb-2"><small class="fw-bold">🏛️ CARGOS</small><hr style="margin:4px 0;">
-{% for cargo in socio.cargos %}
-<div><strong>{{ cargo.cargo }}</strong> - {{ cargo.periodo or '' }} {% if cargo.es_actual %}<span class="badge bg-success" style="font-size:8px;">ACTUAL</span>{% endif %}</div>
-{% endfor %}
+{% set _tiene_actual = namespace(v=False) %}{% for cargo in socio.cargos %}{% if cargo.es_actual %}{% set _tiene_actual.v = True %}<div class="p-2 mb-1" style="background:#e8f5e9; border:1px solid #81c784; border-radius:6px;"><strong>✅ ACTUAL: {{ cargo.cargo }}</strong> - {{ cargo.periodo or '' }}</div>{% endif %}{% endfor %}
+{% if socio.cargos %}<div style="font-size:10px; font-weight:800; margin-top:6px;">PASADOS:</div>{% for cargo in socio.cargos %}{% if not cargo.es_actual %}<div>• {{ cargo.cargo }} - {{ cargo.periodo or '' }}</div>{% endif %}{% endfor %}{% else %}<small style="color:#999;">Sin cargos registrados.</small>{% endif %}
 </div>
-{% endif %}
 </div>
 <div class="modal-footer py-2" style="background:#fff;">
 {% if es_mio %}<button type="button" class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditar{{ socio.id }}" onclick="var m=bootstrap.Modal.getInstance(document.getElementById('modalVer{{ socio.id }}')); if(m) m.hide();">✏️ EDITAR</button>{% endif %}
@@ -221,6 +264,22 @@ function agregarHijo{{ socio.id }}() {
   var div = document.createElement('div');
   div.className = 'row hijos-nuevo-row';
   div.innerHTML = '<div class="col-6"><label class="fw-bold" style="font-size:8px;">NUEVO HIJO '+count+':</label><input type="text" name="nuevo_hijo_nombre_'+count+'" class="form-control form-control-sm" placeholder="Nombre hijo '+count+'"></div><div class="col-5"><label class="fw-bold" style="font-size:8px;">F. NAC:</label><input type="date" name="nuevo_hijo_fecha_'+count+'" class="form-control form-control-sm"></div><div class="col-1 d-flex align-items-end"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest(\'.hijos-nuevo-row\').remove()">×</button></div>';
+  cont.appendChild(div);
+}
+</script>
+
+
+<script>
+function agregarCargo{{ socio.id }}() {
+  var cont = document.getElementById('contenedor-nuevos-cargos-{{ socio.id }}');
+  var count = cont.querySelectorAll('.cargos-nuevo-row').length + 1;
+  if (count > 10) { alert('Máximo 10 cargos'); return; }
+  var div = document.createElement('div');
+  div.className = 'row cargos-nuevo-row align-items-end mb-2 p-2';
+  div.style.cssText = 'background:#fff8e1; border:1px dashed #ffb300; border-radius:6px;';
+  var optsCargo = '<option value="">-- SELECCIONA CARGO --</option>' + ['PRESIDENTE','PAST PRESIDENT','TESORERO','SECRETARIO','MACERO','FUNDACION ROTARIA','FACILITADOR DE APRENDIZAJE','COMITE DE MEMBRESIA','COMITE DE IMAGEN PUBLICA','VICEPRESIDENTE','PROGRAMA DE LIDERES JOVENES'].map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+  var optsPer = '<option value="">-- PERIODO --</option>' + ['2023-2024','2024-2025','2025-2026','2026-2027'].map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+  div.innerHTML = '<div class="col-5"><label class="fw-bold" style="font-size:8px;">NUEVO CARGO:</label><select name="nuevo_cargo_nombre_'+count+'" class="form-select form-select-sm">'+optsCargo+'</select></div><div class="col-3"><label class="fw-bold" style="font-size:8px;">PERIODO:</label><select name="nuevo_cargo_periodo_'+count+'" class="form-select form-select-sm">'+optsPer+'</select></div><div class="col-2"><div class="form-check mt-3"><input type="checkbox" name="nuevo_cargo_actual_'+count+'" value="1" class="form-check-input"><label class="form-check-label" style="font-size:8px;">ACTUAL</label></div></div><div class="col-2"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest(\'.cargos-nuevo-row\').remove()">×</button></div>';
   cont.appendChild(div);
 }
 </script>
