@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Menú Principal - Rotary Creel</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
@@ -32,35 +31,6 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 .badge-dia-evento { background:#fd7e14; color:white; font-size:11px; padding:3px 10px; border-radius:12px; margin-right:8px; font-weight:900; }
 .punto { width:10px; height:10px; background:#dc3545; border-radius:50%; display:inline-block; margin-right:8px; animation: pulse 1.2s infinite; }
 @keyframes pulse { 0%{transform:scale(1);} 50%{transform:scale(1.5);} 100%{transform:scale(1);} }
-
-
-/* ===== VISTA MOVIL - RESPONSIVE (una sola version, no duplicada) ===== */
-@media (max-width: 768px) {
-  body { font-size: 13px !important; }
-  .header-rotary { flex-wrap: wrap; gap: 8px; padding: 10px 12px !important; }
-  .header-rotary h5, .header-rotary h6 { font-size: 13px !important; }
-  .container, .container-fluid { padding-left: 10px !important; padding-right: 10px !important; }
-  .btn, .btn-sm { min-height: 44px; font-size: 13px !important; padding: 8px 10px !important; display: inline-flex; align-items: center; justify-content: center; }
-  .btn-group, .btn-group-vertical { flex-wrap: wrap; }
-  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; }
-  .table-responsive table { min-width: 620px; }
-  .modal-dialog { margin: 8px auto !important; max-width: calc(100% - 16px) !important; }
-  .modal-dialog.modal-lg, .modal-dialog.modal-xl { max-width: calc(100% - 16px) !important; }
-  .modal-body { padding: 12px !important; }
-  .card { margin-bottom: 10px; }
-  input, select, textarea { font-size: 16px !important; } /* evita zoom en iPhone */
-  .row > [class*="col-"] { margin-bottom: 6px; }
-  /* Calendario ERP en movil: celdas mas compactas */
-  .cal-dia { min-height: 54px !important; padding: 3px !important; }
-  .cal-chip { font-size: 6px !important; padding: 1px 2px !important; }
-  /* Tarjetas de menu / contadores en movil: 1 columna */
-  .grid-2x2 { grid-template-columns: 1fr !important; max-width: 100% !important; }
-  .card-modulo { height: auto !important; min-height: 120px; padding: 16px !important; }
-}
-@media (max-width: 480px) {
-  .cal-dia { min-height: 46px !important; }
-  .header-rotary .btn { width: 100%; }
-}
 
 </style>
 </head>
@@ -122,17 +92,14 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 
 {% if session.get('rol') != 'RCREEL' %}
 {% if session.get('rol') in ['ADMIN','PRESIDENTE','TESORERO'] %}
-<div style="display:flex; flex-direction:column;">
-<a href="/tesoreria" class="text-decoration-none" style="display:block;">
-<div class="card card-modulo card-tesoreria text-center p-3" style="border-radius:14px 14px 0 0; margin-bottom:0;">
+<a href="/tesoreria" class="text-decoration-none">
+<div class="card card-modulo card-tesoreria text-center p-3">
 <div class="icono">💰</div>
 <h6 class="fw-bold mb-1" style="font-size:14px; color:#000;">TESORERÍA</h6>
 <small style="font-size:9px; color:#666;">CONTROL DE CUOTAS SOCIALES</small>
 <small style="font-size:7px; color:#28a745; font-weight:700; margin-top:6px; display:block;">CUOTAS • GASTOS • PROYECTOS • ESTADO CUENTA</small>
 </div>
 </a>
-<a href="/tesoreria/pagos" class="btn btn-warning fw-bold w-100" style="font-size:11px; border-radius:0 0 14px 14px; min-height:44px; display:flex; align-items:center; justify-content:center;">✏️ CORREGIR PAGOS - EDITAR / BORRAR CUOTAS</a>
-</div>
 {% else %}
 <a href="/tesoreria/mis-estados" class="text-decoration-none">
 <div class="card card-modulo card-tesoreria text-center p-3">

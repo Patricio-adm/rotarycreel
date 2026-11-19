@@ -236,6 +236,68 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 </div>
 
+<!-- MODAL EDITAR PAGO - DESDE HISTORIAL DE PAGOS EN MODAL SOCIO -->
+<div class="modal fade" id="modalEditarPago" tabindex="-1">
+<div class="modal-dialog"><div class="modal-content">
+<form method="POST" id="formEditarPago" action="/tesoreria/editar-pago/0">
+<div class="modal-header" style="background:#ffc107;"><h6 class="modal-title fw-bold" style="font-size:12px;">✏️ CORREGIR PAGO - <span id="editarPagoTitulo">-</span></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" style="text-transform:none; font-size:12px;">
+<input type="hidden" name="volver" value="/tesoreria/cuotas-sociales">
+<div class="mb-2"><label class="fw-bold">SOCIO (si lo aplicaste al socio equivocado)</label><select name="socio_id" id="editarPagoSocio" class="form-select" required></select></div>
+<div class="mb-2"><label class="fw-bold">MES (si lo aplicaste al mes equivocado)</label><select name="mes_anio" id="editarPagoMes" class="form-select" required></select></div>
+<div class="row"><div class="col-6 mb-2"><label class="fw-bold">MONTO</label><input name="monto" id="editarPagoMonto" type="number" step="0.01" class="form-control" required></div>
+<div class="col-6 mb-2"><label class="fw-bold">FECHA PAGO</label><input name="fecha_pago" id="editarPagoFecha" type="date" class="form-control"></div></div>
+<div class="mb-2"><label class="fw-bold">METODO</label><input name="metodo_pago" id="editarPagoMetodo" class="form-control"></div>
+<div class="mb-2"><label class="fw-bold">REFERENCIA</label><input name="referencia" id="editarPagoReferencia" class="form-control"></div>
+<div class="alert alert-info py-1" style="font-size:11px;">Si ya existe un pago de ese socio en ese mes, el sistema lo rechaza para no duplicar.</div>
+</div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">CANCELAR</button><button type="submit" class="btn btn-warning fw-bold">💾 GUARDAR CORRECCION</button></div>
+</form></div></div></div>
+
+<!-- MODAL BORRAR PAGO - DESDE HISTORIAL DE PAGOS EN MODAL SOCIO -->
+<div class="modal fade" id="modalBorrarPago" tabindex="-1">
+<div class="modal-dialog"><div class="modal-content">
+<form method="POST" id="formBorrarPago" action="/tesoreria/editar-pago/0" onsubmit="return confirm('¿Seguro que quieres BORRAR este pago? No se puede deshacer.');">
+<div class="modal-header bg-danger text-white"><h6 class="modal-title fw-bold" style="font-size:12px;">🗑️ BORRAR PAGO</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" style="text-transform:none; font-size:12px;">
+<input type="hidden" name="accion" value="eliminar">
+<input type="hidden" name="volver" value="/tesoreria/cuotas-sociales">
+Vas a borrar:<br><strong id="borrarPagoTexto">-</strong><br><br>Usalo solo si ese pago <strong>no existio</strong>. Si te equivocaste de socio o de mes, usa <strong>EDITAR</strong>.
+</div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">CANCELAR</button><button type="submit" class="btn btn-danger fw-bold">🗑️ SI, BORRAR</button></div>
+</form></div></div></div>
+
+<script>
+function abrirModalEditarPago(pagoId) {
+  const pago = pagosData[pagoId];
+  if (!pago) return;
+  var mSocio = bootstrap.Modal.getInstance(document.getElementById('modalSocio'));
+  if (mSocio) mSocio.hide();
+  document.getElementById('formEditarPago').action = '/tesoreria/editar-pago/' + pagoId;
+  document.getElementById('editarPagoTitulo').textContent = pago.socio_nombre + ' - ' + pago.mes_anio;
+  // Socios
+  const selSocio = document.getElementById('editarPagoSocio');
+  selSocio.innerHTML = Object.values(sociosData).map(s => `<option value="${s.id}" ${s.id == pago.socio_id ? 'selected' : ''}>${s.nombre}</option>`).join('');
+  // Meses
+  const selMes = document.getElementById('editarPagoMes');
+  selMes.innerHTML = mesesLista.map(m => `<option value="${m}" ${m == pago.mes_anio ? 'selected' : ''}>${m}</option>`).join('');
+  document.getElementById('editarPagoMonto').value = parseFloat(pago.monto) || 500;
+  document.getElementById('editarPagoFecha').value = pago.fecha_iso || '';
+  document.getElementById('editarPagoMetodo').value = (pago.metodo === '-' ? '' : pago.metodo);
+  document.getElementById('editarPagoReferencia').value = (pago.referencia === '-' ? '' : pago.referencia);
+  setTimeout(() => { new bootstrap.Modal(document.getElementById('modalEditarPago')).show(); }, 250);
+}
+function abrirModalBorrarPago(pagoId) {
+  const pago = pagosData[pagoId];
+  if (!pago) return;
+  var mSocio = bootstrap.Modal.getInstance(document.getElementById('modalSocio'));
+  if (mSocio) mSocio.hide();
+  document.getElementById('formBorrarPago').action = '/tesoreria/editar-pago/' + pagoId;
+  document.getElementById('borrarPagoTexto').textContent = pago.socio_nombre + ' - ' + pago.mes_anio + ' - $' + parseFloat(pago.monto).toFixed(2);
+  setTimeout(() => { new bootstrap.Modal(document.getElementById('modalBorrarPago')).show(); }, 250);
+}
+</script>
+
 <!-- MODAL ADEUDOS - ACTUALIZADO CON TEXTO SOLICITADO -->
 <div class="modal fade" id="modalAdeudos" tabindex="-1">
 <div class="modal-dialog">
@@ -468,6 +530,7 @@ const pagosData = {
   metodo_corto: "{% if pago.metodo_pago and 'TRANSF' in pago.metodo_pago %}T{% elif pago.metodo_pago and 'EFECT' in pago.metodo_pago %}E{% else %}{{ pago.metodo_pago[:1] if pago.metodo_pago else 'E' }}{% endif %}",
   referencia: "{{ (pago.referencia or '-')|e }}",
   fecha: "{{ pago.fecha_pago.strftime('%d/%m/%Y %H:%M') if pago.fecha_pago else '' }}",
+  fecha_iso: "{{ pago.fecha_pago.strftime('%Y-%m-%d') if pago.fecha_pago else '' }}",
   grupo_recibo: "{{ pago.grupo_recibo or '' }}"
 },
 {% endfor %}
@@ -660,10 +723,10 @@ function abrirModalSocio(socioId) {
   document.getElementById('socioEstado').textContent = adeudos.length===0 ? 'AL CORRIENTE ✅' : `${adeudos.length} MESES ADEUDO ⚠️`;
   
   // Historial
-  let historialHtml = '<table class="table table-sm table-bordered" style="font-size:9px;"><thead><tr><th>MES</th><th>MONTO</th><th>METODO</th></tr></thead><tbody>';
+  let historialHtml = '<table class="table table-sm table-bordered" style="font-size:9px;"><thead><tr><th>MES</th><th>MONTO</th><th>METODO</th><th style="width:92px;">ACCIONES</th></tr></thead><tbody>';
   socio.pagos.forEach(p=>{
     const metodoCorto = p.metodo.includes('TRANSF') ? 'T' : p.metodo.includes('EFECT') ? 'E' : p.metodo.charAt(0);
-    historialHtml += `<tr><td>${p.mes}</td><td>$${p.monto}</td><td>${metodoCorto}</td></tr>`;
+    historialHtml += `<tr><td>${p.mes}</td><td>$${p.monto}</td><td>${metodoCorto}</td><td><div class="d-flex gap-1"><button type="button" class="btn btn-warning btn-sm fw-bold" style="font-size:9px; padding:2px 6px;" onclick="abrirModalEditarPago(${p.id})" title="Editar este pago">✏️</button><button type="button" class="btn btn-danger btn-sm fw-bold" style="font-size:9px; padding:2px 6px;" onclick="abrirModalBorrarPago(${p.id})" title="Borrar este pago">🗑️</button></div></td></tr>`;
   });
   historialHtml += '</tbody></table>';
   if (socio.pagos.length===0) historialHtml = '<div class="alert alert-warning py-1" style="font-size:9px;">Sin pagos registrados</div>';
