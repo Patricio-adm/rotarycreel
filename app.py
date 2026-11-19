@@ -781,7 +781,38 @@ def gestion_rotaria():
         query = query.filter_by(estado=estado_filtro)
     
     documentos = query.order_by(DocumentoRotario.fecha_documento.desc(), DocumentoRotario.id.desc()).all()
-    
+
+    # ============ CALENDARIO ERP - mes por mes ============
+    import calendar as _cal
+    _mes_param = request.args.get('mes', '')
+    try:
+        _anio_cal, _mes_cal = map(int, _mes_param.split('-')) if _mes_param else (datetime.now().year, datetime.now().month)
+        if not (1 <= _mes_cal <= 12): raise ValueError()
+    except Exception:
+        _anio_cal, _mes_cal = datetime.now().year, datetime.now().month
+    _mes_ant = (_anio_cal, _mes_cal - 1) if _mes_cal > 1 else (_anio_cal - 1, 12)
+    _mes_sig = (_anio_cal, _mes_cal + 1) if _mes_cal < 12 else (_anio_cal + 1, 1)
+    _cal_eventos = {}  # 'YYYY-MM-DD' -> [doc]
+    for _d in documentos:
+        _fechas = []
+        if _d.fecha_ejecucion:
+            _fechas = [_d.fecha_ejecucion]
+        elif _d.fecha_inicio and _d.fecha_termino:
+            _cur, _fin = _d.fecha_inicio, _d.fecha_termino
+            _n = 0
+            while _cur <= _fin and _n < 62:
+                _fechas.append(_cur); _cur += timedelta(days=1); _n += 1
+        elif _d.fecha_inicio:
+            _fechas = [_d.fecha_inicio]
+        elif _d.fecha_termino:
+            _fechas = [_d.fecha_termino]
+        elif _d.fecha_documento:
+            _fechas = [_d.fecha_documento]
+        for _f in _fechas:
+            _cal_eventos.setdefault(_f.strftime('%Y-%m-%d'), []).append(_d)
+    _cal_semanas = _cal.monthcalendar(_anio_cal, _mes_cal)
+    _meses_es_cal = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE']
+
     tipos = ['ACTA','ACUERDO','PRESIDENCIA','SECRETARIA','FUNDACION','SERVICIOS','TESORERIA','MEMBRESIA','OTRO']
     
     total_actas = DocumentoRotario.query.filter_by(tipo='ACTA').count()
@@ -801,7 +832,11 @@ def gestion_rotaria():
                            total_presidencia=total_presidencia,
                            total_secretaria=total_secretaria,
                            total_fundacion=total_fundacion,
-                           total_servicios=total_servicios)
+                           total_servicios=total_servicios,
+                           cal_anio=_anio_cal, cal_mes=_mes_cal, cal_mes_nombre=_meses_es_cal[_mes_cal-1],
+                           cal_mes_param=f"{_anio_cal:04d}-{_mes_cal:02d}",
+                           cal_mes_ant=f"{_mes_ant[0]:04d}-{_mes_ant[1]:02d}", cal_mes_sig=f"{_mes_sig[0]:04d}-{_mes_sig[1]:02d}",
+                           cal_semanas=_cal_semanas, cal_eventos=_cal_eventos, hoy_iso=datetime.now().strftime('%Y-%m-%d'))
 
 @app.route('/gestion-rotaria/subir', methods=['POST'])
 def subir_documento_rotario():
