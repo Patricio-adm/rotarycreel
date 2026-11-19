@@ -330,6 +330,23 @@ def es_mi_socio(socio):
         return True
     return False
 
+
+def get_mi_socio():
+    """Socio del usuario logueado (por socio_id o por username = numero_socio). None si no tiene socio vinculado."""
+    try:
+        u = Usuario.query.get(session.get('user_id')) if session.get('user_id') else None
+        if u and u.socio_id:
+            s = Socio.query.get(u.socio_id)
+            if s:
+                return s
+        if session.get('username'):
+            s = Socio.query.filter(func.lower(Socio.numero_socio) == session.get('username','').strip().lower()).first()
+            if s:
+                return s
+    except Exception:
+        pass
+    return None
+
 def puede_tesoreria():
     return session.get('rol') in ROLES_TESORERIA
 
@@ -340,6 +357,17 @@ def solo_estado_cuenta():
         return True
     return False
 
+
+
+def _fecha_ejecucion_form():
+    vals = request.form.getlist('fecha_ejecucion') if hasattr(request.form, 'getlist') else [request.form.get('fecha_ejecucion')]
+    for v in reversed(vals):
+        if v and v.strip():
+            try:
+                return datetime.strptime(v.strip(), '%Y-%m-%d').date()
+            except:
+                continue
+    return None
 
 def get_mes_anio_actual():
     now = datetime.now()
@@ -537,9 +565,11 @@ def menu_principal():
                     festividades.append({'dia': hijo.fecha_nacimiento.day, 'tipo': 'CUMPLEAÑOS HIJO(A)', 'persona': hijo.nombre, 'detalle': f"HIJO(A) DE: {socio.nombre_completo}"})
     # EVENTOS CON FECHA DE EJECUCION EN ESTE MES - para scroll junto con cumpleaños
     try:
-        eventos_mes = DocumentoRotario.query.filter(DocumentoRotario.fecha_ejecucion.isnot(None)).all()
+        eventos_mes = DocumentoRotario.query.all()
+        _vistos = set()
         for ev in eventos_mes:
-            if ev.fecha_ejecucion and ev.fecha_ejecucion.month == mes_actual_num:
+            if ev.fecha_ejecucion and ev.fecha_ejecucion.month == mes_actual_num and ev.fecha_ejecucion.year == datetime.now().year:
+                _vistos.add(ev.id)
                 festividades.append({'dia': ev.fecha_ejecucion.day, 'tipo': '📅 EVENTO / FECHA DE EJECUCION', 'persona': ev.titulo, 'detalle': f"{ev.tipo} - EJECUCION: {ev.fecha_ejecucion.strftime('%d/%m/%Y')} - {ev.descripcion[:80] if ev.descripcion else ''}", 'es_evento': True, 'doc_id': ev.id})
     except Exception as e:
         print(f"Eventos ejecucion: {e}")
@@ -670,6 +700,34 @@ def editar_socio(socio_id):
     socio.telefono = to_upper(request.form.get('telefono')) or socio.telefono
     socio.correo = request.form.get('correo') or socio.correo
     socio.fecha_nacimiento = parse_date(request.form.get('fecha_nacimiento')) or socio.fecha_nacimiento
+    # FAMILIA / DOMICILIO / EMERGENCIA (repuesto: el form los mandaba pero no se guardaban)
+    socio.ciudad = to_upper(request.form.get('ciudad')) or socio.ciudad
+    socio.calle_numero = to_upper(request.form.get('calle_numero')) or socio.calle_numero
+    socio.colonia = to_upper(request.form.get('colonia')) or socio.colonia
+    socio.codigo_postal = to_upper(request.form.get('codigo_postal')) or socio.codigo_postal
+    socio.estado = to_upper(request.form.get('estado')) or socio.estado
+    socio.estado_civil = to_upper(request.form.get('estado_civil')) or socio.estado_civil
+    socio.telefono_emergencia = to_upper(request.form.get('telefono_emergencia')) or socio.telefono_emergencia
+    socio.nombre_esposa = to_upper(request.form.get('nombre_esposa')) or socio.nombre_esposa
+    socio.fecha_nacimiento_esposa = parse_date(request.form.get('fecha_nacimiento_esposa')) or socio.fecha_nacimiento_esposa
+    socio.aniversario_matrimonio = parse_date(request.form.get('aniversario_matrimonio')) or socio.aniversario_matrimonio
+    socio.telefono_esposa = to_upper(request.form.get('telefono_esposa')) or socio.telefono_esposa
+    # CARGOS - actualizar existentes
+    for cargo in list(socio.cargos):
+        if request.form.get(f'cargo_eliminar_{cargo.id}') == '1':
+            db.session.delete(cargo)
+        else:
+            nc = request.form.get(f'cargo_nombre_{cargo.id}')
+            if nc and nc.strip():
+                cargo.cargo = nc.strip().upper()
+                cargo.periodo = request.form.get(f'cargo_periodo_{cargo.id}') or cargo.periodo
+                cargo.es_actual = request.form.get(f'cargo_actual_{cargo.id}') == '1'
+    # CARGOS - nuevos (hasta 10)
+    for i in range(1, 11):
+        n_cargo = request.form.get(f'nuevo_cargo_nombre_{i}')
+        n_periodo = request.form.get(f'nuevo_cargo_periodo_{i}')
+        if n_cargo and n_cargo.strip() and n_periodo:
+            db.session.add(HistorialCargo(socio_id=socio.id, cargo=n_cargo.strip().upper(), periodo=n_periodo.strip(), es_actual=(request.form.get(f'nuevo_cargo_actual_{i}') == '1')))
     foto_archivo = request.files.get('foto_archivo')
     if foto_archivo and foto_archivo.filename and allowed_file(foto_archivo.filename):
         contenido = foto_archivo.read()
@@ -775,7 +833,7 @@ def subir_documento_rotario():
         porcentaje_avance = 0
     # FECHA DE EJECUCION - nueva opcion
     tiene_fecha_ejecucion = request.form.get('tiene_fecha_ejecucion') == '1' or request.form.get('tiene_fecha_ejecucion') == 'on'
-    fecha_ejecucion = _parse(request.form.get('fecha_ejecucion'))
+    fecha_ejecucion = _fecha_ejecucion_form() or _parse(request.form.get('fecha_ejecucion'))
     if fecha_ejecucion:
         tiene_fecha_ejecucion = True
     
@@ -903,7 +961,7 @@ def editar_documento_rotario(doc_id):
     except:
         pass
     doc.tiene_fecha_ejecucion = request.form.get('tiene_fecha_ejecucion') == '1' or request.form.get('tiene_fecha_ejecucion') == 'on'
-    doc.fecha_ejecucion = _parse2(request.form.get('fecha_ejecucion'))
+    doc.fecha_ejecucion = _fecha_ejecucion_form() or _parse2(request.form.get('fecha_ejecucion'))
     if doc.fecha_ejecucion:
         doc.tiene_fecha_ejecucion = True
     if 'archivo' in request.files:
@@ -944,13 +1002,33 @@ def eliminar_autoridad(id):
     db.session.commit()
     return redirect(url_for('gestion_autoridades'))
 
+@app.route('/tesoreria/mis-estados')
+def tesoreria_mis_estados():
+    """HUB para SOCIO: dos botones - ESTADO PERSONAL y ESTADO CLUB. Tesoreria/ADMIN tambien pueden entrar."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    mi_socio = get_mi_socio()
+    # Para ADMIN / TESORERO / PRESIDENTE, mi_socio puede ser None (cuenta fija) - el hub igual sirve, eligen socio en Personal
+    return render_template('tesoreria_socio.html', mi_socio=mi_socio, mes_actual=get_mes_anio_actual())
+
+@app.route('/tesoreria/estado-personal')
+def tesoreria_estado_personal():
+    """Atajo: mi estado personal sin tener que pasar el ID. SOCIO solo el suyo."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    mi_socio = get_mi_socio()
+    if not mi_socio:
+        flash('No tienes socio vinculado. Pide a ADMIN que vincule tu usuario con tu ficha de socio.', 'warning')
+        return redirect(url_for('tesoreria_mis_estados'))
+    return redirect(url_for('estado_cuenta_pdf', socio_id=mi_socio.id))
+
 @app.route('/tesoreria')
 def modulo_tesoreria():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    # REGLA CORREGIDA: SOCIO no ve menu de tesoreria completo, solo estados de cuenta
-    if solo_estado_cuenta():
-        return redirect(url_for('estado_cuenta_mensual'))
+    # SOCIO: no ve menu de tesoreria completo, va al HUB con 2 botones: PERSONAL y CLUB
+    if session.get('rol') not in ROLES_TESORERIA:
+        return redirect(url_for('tesoreria_mis_estados'))
     # Resumen financiero para menu
     total_cuotas = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0
     total_gastos_admin = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='ADMINISTRATIVO').scalar() or 0
@@ -963,8 +1041,8 @@ def modulo_tesoreria():
 def cuotas_sociales():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if solo_estado_cuenta():
-        return redirect(url_for('estado_cuenta_mensual'))
+    if session.get('rol') not in ROLES_TESORERIA:
+        return redirect(url_for('tesoreria_mis_estados'))
     socios = Socio.query.filter_by(es_activo=True).order_by(Socio.nombre_completo.asc()).all()
     config_teso = ConfiguracionTesoreria.query.first()
     saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
@@ -1114,8 +1192,8 @@ def tesoreria_gastos():
     # REGLA CORREGIDA: gastos solo ADMIN/PRESIDENTE/TESORERO. SOCIO solo estados de cuenta.
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if solo_estado_cuenta():
-        return redirect(url_for('estado_cuenta_mensual'))
+    if session.get('rol') not in ROLES_TESORERIA:
+        return redirect(url_for('tesoreria_mis_estados'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     gastos_mes = Gasto.query.filter_by(mes_anio=mes_filtro).order_by(Gasto.fecha.desc()).all()
     total_admin = sum([g.monto for g in gastos_mes if g.centro_costo == 'ADMINISTRATIVO'])
@@ -1294,6 +1372,7 @@ def estado_cuenta_mensual():
 
     config = ConfiguracionTesoreria.query.first()
     saldo_inicial = config.saldo_inicial if config else 0.0
+    mi_socio = get_mi_socio()
 
     # CUOTAS MES
     pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
@@ -1367,7 +1446,7 @@ def estado_cuenta_mensual():
                            total_ingresos_extra_hist=total_ingresos_extra_hist,
                            saldo_cuotas=saldo_cuotas,
                            saldo_proyectos=saldo_proyectos,
-                           saldo_extra=saldo_extra)
+                           saldo_extra=saldo_extra, mi_socio=mi_socio)
 
 @app.route('/tesoreria/estado-cuenta-pdf-mensual')
 def estado_cuenta_pdf_mensual():
