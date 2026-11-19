@@ -122,15 +122,17 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 
 {% if session.get('rol') != 'RCREEL' %}
 {% if session.get('rol') in ['ADMIN','PRESIDENTE','TESORERO'] %}
-<a href="/tesoreria" class="text-decoration-none">
-<div class="card card-modulo card-tesoreria text-center p-3">
+<div style="display:flex; flex-direction:column;">
+<a href="/tesoreria" class="text-decoration-none" style="display:block;">
+<div class="card card-modulo card-tesoreria text-center p-3" style="border-radius:14px 14px 0 0; margin-bottom:0;">
 <div class="icono">💰</div>
 <h6 class="fw-bold mb-1" style="font-size:14px; color:#000;">TESORERÍA</h6>
 <small style="font-size:9px; color:#666;">CONTROL DE CUOTAS SOCIALES</small>
 <small style="font-size:7px; color:#28a745; font-weight:700; margin-top:6px; display:block;">CUOTAS • GASTOS • PROYECTOS • ESTADO CUENTA</small>
 </div>
 </a>
-<div style="margin-top:-6px;"><a href="/tesoreria/pagos" class="btn btn-warning fw-bold w-100" style="font-size:11px; border-radius:0 0 14px 14px;">✏️ CORREGIR PAGOS - EDITAR / BORRAR CUOTAS</a></div>
+<a href="/tesoreria/pagos" class="btn btn-warning fw-bold w-100" style="font-size:11px; border-radius:0 0 14px 14px; min-height:44px; display:flex; align-items:center; justify-content:center;">✏️ CORREGIR PAGOS - EDITAR / BORRAR CUOTAS</a>
+</div>
 {% else %}
 <a href="/tesoreria/mis-estados" class="text-decoration-none">
 <div class="card card-modulo card-tesoreria text-center p-3">
