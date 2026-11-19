@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestión Rotaria - Rotary Creel</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -36,6 +37,35 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 .cal-dia.vacio { background:#f4f6f9; cursor:default; }
 .cal-chip { display:block; font-size:7px; font-weight:800; color:#fff; border-radius:4px; padding:2px 4px; margin:2px 0; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
 .cal-chip:hover { filter:brightness(1.15); }
+
+/* ===== VISTA MOVIL - RESPONSIVE (una sola version, no duplicada) ===== */
+@media (max-width: 768px) {
+  body { font-size: 13px !important; }
+  .header-rotary { flex-wrap: wrap; gap: 8px; padding: 10px 12px !important; }
+  .header-rotary h5, .header-rotary h6 { font-size: 13px !important; }
+  .container, .container-fluid { padding-left: 10px !important; padding-right: 10px !important; }
+  .btn, .btn-sm { min-height: 44px; font-size: 13px !important; padding: 8px 10px !important; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-group, .btn-group-vertical { flex-wrap: wrap; }
+  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; }
+  .table-responsive table { min-width: 620px; }
+  .modal-dialog { margin: 8px auto !important; max-width: calc(100% - 16px) !important; }
+  .modal-dialog.modal-lg, .modal-dialog.modal-xl { max-width: calc(100% - 16px) !important; }
+  .modal-body { padding: 12px !important; }
+  .card { margin-bottom: 10px; }
+  input, select, textarea { font-size: 16px !important; } /* evita zoom en iPhone */
+  .row > [class*="col-"] { margin-bottom: 6px; }
+  /* Calendario ERP en movil: celdas mas compactas */
+  .cal-dia { min-height: 54px !important; padding: 3px !important; }
+  .cal-chip { font-size: 6px !important; padding: 1px 2px !important; }
+  /* Tarjetas de menu / contadores en movil: 1 columna */
+  .grid-2x2 { grid-template-columns: 1fr !important; max-width: 100% !important; }
+  .card-modulo { height: auto !important; min-height: 120px; padding: 16px !important; }
+}
+@media (max-width: 480px) {
+  .cal-dia { min-height: 46px !important; }
+  .header-rotary .btn { width: 100%; }
+}
+
 </style>
 </head>
 <body>
