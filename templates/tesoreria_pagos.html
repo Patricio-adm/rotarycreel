@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corregir Pagos - Cuotas Sociales - Rotary Creel</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body { font-family:'Segoe UI',sans-serif; text-transform:uppercase; font-size:12px; background:#f4f6f9; }
+.header-rotary { background:#17458F; color:white; padding:12px 20px; border-bottom:4px solid #F7A81B; }
+@media (max-width:768px){
+  .btn, .btn-sm { min-height:44px; font-size:13px !important; padding:8px 10px !important; }
+  .table-responsive { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .table-responsive table { min-width:720px; }
+  .modal-dialog { margin:8px auto !important; max-width:calc(100% - 16px) !important; }
+  input, select { font-size:16px !important; }
+}
+</style>
+</head>
+<body>
+<div class="header-rotary d-flex justify-content-between align-items-center flex-wrap gap-2">
+<div><h5 class="mb-0 fw-bold" style="font-size:15px;">💰 CORREGIR PAGOS - CUOTAS SOCIALES</h5><small style="font-size:10px;">SOLO ADMIN / PRESIDENTE / TESORERO - AQUI SI SE PUEDE EDITAR Y BORRAR</small></div>
+<div class="d-flex gap-2"><a href="/tesoreria" class="btn btn-outline-light btn-sm fw-bold">TESORERÍA</a><a href="/menu" class="btn btn-outline-light btn-sm fw-bold">MENÚ</a></div>
+</div>
+<div class="container-fluid py-3">
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} py-2" style="font-size:11px; text-transform:none;">{{ message }}</div>{% endfor %}{% endif %}
+{% endwith %}
+
+<div class="alert alert-warning py-2" style="font-size:11px; text-transform:none;">⚠️ <strong>Si aplicaste mal un pago, corrígelo aquí.</strong> Puedes cambiar <strong>socio, mes, monto, método, referencia y fecha</strong>. Si el pago era de otro socio o de otro mes, edítalo, no lo borres y lo vuelvas a capturar. Borrar solo si de plano no existió ese pago.</div>
+
+<form method="GET" class="row g-2 mb-3">
+<div class="col-md-5"><input name="q" value="{{ q }}" class="form-control" placeholder="Buscar socio por nombre..."></div>
+<div class="col-md-4"><select name="mes" class="form-select"><option value="">TODOS LOS MESES</option>{% for m in meses %}<option value="{{ m }}" {% if mes_f == m %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+<div class="col-md-3 d-flex gap-2"><button class="btn btn-primary fw-bold flex-fill">🔍 BUSCAR</button><a href="/tesoreria/pagos" class="btn btn-secondary fw-bold">LIMPIAR</a></div>
+</form>
+
+<div class="table-responsive">
+<table class="table table-bordered table-hover bg-white" style="font-size:11px;">
+<thead style="background:#17458F; color:#fff; text-align:center;"><tr><th>ID</th><th>SOCIO</th><th>MES</th><th>MONTO</th><th>MÉTODO</th><th>REFERENCIA</th><th>FECHA</th><th style="width:190px;">ACCIONES</th></tr></thead>
+<tbody>
+{% for p in pagos %}
+<tr>
+<td class="fw-bold text-center">{{ p.id }}</td>
+<td>{{ p.socio.nombre_completo if p.socio else 'SOCIO #' ~ p.socio_id }}</td>
+<td class="text-center fw-bold">{{ p.mes_anio }}</td>
+<td class="text-end">${{ '%.2f'|format(p.monto) }}</td>
+<td class="text-center">{{ p.metodo_pago or '-' }}</td>
+<td class="text-center">{{ p.referencia or '-' }}</td>
+<td class="text-center">{{ p.fecha_pago.strftime('%d/%m/%Y') if p.fecha_pago else '-' }}</td>
+<td><div class="d-flex gap-1">
+<button class="btn btn-warning btn-sm fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#modalEditarPago{{ p.id }}">✏️ EDITAR</button>
+<button class="btn btn-danger btn-sm fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#modalBorrarPago{{ p.id }}">🗑️ BORRAR</button>
+</div></td>
+</tr>
+
+<!-- MODAL EDITAR -->
+<div class="modal fade" id="modalEditarPago{{ p.id }}" tabindex="-1">
+<div class="modal-dialog"><div class="modal-content">
+<form method="POST" action="/tesoreria/editar-pago/{{ p.id }}">
+<div class="modal-header" style="background:#ffc107;"><h6 class="modal-title fw-bold" style="font-size:12px;">✏️ CORREGIR PAGO #{{ p.id }}</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" style="text-transform:none; font-size:12px;">
+<input type="hidden" name="volver" value="/tesoreria/pagos{% if q or mes_f %}?q={{ q }}&mes={{ mes_f }}{% endif %}">
+<div class="mb-2"><label class="fw-bold">SOCIO (si lo aplicaste al socio equivocado, cámbialo aquí)</label><select name="socio_id" class="form-select" required>{% for s in socios %}<option value="{{ s.id }}" {% if s.id == p.socio_id %}selected{% endif %}>{{ s.nombre_completo }}</option>{% endfor %}</select></div>
+<div class="mb-2"><label class="fw-bold">MES (si lo aplicaste al mes equivocado, cámbialo aquí)</label><select name="mes_anio" class="form-select" required>{% for m in meses %}<option value="{{ m }}" {% if m == p.mes_anio %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+<div class="row"><div class="col-6 mb-2"><label class="fw-bold">MONTO</label><input name="monto" type="number" step="0.01" class="form-control" value="{{ p.monto }}" required></div>
+<div class="col-6 mb-2"><label class="fw-bold">FECHA PAGO</label><input name="fecha_pago" type="date" class="form-control" value="{{ p.fecha_pago.strftime('%Y-%m-%d') if p.fecha_pago else '' }}"></div></div>
+<div class="mb-2"><label class="fw-bold">MÉTODO</label><input name="metodo_pago" class="form-control" value="{{ p.metodo_pago or '' }}" placeholder="EFECTIVO / TRANSFERENCIA / LINK GETNET..."></div>
+<div class="mb-2"><label class="fw-bold">REFERENCIA</label><input name="referencia" class="form-control" value="{{ p.referencia or '' }}"></div>
+<div class="alert alert-info py-1" style="font-size:11px;">Si ya existe un pago de ese socio en ese mes, el sistema te lo va a rechazar para no duplicar.</div>
+</div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">CANCELAR</button><button type="submit" class="btn btn-warning fw-bold">💾 GUARDAR CORRECCIÓN</button></div>
+</form></div></div></div>
+
+<!-- MODAL BORRAR -->
+<div class="modal fade" id="modalBorrarPago{{ p.id }}" tabindex="-1">
+<div class="modal-dialog"><div class="modal-content">
+<form method="POST" action="/tesoreria/editar-pago/{{ p.id }}" onsubmit="return confirm('¿Seguro que quieres BORRAR este pago? No se puede deshacer.');">
+<div class="modal-header bg-danger text-white"><h6 class="modal-title fw-bold" style="font-size:12px;">🗑️ BORRAR PAGO #{{ p.id }}</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" style="text-transform:none; font-size:12px;">
+<input type="hidden" name="accion" value="eliminar">
+<input type="hidden" name="volver" value="/tesoreria/pagos{% if q or mes_f %}?q={{ q }}&mes={{ mes_f }}{% endif %}">
+Vas a borrar:<br><strong>{{ p.socio.nombre_completo if p.socio else '' }} - {{ p.mes_anio }} - ${{ '%.2f'|format(p.monto) }}</strong><br>Referencia: {{ p.referencia or '-' }}<br><br>Úsalo solo si ese pago <strong>no existió</strong>. Si te equivocaste de socio o de mes, mejor usa <strong>EDITAR</strong>.
+</div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">CANCELAR</button><button type="submit" class="btn btn-danger fw-bold">🗑️ SÍ, BORRAR</button></div>
+</form></div></div></div>
+{% endfor %}
+{% if not pagos %}<tr><td colspan="8" class="text-center py-4">SIN PAGOS CON ESE FILTRO</td></tr>{% endif %}
+</tbody></table>
+</div>
+<p style="font-size:10px; color:#666; text-transform:none;">Mostrando hasta 500 pagos, los más recientes primero. Usa el buscador para encontrar el pago que aplicaste mal.</p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
