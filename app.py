@@ -330,6 +330,23 @@ def es_mi_socio(socio):
         return True
     return False
 
+
+def get_mi_socio():
+    """Socio del usuario logueado (por socio_id o por username = numero_socio). None si no tiene socio vinculado."""
+    try:
+        u = Usuario.query.get(session.get('user_id')) if session.get('user_id') else None
+        if u and u.socio_id:
+            s = Socio.query.get(u.socio_id)
+            if s:
+                return s
+        if session.get('username'):
+            s = Socio.query.filter(func.lower(Socio.numero_socio) == session.get('username','').strip().lower()).first()
+            if s:
+                return s
+    except Exception:
+        pass
+    return None
+
 def puede_tesoreria():
     return session.get('rol') in ROLES_TESORERIA
 
@@ -986,12 +1003,33 @@ def eliminar_autoridad(id):
     return redirect(url_for('gestion_autoridades'))
 
 @app.route('/tesoreria')
+@app.route('/tesoreria/mis-estados')
+def tesoreria_mis_estados():
+    """HUB para SOCIO: dos botones - ESTADO PERSONAL y ESTADO CLUB. Tesoreria/ADMIN tambien pueden entrar."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    mi_socio = get_mi_socio()
+    # Para ADMIN / TESORERO / PRESIDENTE, mi_socio puede ser None (cuenta fija) - el hub igual sirve, eligen socio en Personal
+    return render_template('tesoreria_socio.html', mi_socio=mi_socio, mes_actual=get_mes_anio_actual())
+
+@app.route('/tesoreria/estado-personal')
+def tesoreria_estado_personal():
+    """Atajo: mi estado personal sin tener que pasar el ID. SOCIO solo el suyo."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    mi_socio = get_mi_socio()
+    if not mi_socio:
+        flash('No tienes socio vinculado. Pide a ADMIN que vincule tu usuario con tu ficha de socio.', 'warning')
+        return redirect(url_for('tesoreria_mis_estados'))
+    return redirect(url_for('estado_cuenta_pdf', socio_id=mi_socio.id))
+
+@app.route('/tesoreria')
 def modulo_tesoreria():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    # REGLA CORREGIDA: SOCIO no ve menu de tesoreria completo, solo estados de cuenta
-    if solo_estado_cuenta():
-        return redirect(url_for('estado_cuenta_mensual'))
+    # SOCIO: no ve menu de tesoreria completo, va al HUB con 2 botones: PERSONAL y CLUB
+    if session.get('rol') not in ROLES_TESORERIA:
+        return redirect(url_for('tesoreria_mis_estados'))
     # Resumen financiero para menu
     total_cuotas = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0
     total_gastos_admin = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='ADMINISTRATIVO').scalar() or 0
@@ -1004,8 +1042,8 @@ def modulo_tesoreria():
 def cuotas_sociales():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if solo_estado_cuenta():
-        return redirect(url_for('estado_cuenta_mensual'))
+    if session.get('rol') not in ROLES_TESORERIA:
+        return redirect(url_for('tesoreria_mis_estados'))
     socios = Socio.query.filter_by(es_activo=True).order_by(Socio.nombre_completo.asc()).all()
     config_teso = ConfiguracionTesoreria.query.first()
     saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
@@ -1155,8 +1193,8 @@ def tesoreria_gastos():
     # REGLA CORREGIDA: gastos solo ADMIN/PRESIDENTE/TESORERO. SOCIO solo estados de cuenta.
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if solo_estado_cuenta():
-        return redirect(url_for('estado_cuenta_mensual'))
+    if session.get('rol') not in ROLES_TESORERIA:
+        return redirect(url_for('tesoreria_mis_estados'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     gastos_mes = Gasto.query.filter_by(mes_anio=mes_filtro).order_by(Gasto.fecha.desc()).all()
     total_admin = sum([g.monto for g in gastos_mes if g.centro_costo == 'ADMINISTRATIVO'])
@@ -1335,6 +1373,7 @@ def estado_cuenta_mensual():
 
     config = ConfiguracionTesoreria.query.first()
     saldo_inicial = config.saldo_inicial if config else 0.0
+    mi_socio = get_mi_socio()
 
     # CUOTAS MES
     pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
@@ -1408,7 +1447,7 @@ def estado_cuenta_mensual():
                            total_ingresos_extra_hist=total_ingresos_extra_hist,
                            saldo_cuotas=saldo_cuotas,
                            saldo_proyectos=saldo_proyectos,
-                           saldo_extra=saldo_extra)
+                           saldo_extra=saldo_extra, mi_socio=mi_socio)
 
 @app.route('/tesoreria/estado-cuenta-pdf-mensual')
 def estado_cuenta_pdf_mensual():
