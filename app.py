@@ -1103,6 +1103,26 @@ def cuotas_sociales():
     ultimo_pago = pagos_recibo[-1] if pagos_recibo else None
     return render_template('tesoreria.html', socios=socios, meses=MESES_CONTROL, ultimo_pago=ultimo_pago, pagos_recibo=pagos_recibo, saldo_inicial=saldo_inicial, saldo_total_general=saldo_total_general, total_recaudado=total_recaudado, total_ingresos_proyectos=total_ingresos_proyectos, total_ingresos_extra=total_ingresos_extra, total_gastos_admin=total_gastos_admin, total_gastos_proy=total_gastos_proy)
 
+
+@app.route('/tesoreria/pagos')
+def tesoreria_pagos():
+    """Lista de TODOS los pagos de cuotas con EDITAR y BORRAR. Solo ADMIN/PRESIDENTE/TESORERO."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO pueden corregir pagos.', 'danger')
+        return redirect(url_for('tesoreria_mis_estados'))
+    q = request.args.get('q', '').strip()
+    mes_f = request.args.get('mes', '').strip().upper()
+    pagos_q = PagoCuota.query.join(Socio, PagoCuota.socio_id == Socio.id)
+    if q:
+        pagos_q = pagos_q.filter(Socio.nombre_completo.ilike(f'%{q}%'))
+    if mes_f:
+        pagos_q = pagos_q.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_f)
+    pagos = pagos_q.order_by(PagoCuota.fecha_pago.desc(), PagoCuota.id.desc()).limit(500).all()
+    socios = Socio.query.filter_by(es_activo=True).order_by(Socio.nombre_completo.asc()).all()
+    return render_template('tesoreria_pagos.html', pagos=pagos, socios=socios, meses=MESES_CONTROL, q=q, mes_f=mes_f)
+
 @app.route('/tesoreria/actualizar-saldo-inicial', methods=['POST'])
 def actualizar_saldo_inicial():
     if 'user_id' not in session or session.get('rol') not in ['ADMIN', 'TESORERO', 'PRESIDENTE']:
@@ -1166,17 +1186,37 @@ def editar_pago_cuota(pago_id):
     pago = PagoCuota.query.get_or_404(pago_id)
     if request.form.get('accion') == 'eliminar':
         db.session.delete(pago)
-        flash('Pago eliminado.', 'warning')
-    else:
+        db.session.commit()
+        flash(f'Pago eliminado: {pago.mes_anio} - ${pago.monto:.2f}.', 'warning')
+        return redirect(request.form.get('volver') or url_for('cuotas_sociales'))
+    # EDITAR: mes, socio, monto, metodo, referencia y fecha
+    nuevo_mes = (request.form.get('mes_anio') or pago.mes_anio).strip().upper()
+    try:
+        nuevo_socio_id = int(request.form.get('socio_id') or pago.socio_id)
+    except:
+        nuevo_socio_id = pago.socio_id
+    # Control de duplicado: mismo socio + mismo mes en otro pago
+    dup = PagoCuota.query.filter(PagoCuota.socio_id == nuevo_socio_id, func.upper(func.trim(PagoCuota.mes_anio)) == nuevo_mes, PagoCuota.id != pago.id).first()
+    if dup:
+        flash(f'Ya existe un pago de ese socio en {nuevo_mes}. No se puede duplicar. Cambia el mes o borra el duplicado.', 'danger')
+        return redirect(request.form.get('volver') or url_for('cuotas_sociales'))
+    try:
+        pago.monto = float(request.form.get('monto', 500.0))
+    except:
+        pago.monto = 500.0
+    pago.socio_id = nuevo_socio_id
+    pago.mes_anio = nuevo_mes
+    pago.metodo_pago = to_upper(request.form.get('metodo_pago'))
+    pago.referencia = to_upper(request.form.get('referencia'))
+    _fp = request.form.get('fecha_pago')
+    if _fp:
         try:
-            pago.monto = float(request.form.get('monto', 500.0))
+            pago.fecha_pago = datetime.strptime(_fp, '%Y-%m-%d').date()
         except:
-            pago.monto = 500.0
-        pago.metodo_pago = to_upper(request.form.get('metodo_pago'))
-        pago.referencia = to_upper(request.form.get('referencia'))
-        flash('Pago actualizado.', 'success')
+            pass
     db.session.commit()
-    return redirect(url_for('cuotas_sociales'))
+    flash(f'Pago corregido: {pago.mes_anio} - ${pago.monto:.2f}.', 'success')
+    return redirect(request.form.get('volver') or url_for('cuotas_sociales'))
 
 @app.route('/tesoreria/recibo/<int:pago_id>')
 def ver_recibo(pago_id):
