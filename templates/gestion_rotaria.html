@@ -30,6 +30,12 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 .fila-doc:hover { background:#e8f0ff !important; }
 .fila-doc:hover .titulo-col strong { color:#0d6efd !important; text-decoration:underline; }
 .btn-no-permiso { opacity:0.45; cursor:not-allowed; }
+.cal-dia { min-height:86px; vertical-align:top; cursor:pointer; background:#fff; }
+.cal-dia:hover { background:#e8f0ff; }
+.cal-dia.hoy { background:#fff3cd; box-shadow:inset 0 0 0 2px #F7A81B; }
+.cal-dia.vacio { background:#f4f6f9; cursor:default; }
+.cal-chip { display:block; font-size:7px; font-weight:800; color:#fff; border-radius:4px; padding:2px 4px; margin:2px 0; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+.cal-chip:hover { filter:brightness(1.15); }
 </style>
 </head>
 <body>
@@ -87,6 +93,73 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 </div>
 </div>
 </div>
+
+<!-- ============ CALENDARIO ERP ============ -->
+<div class="card mb-3" style="border:2px solid #17458F;">
+<div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background:#17458F; color:#fff;">
+<span class="fw-bold" style="font-size:12px;">📅 CALENDARIO DE ACTIVIDADES - ERP</span>
+<div class="d-flex gap-1 align-items-center">
+<a href="/gestion-rotaria?mes={{ cal_mes_ant }}{% if tipo_filtro != 'TODOS' %}&tipo={{ tipo_filtro }}{% endif %}{% if estado_filtro != 'TODOS' %}&estado={{ estado_filtro }}{% endif %}" class="btn btn-light btn-sm fw-bold">◀</a>
+<a href="/gestion-rotaria?mes={{ cal_mes_param }}{% if tipo_filtro != 'TODOS' %}&tipo={{ tipo_filtro }}{% endif %}{% if estado_filtro != 'TODOS' %}&estado={{ estado_filtro }}{% endif %}" class="btn btn-warning btn-sm fw-bold" style="font-size:10px;">{{ cal_mes_nombre }} {{ cal_anio }}</a>
+<a href="/gestion-rotaria?mes={{ cal_mes_sig }}{% if tipo_filtro != 'TODOS' %}&tipo={{ tipo_filtro }}{% endif %}{% if estado_filtro != 'TODOS' %}&estado={{ estado_filtro }}{% endif %}" class="btn btn-light btn-sm fw-bold">▶</a>
+<a href="/gestion-rotaria{% if tipo_filtro != 'TODOS' %}?tipo={{ tipo_filtro }}{% endif %}" class="btn btn-outline-light btn-sm fw-bold" style="font-size:9px;">HOY</a>
+</div>
+</div>
+<div class="card-body p-2" style="background:#f4f6f9;">
+<small style="font-size:9px; color:#555;">👆 Click en un <strong>dia</strong> = ver los eventos de ese dia. &nbsp; Click en un <strong>evento</strong> = ver su modal con toda la informacion. &nbsp; Si el documento tiene fecha de ejecucion, sale ese dia; si tiene rango inicio-termino, sale todos los dias del rango; si no, sale su fecha de documento.</small>
+<table class="table table-bordered bg-white mb-0" style="font-size:9px; table-layout:fixed;">
+<thead><tr style="background:#17458F; color:#fff; text-align:center;"><th>LUN</th><th>MAR</th><th>MIE</th><th>JUE</th><th>VIE</th><th>SAB</th><th>DOM</th></tr></thead>
+<tbody>
+{% for semana in cal_semanas %}
+<tr>
+{% for dia in semana %}
+{% if dia == 0 %}
+<td class="cal-dia vacio"></td>
+{% else %}
+{% set _fecha_iso = '%04d-%02d-%02d'|format(cal_anio, cal_mes, dia) %}
+{% set _evs = cal_eventos.get(_fecha_iso, []) %}
+<td class="cal-dia {{ 'hoy' if _fecha_iso == hoy_iso else '' }}" data-bs-toggle="modal" data-bs-target="#modalDia{{ _fecha_iso }}" title="{{ _evs|length }} evento(s) - Click para ver">
+<div class="d-flex justify-content-between align-items-center"><strong style="font-size:12px;">{{ dia }}</strong>{% if _evs %}<span class="badge bg-primary" style="font-size:7px;">{{ _evs|length }}</span>{% endif %}</div>
+{% for ev in _evs[:3] %}
+<span class="cal-chip badge-tipo-{{ ev.tipo }}" data-bs-toggle="modal" data-bs-target="#modalVer{{ ev.id }}" onclick="event.stopPropagation();" title="{{ ev.titulo }}">{{ ev.tipo[:4] }}: {{ ev.titulo[:28] }}</span>
+{% endfor %}
+{% if _evs|length > 3 %}<small style="font-size:7px; color:#17458F; font-weight:800;">+{{ _evs|length - 3 }} MAS...</small>{% endif %}
+</td>
+{% endif %}
+{% endfor %}
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- MODALES POR DIA - lista de eventos del dia -->
+{% for _fecha_iso, _evs in cal_eventos.items() %}
+{% if _fecha_iso.startswith(cal_mes_param) %}
+<div class="modal fade" id="modalDia{{ _fecha_iso }}" tabindex="-1">
+<div class="modal-dialog">
+<div class="modal-content" style="border:3px solid #17458F;">
+<div class="modal-header" style="background:#17458F; color:#fff;">
+<h6 class="modal-title" style="font-size:12px; font-weight:900;">📅 EVENTOS DEL DIA - {{ _fecha_iso }} ({{ _evs|length }})</h6>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" style="font-size:11px; text-transform:none;">
+{% for ev in _evs %}
+<div class="p-2 mb-2" style="border:1px solid #ccc; border-radius:8px; background:#f9f9f9; cursor:pointer;" data-bs-toggle="modal" data-bs-target="#modalVer{{ ev.id }}" onclick="var m=bootstrap.Modal.getInstance(document.getElementById('modalDia{{ _fecha_iso }}')); if(m) m.hide();">
+<div class="d-flex justify-content-between"><strong style="text-transform:uppercase;">{{ ev.titulo }}</strong><span class="badge badge-tipo-{{ ev.tipo }}">{{ ev.tipo }}</span></div>
+<small style="color:#666;">{{ ev.descripcion[:140] if ev.descripcion else 'Sin descripcion' }}</small><br>
+<small><strong>Responsable:</strong> {{ ev.responsable or '-' }} &nbsp;|&nbsp; <strong>Prioridad:</strong> {{ ev.prioridad or '-' }} &nbsp;|&nbsp; <strong>Avance:</strong> {{ ev.porcentaje_avance or 0 }}% &nbsp;|&nbsp; <strong>Estado:</strong> {{ ev.estado }}</small><br>
+<small style="color:#0d6efd; font-weight:800;">👆 CLICK PARA VER MODAL COMPLETO</small>
+</div>
+{% endfor %}
+</div>
+<div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">CERRAR</button></div>
+</div>
+</div>
+</div>
+{% endif %}
+{% endfor %}
 
 <!-- TABLA DOCUMENTOS -->
 <div class="table-responsive">
