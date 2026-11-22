@@ -1350,7 +1350,7 @@ def nuevo_gasto():
         comprobante=request.form.get('comprobante'),
         foto_comprobante=foto_b64,
         creado_por=session.get('username','TESORERIA'),
-        notas=request.form.get('notas')
+        notas=to_upper(request.form.get('notas'))
     )
     db.session.add(gasto)
     db.session.commit()
@@ -1737,7 +1737,7 @@ def nuevo_ingreso_extraordinario():
     tipo = request.form.get('tipo', 'DONACION').strip().upper()
     origen = to_upper(request.form.get('origen'))
     referencia = to_upper(request.form.get('referencia'))
-    notas = request.form.get('notas')
+    notas = to_upper(request.form.get('notas'))
     try:
         monto = float(request.form.get('monto', 0))
     except:
@@ -1919,7 +1919,7 @@ def tesoreria_historico_nuevo():
         except: proyecto_id = None
     origen = to_upper(request.form.get('origen'))
     referencia = to_upper(request.form.get('referencia'))
-    notas = request.form.get('notas')
+    notas = to_upper(request.form.get('notas'))
     user = Usuario.query.get(session['user_id'])
     quien = user.nombre if user and hasattr(user, 'nombre') else (user.username if user else 'TESORERIA')
     if tipo_mov == 'INGRESO':
@@ -1966,7 +1966,7 @@ def tesoreria_saldos_iniciales():
         config.saldo_inicial_cuotas = si_cuotas
         config.saldo_inicial_proyectos = si_proy
         config.fecha_fundacion = date(2024, 11, 23)
-    config.nota_saldos_iniciales = request.form.get('nota_saldos')
+    config.nota_saldos_iniciales = to_upper(request.form.get('nota_saldos'))
     config.fecha_actualizacion = datetime.now().date()
     db.session.commit()
     flash(f'Saldos iniciales guardados al 23 NOV 2024: Cuotas ${si_cuotas:,.2f} + Proyectos ${si_proy:,.2f}.', 'success')
@@ -2070,7 +2070,7 @@ def tesoreria_historico_editar_gasto(gasto_id):
     g.centro_costo = centro
     g.proyecto_id = pid
     g.comprobante = to_upper(request.form.get('referencia')) or g.comprobante
-    g.notas = request.form.get('notas')
+    g.notas = to_upper(request.form.get('notas'))
     db.session.commit()
     flash(f'Egreso corregido: {g.concepto} - ${g.monto:,.2f} ({fecha.strftime("%d/%m/%Y")}).', 'success')
     return redirect(url_for('tesoreria_historico'))
@@ -2101,7 +2101,7 @@ def tesoreria_historico_editar_ingreso(ingreso_id):
     ing.tipo = (request.form.get('tipo_ingreso') or ing.tipo).strip().upper()
     ing.origen = to_upper(request.form.get('origen')) or ing.origen
     ing.referencia = to_upper(request.form.get('referencia')) or ing.referencia
-    ing.notas = request.form.get('notas')
+    ing.notas = to_upper(request.form.get('notas'))
     db.session.commit()
     flash(f'Ingreso corregido: {ing.concepto} - ${ing.monto:,.2f} ({fecha.strftime("%d/%m/%Y")}).', 'success')
     return redirect(url_for('tesoreria_historico'))
