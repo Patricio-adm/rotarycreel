@@ -216,6 +216,8 @@ with app.app_context():
                 db.session.execute(_sa_text(f"ALTER TABLE configuracion_tesoreria ADD COLUMN IF NOT EXISTS {_col} {_tipo}"))
             except Exception as _e:
                 print(f"Migracion {_col}: {_e}")
+        # La fila que ya existia quedo con NULL -> convertirla a 0 / 23 NOV 2024 para que no truene la suma
+        db.session.execute(_sa_text("UPDATE configuracion_tesoreria SET saldo_inicial = COALESCE(saldo_inicial, 0), saldo_inicial_cuotas = COALESCE(saldo_inicial_cuotas, saldo_inicial, 0), saldo_inicial_proyectos = COALESCE(saldo_inicial_proyectos, 0), fecha_fundacion = COALESCE(fecha_fundacion, DATE '2024-11-23')"))
         db.session.commit()
     except Exception as _e:
         print(f"Migracion historico: {_e}")
@@ -1099,7 +1101,7 @@ def cuotas_sociales():
         return redirect(url_for('tesoreria_mis_estados'))
     socios = Socio.query.filter_by(es_activo=True).order_by(Socio.nombre_completo.asc()).all()
     config_teso = ConfiguracionTesoreria.query.first()
-    saldo_inicial = config_teso.saldo_inicial if config_teso else 0.0
+    saldo_inicial = float(config_teso.saldo_inicial or 0.0) if config_teso else 0.0
     total_recaudado = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0.0
     total_ingresos_proyectos = db.session.query(func.sum(EventoProyecto.monto_recaudado)).scalar() or 0.0
     total_ingresos_extra = db.session.query(func.sum(IngresoExtraordinario.monto)).scalar() or 0.0
@@ -1476,7 +1478,7 @@ def estado_cuenta_mensual():
     meses_lista = list(reversed(meses_lista))
 
     config = ConfiguracionTesoreria.query.first()
-    saldo_inicial = config.saldo_inicial if config else 0.0
+    saldo_inicial = float(config.saldo_inicial or 0.0) if config else 0.0
     mi_socio = get_mi_socio()
 
     # CUOTAS MES
@@ -1560,7 +1562,7 @@ def estado_cuenta_pdf_mensual():
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     config = ConfiguracionTesoreria.query.first()
-    saldo_inicial = config.saldo_inicial if config else 0.0
+    saldo_inicial = float(config.saldo_inicial or 0.0) if config else 0.0
     pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
     total_cuotas_mes = sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0
     gastos_admin = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='ADMINISTRATIVO').all()
@@ -1713,7 +1715,7 @@ def ingresos_extraordinarios():
     
     # Para saldo
     config = ConfiguracionTesoreria.query.first()
-    saldo_inicial = config.saldo_inicial if config else 0.0
+    saldo_inicial = float(config.saldo_inicial or 0.0) if config else 0.0
     
     return render_template('ingresos_extraordinarios.html',
                            ingresos=ingresos,
@@ -1832,10 +1834,12 @@ def tesoreria_historico():
     if not puede_tesoreria():
         return redirect(url_for('tesoreria_mis_estados'))
     config = ConfiguracionTesoreria.query.first()
-    si_cuotas = (getattr(config, 'saldo_inicial_cuotas', None) if config else None)
-    if si_cuotas is None:
-        si_cuotas = config.saldo_inicial if config else 0.0
-    si_proy = getattr(config, 'saldo_inicial_proyectos', 0.0) if config else 0.0
+    # FIX None: la fila vieja quedo con NULL en las columnas nuevas -> float(None) truena
+    def _f(v, d=0.0):
+        try: return float(v) if v is not None else float(d)
+        except: return float(d)
+    si_cuotas = _f(getattr(config, 'saldo_inicial_cuotas', None), _f(getattr(config, 'saldo_inicial', 0.0)) if config else 0.0)
+    si_proy = _f(getattr(config, 'saldo_inicial_proyectos', 0.0)) if config else 0.0
     fecha_fund = getattr(config, 'fecha_fundacion', date(2024, 11, 23)) if config else date(2024, 11, 23)
     # Filtros
     desde = request.args.get('desde', '2024-11-23')
@@ -1854,11 +1858,11 @@ def tesoreria_historico():
     gastos = gastos_q.order_by(Gasto.fecha.desc()).all()
     # Cuotas en rango (por fecha_pago)
     cuotas = PagoCuota.query.filter(PagoCuota.fecha_pago >= f_desde, PagoCuota.fecha_pago <= f_hasta).order_by(PagoCuota.fecha_pago.desc()).all()
-    total_ingresos = sum(i.monto for i in ingresos)
-    total_gastos = sum(g.monto for g in gastos)
-    total_gastos_admin = sum(g.monto for g in gastos if g.centro_costo == 'ADMINISTRATIVO')
-    total_gastos_proy = sum(g.monto for g in gastos if g.centro_costo == 'PROYECTO')
-    total_cuotas = sum(p.monto for p in cuotas)
+    total_ingresos = sum(_f(i.monto) for i in ingresos)
+    total_gastos = sum(_f(g.monto) for g in gastos)
+    total_gastos_admin = sum(_f(g.monto) for g in gastos if g.centro_costo == 'ADMINISTRATIVO')
+    total_gastos_proy = sum(_f(g.monto) for g in gastos if g.centro_costo == 'PROYECTO')
+    total_cuotas = sum(_f(p.monto) for p in cuotas)
     saldo_historico = si_cuotas + si_proy + total_cuotas + total_ingresos - total_gastos
     saldo_cuotas = si_cuotas + total_cuotas - total_gastos_admin
     # Proyectos: ingresos de eventos + SI proyectos - gastos proyecto (aprox, ingresos de eventos van en EventoProyecto)
