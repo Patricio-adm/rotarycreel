@@ -92,5 +92,22 @@ Sin pagos registrados todavia. Si ya pagaste y no aparece, avisa a Tesoreria.
 <div class="alert alert-info mt-4 py-2" style="font-size:11px; text-transform:none;">ℹ️ <strong>Privacidad:</strong> el Estado Personal solo muestra tus datos. El Estado del Club muestra totales del Club, no el detalle de lo que debe cada socio.</div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>/* MAYUSCULAS_GLOBAL */ input[type="text"], input[type="search"], input:not([type]), textarea { text-transform:uppercase; } input[type="password"], input[type="email"], input[type="url"] { text-transform:none; }</style>
+<script>/* MAYUSCULAS_GLOBAL - todo lo que se escribe queda en MAYUSCULAS, excepto contrasenas, correos y numeros/fechas */
+document.addEventListener('input', function(e){
+  var el = e.target;
+  if(!el || !el.matches) return;
+  if(!el.matches('input[type="text"], input:not([type]), textarea')) return;
+  var s = null; try{ s = el.selectionStart; }catch(_){}
+  var v = el.value.toUpperCase();
+  if(el.value !== v){ el.value = v; try{ if(s!==null) el.setSelectionRange(s, s); }catch(_){} }
+});
+document.addEventListener('submit', function(e){
+  var f = e.target; if(!f || !f.querySelectorAll) return;
+  f.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(function(el){ el.value = el.value.toUpperCase(); });
+});
+</script>
+
 </body>
 </html>

@@ -249,5 +249,22 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 
+
+<style>/* MAYUSCULAS_GLOBAL */ input[type="text"], input[type="search"], input:not([type]), textarea { text-transform:uppercase; } input[type="password"], input[type="email"], input[type="url"] { text-transform:none; }</style>
+<script>/* MAYUSCULAS_GLOBAL - todo lo que se escribe queda en MAYUSCULAS, excepto contrasenas, correos y numeros/fechas */
+document.addEventListener('input', function(e){
+  var el = e.target;
+  if(!el || !el.matches) return;
+  if(!el.matches('input[type="text"], input:not([type]), textarea')) return;
+  var s = null; try{ s = el.selectionStart; }catch(_){}
+  var v = el.value.toUpperCase();
+  if(el.value !== v){ el.value = v; try{ if(s!==null) el.setSelectionRange(s, s); }catch(_){} }
+});
+document.addEventListener('submit', function(e){
+  var f = e.target; if(!f || !f.querySelectorAll) return;
+  f.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(function(el){ el.value = el.value.toUpperCase(); });
+});
+</script>
+
 </body>
 </html>

@@ -19,30 +19,42 @@
 <div class="col-md-3"><div class="card p-2 text-center" style="border:2px solid #17458F;"><small>SALDO HISTORICO TOTAL</small><h5 class="fw-bold mb-0">${{ '%.2f'|format(saldo_historico) }}</h5><small style="text-transform:none; font-size:9px;">SI + cuotas + ingresos - gastos</small></div></div>
 </div>
 
-<div class="card mb-3"><div class="card-header bg-warning fw-bold" style="font-size:12px;">⚙️ SALDOS INICIALES AL 23 NOV 2024 - ¿CON CUANTO ARRANCO EL CLUB?</div>
-<div class="card-body"><form method="POST" action="/tesoreria/historico/saldos-iniciales" class="row g-2">
+<div class="card mb-3"><div class="card-header fw-bold d-flex justify-content-between align-items-center" style="font-size:12px; background:#d4edda;"><span>✅ SALDOS INICIALES AL 23 NOV 2024 - YA CAPTURADOS: CUOTAS ${{ '%.2f'|format(si_cuotas) }} + PROYECTOS ${{ '%.2f'|format(si_proy) }}{% if config.nota_saldos_iniciales %} - {{ config.nota_saldos_iniciales }}{% endif %}</span><button type="button" class="btn btn-warning btn-sm fw-bold" onclick="document.getElementById('formSaldosIniciales').style.display = document.getElementById('formSaldosIniciales').style.display==='none' ? '' : 'none';">✏️ CAMBIAR</button></div>
+<div class="card-body" id="formSaldosIniciales" style="display:none;"><form method="POST" action="/tesoreria/historico/saldos-iniciales" class="row g-2">
 <div class="col-md-3"><label class="fw-bold">SALDO INICIAL CUOTAS</label><input name="saldo_inicial_cuotas" type="number" step="0.01" class="form-control" value="{{ si_cuotas }}" required></div>
 <div class="col-md-3"><label class="fw-bold">SALDO INICIAL PROYECTOS</label><input name="saldo_inicial_proyectos" type="number" step="0.01" class="form-control" value="{{ si_proy }}" required></div>
 <div class="col-md-3"><label class="fw-bold">NOTA / MOTIVO</label><input name="nota_saldos" class="form-control" placeholder="EJ: CAJA INICIAL SEGUN ACTA..." value="{{ config.nota_saldos_iniciales or '' }}"></div>
 <div class="col-md-3"><label class="fw-bold">TU CONTRASEÑA</label><input name="password" type="password" class="form-control" required></div>
-<div class="col-12"><button class="btn btn-warning fw-bold">💾 GUARDAR SALDOS INICIALES</button> <small style="text-transform:none;">Si el Club arranco en $0, dejalo en 0. Si ya habia dinero en caja ese dia, ponlo aqui, no como un ingreso mas.</small></div>
+<div class="col-12"><button class="btn btn-warning fw-bold">💾 GUARDAR SALDOS INICIALES</button> <small style="text-transform:none;">Solo cambia esto si te equivocaste al capturarlo. Pide contraseña.</small></div>
 </form></div></div>
 
 <div class="card mb-3"><div class="card-header fw-bold" style="background:#17458F; color:#fff; font-size:12px;">➕ CARGAR MOVIMIENTO HISTORICO CON DETALLE</div>
 <div class="card-body"><form method="POST" action="/tesoreria/historico/nuevo" enctype="multipart/form-data" class="row g-2">
-<div class="col-md-2"><label class="fw-bold">TIPO</label><select name="tipo_mov" class="form-select" id="tipoMov" onchange="document.getElementById('bloqueCentro').style.display = this.value==='EGRESO' ? '' : 'none';"><option value="EGRESO">EGRESO (-)</option><option value="INGRESO">INGRESO (+)</option></select></div>
+<div class="col-md-2"><label class="fw-bold">TIPO</label><select name="tipo_mov" class="form-select" id="tipoMov" onchange="actualizarCamposHistorico()"><option value="EGRESO">EGRESO (-)</option><option value="INGRESO">INGRESO (+)</option></select></div>
 <div class="col-md-2"><label class="fw-bold">FECHA REAL</label><input name="fecha" type="date" class="form-control" min="2024-11-23" required></div>
 <div class="col-md-4"><label class="fw-bold">CONCEPTO / DETALLE</label><input name="concepto" class="form-control" placeholder="EJ: RENTA SALON DIC 2024, DONACION EMPRESA X" required></div>
 <div class="col-md-2"><label class="fw-bold">MONTO</label><input name="monto" type="number" step="0.01" min="0.01" class="form-control" required></div>
 <div class="col-md-2"><label class="fw-bold">ORIGEN / QUIEN</label><input name="origen" class="form-control" placeholder="QUIEN PAGO / DONO"></div>
-<div class="col-md-3" id="bloqueCentro"><label class="fw-bold">CENTRO (solo egreso)</label><select name="centro_costo" class="form-select" onchange="document.getElementById('bloqueProyecto').style.display = this.value==='PROYECTO' ? '' : 'none';"><option value="ADMINISTRATIVO">ADMINISTRATIVO (cuotas)</option><option value="PROYECTO">PROYECTO</option></select></div>
+<div class="col-md-3" id="bloqueCentro"><label class="fw-bold">CENTRO</label><select name="centro_costo" id="centroCosto" class="form-select" onchange="actualizarCamposHistorico()"><option value="ADMINISTRATIVO">ADMINISTRATIVO (cuotas)</option><option value="PROYECTO">PROYECTO</option></select></div>
 <div class="col-md-3" id="bloqueProyecto" style="display:none;"><label class="fw-bold">PROYECTO</label><select name="proyecto_id" class="form-select"><option value="">-- SIN PROYECTO --</option>{% for pr in proyectos %}<option value="{{ pr.id }}">{{ pr.nombre }}</option>{% endfor %}</select></div>
-<div class="col-md-3"><label class="fw-bold">TIPO INGRESO (solo ingreso)</label><select name="tipo_ingreso" class="form-select"><option>DONACION</option><option>PATROCINIO</option><option>VENTA</option><option>APORTACION</option><option>RIFA</option><option>OTRO</option></select></div>
+<div class="col-md-3" id="bloqueTipoIngreso" style="display:none;"><label class="fw-bold">TIPO INGRESO</label><select name="tipo_ingreso" class="form-select"><option>DONACION</option><option>PATROCINIO</option><option>VENTA</option><option>APORTACION</option><option>RIFA</option><option>OTRO</option></select></div>
 <div class="col-md-3"><label class="fw-bold">REFERENCIA / FOLIO</label><input name="referencia" class="form-control" placeholder="FOLIO, TRANSFER, FACTURA"></div>
 <div class="col-md-6"><label class="fw-bold">NOTAS</label><input name="notas" class="form-control" placeholder="DETALLE EXTRA"></div>
-<div class="col-md-6"><label class="fw-bold">FOTO COMPROBANTE (solo egreso)</label><input name="foto_comprobante" type="file" accept="image/*" class="form-control"></div>
+<div class="col-md-6" id="bloqueFoto"><label class="fw-bold">FOTO COMPROBANTE</label><input name="foto_comprobante" type="file" accept="image/*" class="form-control"></div>
 <input type="hidden" name="desde" value="{{ desde }}"><input type="hidden" name="hasta" value="{{ hasta }}">
 <div class="col-12"><button class="btn btn-success fw-bold">💾 GUARDAR MOVIMIENTO HISTORICO</button> <small style="text-transform:none;">Se guarda con su fecha real, no con la de hoy. Asi el saldo historico cuadra.</small></div>
+<script>
+function actualizarCamposHistorico(){
+  var esIngreso = document.getElementById('tipoMov').value === 'INGRESO';
+  var esProyecto = document.getElementById('centroCosto').value === 'PROYECTO';
+  document.getElementById('bloqueTipoIngreso').style.display = esIngreso ? '' : 'none';
+  document.getElementById('bloqueCentro').style.display = esIngreso ? 'none' : '';
+  document.getElementById('bloqueProyecto').style.display = (!esIngreso && esProyecto) ? '' : 'none';
+  document.getElementById('bloqueFoto').style.display = esIngreso ? 'none' : '';
+}
+document.addEventListener('DOMContentLoaded', actualizarCamposHistorico);
+</script>
+
 </form></div></div>
 
 <form method="GET" class="row g-2 mb-2"><div class="col-md-3"><label class="fw-bold">DESDE</label><input name="desde" type="date" class="form-control" min="2024-11-23" value="{{ desde }}"></div>
@@ -126,6 +138,23 @@ function abrirBorrarHistorico(tipo, id, texto){
   document.getElementById('borrarHistoricoTexto').textContent = texto;
   new bootstrap.Modal(document.getElementById('modalBorrarHistorico')).show();
 }
+</script>
+
+
+<style>/* MAYUSCULAS_GLOBAL */ input[type="text"], input[type="search"], input:not([type]), textarea { text-transform:uppercase; } input[type="password"], input[type="email"], input[type="url"] { text-transform:none; }</style>
+<script>/* MAYUSCULAS_GLOBAL - todo lo que se escribe queda en MAYUSCULAS, excepto contrasenas, correos y numeros/fechas */
+document.addEventListener('input', function(e){
+  var el = e.target;
+  if(!el || !el.matches) return;
+  if(!el.matches('input[type="text"], input:not([type]), textarea')) return;
+  var s = null; try{ s = el.selectionStart; }catch(_){}
+  var v = el.value.toUpperCase();
+  if(el.value !== v){ el.value = v; try{ if(s!==null) el.setSelectionRange(s, s); }catch(_){} }
+});
+document.addEventListener('submit', function(e){
+  var f = e.target; if(!f || !f.querySelectorAll) return;
+  f.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(function(el){ el.value = el.value.toUpperCase(); });
+});
 </script>
 
 </body></html>
