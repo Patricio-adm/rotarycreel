@@ -2038,6 +2038,75 @@ def tesoreria_historico_masivo():
     return redirect(url_for('tesoreria_historico'))
 
 
+
+@app.route('/tesoreria/historico/editar-gasto/<int:gasto_id>', methods=['POST'])
+def tesoreria_historico_editar_gasto(gasto_id):
+    """Editar o borrar un EGRESO historico. La fecha es lo que mas se corrige al transcribir del libro."""
+    if 'user_id' not in session or not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    g = Gasto.query.get_or_404(gasto_id)
+    if request.form.get('accion') == 'eliminar':
+        db.session.delete(g); db.session.commit()
+        flash(f'Egreso borrado: {g.concepto} - ${g.monto:,.2f}.', 'warning')
+        return redirect(url_for('tesoreria_historico'))
+    # EDITAR
+    fecha_str = request.form.get('fecha')
+    try: fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else g.fecha
+    except: fecha = g.fecha
+    if fecha < date(2024, 11, 23) or fecha > datetime.now().date():
+        flash('La fecha debe estar entre 23 NOV 2024 y hoy.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    try: monto = float(request.form.get('monto', g.monto) or g.monto)
+    except: monto = g.monto
+    if monto <= 0:
+        flash('Monto debe ser mayor a 0.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    centro = request.form.get('centro_costo', g.centro_costo)
+    pid = request.form.get('proyecto_id') if centro == 'PROYECTO' else None
+    try: pid = int(pid) if pid else None
+    except: pid = None
+    g.fecha = fecha
+    g.mes_anio = f"{MESES_NOMBRES[fecha.month-1]} {fecha.year}"
+    g.concepto = to_upper(request.form.get('concepto')) or g.concepto
+    g.monto = monto
+    g.centro_costo = centro
+    g.proyecto_id = pid
+    g.comprobante = to_upper(request.form.get('referencia')) or g.comprobante
+    g.notas = request.form.get('notas')
+    db.session.commit()
+    flash(f'Egreso corregido: {g.concepto} - ${g.monto:,.2f} ({fecha.strftime("%d/%m/%Y")}).', 'success')
+    return redirect(url_for('tesoreria_historico'))
+
+@app.route('/tesoreria/historico/editar-ingreso/<int:ingreso_id>', methods=['POST'])
+def tesoreria_historico_editar_ingreso(ingreso_id):
+    """Editar o borrar un INGRESO historico."""
+    if 'user_id' not in session or not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    ing = IngresoExtraordinario.query.get_or_404(ingreso_id)
+    if request.form.get('accion') == 'eliminar':
+        db.session.delete(ing); db.session.commit()
+        flash(f'Ingreso borrado: {ing.concepto} - ${ing.monto:,.2f}.', 'warning')
+        return redirect(url_for('tesoreria_historico'))
+    fecha_str = request.form.get('fecha')
+    try: fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else ing.fecha
+    except: fecha = ing.fecha
+    if fecha < date(2024, 11, 23) or fecha > datetime.now().date():
+        flash('La fecha debe estar entre 23 NOV 2024 y hoy.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    try: monto = float(request.form.get('monto', ing.monto) or ing.monto)
+    except: monto = ing.monto
+    if monto <= 0:
+        flash('Monto debe ser mayor a 0.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    ing.fecha = fecha
+    ing.mes_anio = f"{MESES_NOMBRES[fecha.month-1]} {fecha.year}"
+    ing.concepto = to_upper(request.form.get('concepto')) or ing.concepto
+    ing.monto = monto
+    ing.tipo = (request.form.get('tipo_ingreso') or ing.tipo).strip().upper()
+    ing.origen = to_upper(request.form.get('origen')) or ing.origen
+    ing.referencia = to_upper(request.form.get('referencia')) or ing.referencia
+    ing.notas = request.form.get('notas')
+    db.session.commit()
+    flash(f'Ingreso corregido: {ing.concepto} - ${ing.monto:,.2f} ({fecha.strftime("%d/%m/%Y")}).', 'success')
+    return redirect(url_for('tesoreria_historico'))
+
+
 if __name__ == '__main__':
     app.run(debug=True)
 
