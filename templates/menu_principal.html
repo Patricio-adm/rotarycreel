@@ -122,16 +122,14 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; backgroun
 
 {% if session.get('rol') != 'RCREEL' %}
 {% if session.get('rol') in ['ADMIN','PRESIDENTE','TESORERO'] %}
-<div style="display:flex; flex-direction:column;">
+<div class="card card-modulo card-tesoreria text-center p-3">
 <a href="/tesoreria" class="text-decoration-none" style="display:block;">
-<div class="card card-modulo card-tesoreria text-center p-3" style="border-radius:14px 14px 0 0; margin-bottom:0;">
 <div class="icono">💰</div>
 <h6 class="fw-bold mb-1" style="font-size:14px; color:#000;">TESORERÍA</h6>
 <small style="font-size:9px; color:#666;">CONTROL DE CUOTAS SOCIALES</small>
 <small style="font-size:7px; color:#28a745; font-weight:700; margin-top:6px; display:block;">CUOTAS • GASTOS • PROYECTOS • ESTADO CUENTA</small>
-</div>
 </a>
-<a href="/tesoreria/historico" class="btn btn-info fw-bold w-100" style="font-size:11px; color:#fff; border-radius:0 0 14px 14px; min-height:44px; display:flex; align-items:center; justify-content:center;">📚 HISTORICO - DESDE 23 NOV 2024</a>
+<a href="/tesoreria/historico" class="btn btn-info fw-bold" style="font-size:11px; color:#fff; border-radius:20px; margin-top:10px; padding:8px 14px; display:inline-flex; align-items:center; justify-content:center; min-height:40px;">📚 HISTORICO - DESDE 23 NOV 2024</a>
 </div>
 {% else %}
 <a href="/tesoreria/mis-estados" class="text-decoration-none">

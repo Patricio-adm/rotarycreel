@@ -45,22 +45,6 @@
 <div class="col-12"><button class="btn btn-success fw-bold">💾 GUARDAR MOVIMIENTO HISTORICO</button> <small style="text-transform:none;">Se guarda con su fecha real, no con la de hoy. Asi el saldo historico cuadra.</small></div>
 </form></div></div>
 
-<div class="card mb-3" style="border:2px solid #17458F;"><div class="card-header fw-bold" style="background:#17458F; color:#fff; font-size:12px;">📖 CARGA MASIVA DESDE EL LIBRO - PEGA VARIOS RENGLONES DE UNA VEZ</div>
-<div class="card-body"><form method="POST" action="/tesoreria/historico/masivo">
-<label class="fw-bold">UN RENGLON POR MOVIMIENTO, ASI:</label>
-<pre style="background:#f8f9fa; border:1px solid #ccc; padding:8px; font-size:10px; text-transform:none;">25/11/2024 | EGRESO | RENTA SALON NOV 2024 | 500 | ADMINISTRATIVO |  |  |
-10/12/2024 | INGRESO | DONACION EMPRESA X | 2000 | ADMINISTRATIVO |  | EMPRESA X | FOLIO 123
-15/01/2025 | EGRESO | MATERIAL PROYECTO BOMBERA | 1200 | PROYECTO | PROYECTO BOMBERA |  | FACTURA 45</pre>
-<textarea name="texto_masivo" class="form-control" rows="6" placeholder="Pega aqui los renglones del libro, uno por linea..." style="text-transform:none;"></textarea>
-<small style="text-transform:none;">Fecha: 2024-11-25 o 25/11/2024. Monto: 1500 o 1,500.00. Si un renglon trae error, te lo marca y los demas si se guardan.</small>
-<div class="mt-2"><button class="btn btn-primary fw-bold">📖 GUARDAR TODOS LOS RENGLONES</button></div>
-</form></div></div>
-
-<div class="card mb-3"><div class="card-header fw-bold" style="font-size:12px;">📅 PROGRESO POR MES - ¿QUE MESES DEL LIBRO YA ESTAN CAPTURADOS?</div>
-<div class="card-body"><div class="table-responsive"><table class="table table-bordered table-sm" style="font-size:11px;"><thead><tr><th>MES</th><th>GASTOS</th><th>INGRESOS</th><th>CUOTAS</th><th>ESTADO</th></tr></thead><tbody>
-{% for pr in progreso %}<tr><td>{{ pr.mes }}</td><td>{{ pr.gastos }}</td><td>{{ pr.ingresos }}</td><td>{{ pr.cuotas }}</td><td>{% if pr.total==0 %}⬜ SIN CAPTURAR{% elif pr.total<5 %}🟨 EMPEZADO{% else %}🟩 CON DATOS{% endif %}</td></tr>{% endfor %}
-</tbody></table></div><small style="text-transform:none;">En la tarde vas mes por mes: si un mes dice SIN CAPTURAR, ahi falta transcribir el libro.</small></div></div>
-
 <form method="GET" class="row g-2 mb-2"><div class="col-md-3"><label class="fw-bold">DESDE</label><input name="desde" type="date" class="form-control" min="2024-11-23" value="{{ desde }}"></div>
 <div class="col-md-3"><label class="fw-bold">HASTA</label><input name="hasta" type="date" class="form-control" value="{{ hasta }}"></div>
 <div class="col-md-3"><label class="fw-bold">CENTRO (egresos)</label><select name="centro" class="form-select"><option value="">TODOS</option><option value="ADMINISTRATIVO" {% if centro_f=='ADMINISTRATIVO' %}selected{% endif %}>ADMINISTRATIVO</option><option value="PROYECTO" {% if centro_f=='PROYECTO' %}selected{% endif %}>PROYECTO</option></select></div>
@@ -71,14 +55,77 @@
 <div class="col-md-4"><div class="alert alert-info py-2 mb-0">CUOTAS EN RANGO: <strong>${{ '%.2f'|format(total_cuotas) }}</strong> ({{ cuotas|length }} pagos)</div></div></div>
 
 <h6 class="fw-bold mt-3">📉 EGRESOS CON DETALLE ({{ gastos|length }})</h6>
-<div class="table-responsive mb-3"><table class="table table-bordered table-sm bg-white" style="font-size:11px;"><thead style="background:#dc3545;color:#fff;"><tr><th>FECHA</th><th>CONCEPTO</th><th>CENTRO</th><th>PROYECTO</th><th>REFERENCIA</th><th class="text-end">MONTO</th></tr></thead><tbody>
-{% for g in gastos %}<tr><td>{{ g.fecha.strftime('%d/%m/%Y') if g.fecha else '-' }}</td><td>{{ g.concepto }}<br><small style="text-transform:none; color:#666;">{{ g.notas or '' }}</small></td><td>{{ g.centro_costo }}</td><td>{{ g.proyecto_rel.nombre if g.proyecto_rel else '-' }}</td><td>{{ g.comprobante or '-' }}</td><td class="text-end">-${{ '%.2f'|format(g.monto) }}</td></tr>{% endfor %}
-{% if not gastos %}<tr><td colspan="6" class="text-center">SIN EGRESOS EN ESE RANGO - CARGA EL HISTORICO ARRIBA</td></tr>{% endif %}</tbody></table></div>
+<div class="table-responsive mb-3"><table class="table table-bordered table-sm bg-white" style="font-size:11px;"><thead style="background:#dc3545;color:#fff;"><tr><th>FECHA</th><th>CONCEPTO</th><th>CENTRO</th><th>PROYECTO</th><th>REFERENCIA</th><th class="text-end">MONTO</th><th style="width:92px;">ACCIONES</th></tr></thead><tbody>
+{% for g in gastos %}<tr><td>{{ g.fecha.strftime('%d/%m/%Y') if g.fecha else '-' }}</td><td>{{ g.concepto }}<br><small style="text-transform:none; color:#666;">{{ g.notas or '' }}</small></td><td>{{ g.centro_costo }}</td><td>{{ g.proyecto_rel.nombre if g.proyecto_rel else '-' }}</td><td>{{ g.comprobante or '-' }}</td><td class="text-end">-${{ '%.2f'|format(g.monto) }}</td><td><div class="d-flex gap-1"><button type="button" class="btn btn-warning btn-sm fw-bold" style="font-size:10px; padding:2px 6px;" onclick="abrirEditarGasto(this)" data-id="{{ g.id }}" data-fecha="{{ g.fecha.strftime('%Y-%m-%d') if g.fecha else '' }}" data-concepto="{{ g.concepto|e }}" data-monto="{{ g.monto }}" data-centro="{{ g.centro_costo }}" data-proyecto="{{ g.proyecto_id or '' }}" data-referencia="{{ g.comprobante or '' }}" data-notas="{{ g.notas or '' }}">✏️</button><button type="button" class="btn btn-danger btn-sm fw-bold" style="font-size:10px; padding:2px 6px;" onclick="abrirBorrarHistorico('gasto', {{ g.id }}, '{{ g.concepto|e }} - ${{ '%.2f'|format(g.monto) }}')">🗑️</button></div></td></tr>{% endfor %}
+{% if not gastos %}<tr><td colspan="7" class="text-center">SIN EGRESOS EN ESE RANGO - CARGA EL HISTORICO ARRIBA</td></tr>{% endif %}</tbody></table></div>
 
 <h6 class="fw-bold">📈 INGRESOS EXTRA CON DETALLE ({{ ingresos|length }})</h6>
-<div class="table-responsive mb-3"><table class="table table-bordered table-sm bg-white" style="font-size:11px;"><thead style="background:#198754;color:#fff;"><tr><th>FECHA</th><th>CONCEPTO</th><th>TIPO</th><th>ORIGEN</th><th>REFERENCIA</th><th class="text-end">MONTO</th></tr></thead><tbody>
-{% for i in ingresos %}<tr><td>{{ i.fecha.strftime('%d/%m/%Y') if i.fecha else '-' }}</td><td>{{ i.concepto }}<br><small style="text-transform:none; color:#666;">{{ i.notas or '' }}</small></td><td>{{ i.tipo }}</td><td>{{ i.origen or '-' }}</td><td>{{ i.referencia or '-' }}</td><td class="text-end">+${{ '%.2f'|format(i.monto) }}</td></tr>{% endfor %}
-{% if not ingresos %}<tr><td colspan="6" class="text-center">SIN INGRESOS EXTRA EN ESE RANGO</td></tr>{% endif %}</tbody></table></div>
+<div class="table-responsive mb-3"><table class="table table-bordered table-sm bg-white" style="font-size:11px;"><thead style="background:#198754;color:#fff;"><tr><th>FECHA</th><th>CONCEPTO</th><th>TIPO</th><th>ORIGEN</th><th>REFERENCIA</th><th class="text-end">MONTO</th><th style="width:92px;">ACCIONES</th></tr></thead><tbody>
+{% for i in ingresos %}<tr><td>{{ i.fecha.strftime('%d/%m/%Y') if i.fecha else '-' }}</td><td>{{ i.concepto }}<br><small style="text-transform:none; color:#666;">{{ i.notas or '' }}</small></td><td>{{ i.tipo }}</td><td>{{ i.origen or '-' }}</td><td>{{ i.referencia or '-' }}</td><td class="text-end">+${{ '%.2f'|format(i.monto) }}</td><td><div class="d-flex gap-1"><button type="button" class="btn btn-warning btn-sm fw-bold" style="font-size:10px; padding:2px 6px;" onclick="abrirEditarIngreso(this)" data-id="{{ i.id }}" data-fecha="{{ i.fecha.strftime('%Y-%m-%d') if i.fecha else '' }}" data-concepto="{{ i.concepto|e }}" data-monto="{{ i.monto }}" data-tipo="{{ i.tipo }}" data-origen="{{ i.origen or '' }}" data-referencia="{{ i.referencia or '' }}" data-notas="{{ i.notas or '' }}">✏️</button><button type="button" class="btn btn-danger btn-sm fw-bold" style="font-size:10px; padding:2px 6px;" onclick="abrirBorrarHistorico('ingreso', {{ i.id }}, '{{ i.concepto|e }} - ${{ '%.2f'|format(i.monto) }}')">🗑️</button></div></td></tr>{% endfor %}
+{% if not ingresos %}<tr><td colspan="7" class="text-center">SIN INGRESOS EXTRA EN ESE RANGO</td></tr>{% endif %}</tbody></table></div>
 <p style="font-size:10px; text-transform:none; color:#666;">Cuotas sociales se siguen cargando en Cuotas Sociales, con su fecha real de pago. Lo de aqui es para ingresos extra y egresos historicos. Saldo historico = saldos iniciales + cuotas + ingresos - egresos.</p>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- MODAL EDITAR EGRESO HISTORICO -->
+<div class="modal fade" id="modalEditarGasto" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST" id="formEditarGasto" action="/tesoreria/historico/editar-gasto/0">
+<div class="modal-header bg-warning"><h6 class="modal-title fw-bold" style="font-size:12px;">✏️ CORREGIR EGRESO HISTORICO</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" style="text-transform:none; font-size:12px;">
+<div class="mb-2"><label class="fw-bold">FECHA REAL (lo que mas se corrige)</label><input name="fecha" id="editGastoFecha" type="date" min="2024-11-23" class="form-control" required></div>
+<div class="mb-2"><label class="fw-bold">CONCEPTO</label><input name="concepto" id="editGastoConcepto" class="form-control" required></div>
+<div class="row"><div class="col-6 mb-2"><label class="fw-bold">MONTO</label><input name="monto" id="editGastoMonto" type="number" step="0.01" class="form-control" required></div>
+<div class="col-6 mb-2"><label class="fw-bold">CENTRO</label><select name="centro_costo" id="editGastoCentro" class="form-select"><option value="ADMINISTRATIVO">ADMINISTRATIVO</option><option value="PROYECTO">PROYECTO</option></select></div></div>
+<div class="mb-2"><label class="fw-bold">PROYECTO (si es PROYECTO)</label><select name="proyecto_id" id="editGastoProyecto" class="form-select"><option value="">-- SIN PROYECTO --</option>{% for pr in proyectos %}<option value="{{ pr.id }}">{{ pr.nombre }}</option>{% endfor %}</select></div>
+<div class="mb-2"><label class="fw-bold">REFERENCIA</label><input name="referencia" id="editGastoReferencia" class="form-control"></div>
+<div class="mb-2"><label class="fw-bold">NOTAS</label><input name="notas" id="editGastoNotas" class="form-control"></div>
+</div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">CANCELAR</button><button type="submit" class="btn btn-warning fw-bold">💾 GUARDAR CORRECCION</button></div></form></div></div></div>
+
+<!-- MODAL EDITAR INGRESO HISTORICO -->
+<div class="modal fade" id="modalEditarIngreso" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST" id="formEditarIngreso" action="/tesoreria/historico/editar-ingreso/0">
+<div class="modal-header bg-warning"><h6 class="modal-title fw-bold" style="font-size:12px;">✏️ CORREGIR INGRESO HISTORICO</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" style="text-transform:none; font-size:12px;">
+<div class="mb-2"><label class="fw-bold">FECHA REAL (lo que mas se corrige)</label><input name="fecha" id="editIngresoFecha" type="date" min="2024-11-23" class="form-control" required></div>
+<div class="mb-2"><label class="fw-bold">CONCEPTO</label><input name="concepto" id="editIngresoConcepto" class="form-control" required></div>
+<div class="row"><div class="col-6 mb-2"><label class="fw-bold">MONTO</label><input name="monto" id="editIngresoMonto" type="number" step="0.01" class="form-control" required></div>
+<div class="col-6 mb-2"><label class="fw-bold">TIPO</label><select name="tipo_ingreso" id="editIngresoTipo" class="form-select"><option>DONACION</option><option>PATROCINIO</option><option>VENTA</option><option>APORTACION</option><option>RIFA</option><option>OTRO</option></select></div></div>
+<div class="mb-2"><label class="fw-bold">ORIGEN / QUIEN</label><input name="origen" id="editIngresoOrigen" class="form-control"></div>
+<div class="mb-2"><label class="fw-bold">REFERENCIA</label><input name="referencia" id="editIngresoReferencia" class="form-control"></div>
+<div class="mb-2"><label class="fw-bold">NOTAS</label><input name="notas" id="editIngresoNotas" class="form-control"></div>
+</div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">CANCELAR</button><button type="submit" class="btn btn-warning fw-bold">💾 GUARDAR CORRECCION</button></div></form></div></div></div>
+
+<!-- MODAL BORRAR HISTORICO -->
+<div class="modal fade" id="modalBorrarHistorico" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="POST" id="formBorrarHistorico" action="/tesoreria/historico/editar-gasto/0" onsubmit="return confirm('¿Seguro que quieres BORRAR este movimiento? No se puede deshacer.');">
+<div class="modal-header bg-danger text-white"><h6 class="modal-title fw-bold" style="font-size:12px;">🗑️ BORRAR MOVIMIENTO HISTORICO</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" style="text-transform:none; font-size:12px;"><input type="hidden" name="accion" value="eliminar">Vas a borrar:<br><strong id="borrarHistoricoTexto">-</strong><br><br>Usalo solo si ese movimiento <strong>no existio</strong>. Si te equivocaste de fecha, monto o concepto, usa <strong>EDITAR</strong>.</div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">CANCELAR</button><button type="submit" class="btn btn-danger fw-bold">🗑️ SI, BORRAR</button></div></form></div></div></div>
+
+<script>
+function abrirEditarGasto(btn){
+  document.getElementById('formEditarGasto').action = '/tesoreria/historico/editar-gasto/' + btn.dataset.id;
+  document.getElementById('editGastoFecha').value = btn.dataset.fecha || '';
+  document.getElementById('editGastoConcepto').value = btn.dataset.concepto || '';
+  document.getElementById('editGastoMonto').value = btn.dataset.monto || '';
+  document.getElementById('editGastoCentro').value = btn.dataset.centro || 'ADMINISTRATIVO';
+  document.getElementById('editGastoProyecto').value = btn.dataset.proyecto || '';
+  document.getElementById('editGastoReferencia').value = btn.dataset.referencia || '';
+  document.getElementById('editGastoNotas').value = btn.dataset.notas || '';
+  new bootstrap.Modal(document.getElementById('modalEditarGasto')).show();
+}
+function abrirEditarIngreso(btn){
+  document.getElementById('formEditarIngreso').action = '/tesoreria/historico/editar-ingreso/' + btn.dataset.id;
+  document.getElementById('editIngresoFecha').value = btn.dataset.fecha || '';
+  document.getElementById('editIngresoConcepto').value = btn.dataset.concepto || '';
+  document.getElementById('editIngresoMonto').value = btn.dataset.monto || '';
+  document.getElementById('editIngresoTipo').value = btn.dataset.tipo || 'DONACION';
+  document.getElementById('editIngresoOrigen').value = btn.dataset.origen || '';
+  document.getElementById('editIngresoReferencia').value = btn.dataset.referencia || '';
+  document.getElementById('editIngresoNotas').value = btn.dataset.notas || '';
+  new bootstrap.Modal(document.getElementById('modalEditarIngreso')).show();
+}
+function abrirBorrarHistorico(tipo, id, texto){
+  document.getElementById('formBorrarHistorico').action = '/tesoreria/historico/editar-' + tipo + '/' + id;
+  document.getElementById('borrarHistoricoTexto').textContent = texto;
+  new bootstrap.Modal(document.getElementById('modalBorrarHistorico')).show();
+}
+</script>
+
+</body></html>
