@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Historico Tesoreria - Desde 23 NOV 2024 - Rotary Creel</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>body{font-family:'Segoe UI',sans-serif;text-transform:uppercase;font-size:12px;background:#f4f6f9;}
+.header-rotary{background:#17458F;color:#fff;padding:12px 20px;border-bottom:4px solid #F7A81B;}
+@media(max-width:768px){.btn,.btn-sm{min-height:44px;font-size:13px!important;}input,select,textarea{font-size:16px!important;}.table-responsive table{min-width:700px;}}</style></head>
+<body>
+<div class="header-rotary d-flex justify-content-between align-items-center flex-wrap gap-2">
+<div><h5 class="mb-0 fw-bold" style="font-size:15px;">📚 HISTORICO TESORERIA - CLUB ROTARIO CREEL</h5><small style="font-size:10px;">FUNDADO 23 NOVIEMBRE 2024 - INGRESOS Y EGRESOS CON DETALLE</small></div>
+<div class="d-flex gap-2"><a href="/tesoreria/cuotas-sociales" class="btn btn-outline-light btn-sm fw-bold">CUOTAS</a><a href="/tesoreria" class="btn btn-outline-light btn-sm fw-bold">TESORERIA</a></div></div>
+<div class="container-fluid py-3">
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} py-2" style="font-size:11px; text-transform:none;">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
+
+<div class="row g-2 mb-3">
+<div class="col-md-3"><div class="card p-2 text-center"><small>SALDO INICIAL CUOTAS (23 NOV 2024)</small><h5 class="fw-bold text-primary mb-0">${{ '%.2f'|format(si_cuotas) }}</h5></div></div>
+<div class="col-md-3"><div class="card p-2 text-center"><small>SALDO INICIAL PROYECTOS (23 NOV 2024)</small><h5 class="fw-bold text-success mb-0">${{ '%.2f'|format(si_proy) }}</h5></div></div>
+<div class="col-md-3"><div class="card p-2 text-center"><small>SALDO CUOTAS HOY</small><h5 class="fw-bold mb-0">${{ '%.2f'|format(saldo_cuotas) }}</h5><small style="text-transform:none; font-size:9px;">SI cuotas + cuotas - gastos admin</small></div></div>
+<div class="col-md-3"><div class="card p-2 text-center" style="border:2px solid #17458F;"><small>SALDO HISTORICO TOTAL</small><h5 class="fw-bold mb-0">${{ '%.2f'|format(saldo_historico) }}</h5><small style="text-transform:none; font-size:9px;">SI + cuotas + ingresos - gastos</small></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header bg-warning fw-bold" style="font-size:12px;">⚙️ SALDOS INICIALES AL 23 NOV 2024 - ¿CON CUANTO ARRANCO EL CLUB?</div>
+<div class="card-body"><form method="POST" action="/tesoreria/historico/saldos-iniciales" class="row g-2">
+<div class="col-md-3"><label class="fw-bold">SALDO INICIAL CUOTAS</label><input name="saldo_inicial_cuotas" type="number" step="0.01" class="form-control" value="{{ si_cuotas }}" required></div>
+<div class="col-md-3"><label class="fw-bold">SALDO INICIAL PROYECTOS</label><input name="saldo_inicial_proyectos" type="number" step="0.01" class="form-control" value="{{ si_proy }}" required></div>
+<div class="col-md-3"><label class="fw-bold">NOTA / MOTIVO</label><input name="nota_saldos" class="form-control" placeholder="EJ: CAJA INICIAL SEGUN ACTA..." value="{{ config.nota_saldos_iniciales or '' }}"></div>
+<div class="col-md-3"><label class="fw-bold">TU CONTRASEÑA</label><input name="password" type="password" class="form-control" required></div>
+<div class="col-12"><button class="btn btn-warning fw-bold">💾 GUARDAR SALDOS INICIALES</button> <small style="text-transform:none;">Si el Club arranco en $0, dejalo en 0. Si ya habia dinero en caja ese dia, ponlo aqui, no como un ingreso mas.</small></div>
+</form></div></div>
+
+<div class="card mb-3"><div class="card-header fw-bold" style="background:#17458F; color:#fff; font-size:12px;">➕ CARGAR MOVIMIENTO HISTORICO CON DETALLE</div>
+<div class="card-body"><form method="POST" action="/tesoreria/historico/nuevo" enctype="multipart/form-data" class="row g-2">
+<div class="col-md-2"><label class="fw-bold">TIPO</label><select name="tipo_mov" class="form-select" id="tipoMov" onchange="document.getElementById('bloqueCentro').style.display = this.value==='EGRESO' ? '' : 'none';"><option value="EGRESO">EGRESO (-)</option><option value="INGRESO">INGRESO (+)</option></select></div>
+<div class="col-md-2"><label class="fw-bold">FECHA REAL</label><input name="fecha" type="date" class="form-control" min="2024-11-23" required></div>
+<div class="col-md-4"><label class="fw-bold">CONCEPTO / DETALLE</label><input name="concepto" class="form-control" placeholder="EJ: RENTA SALON DIC 2024, DONACION EMPRESA X" required></div>
+<div class="col-md-2"><label class="fw-bold">MONTO</label><input name="monto" type="number" step="0.01" min="0.01" class="form-control" required></div>
+<div class="col-md-2"><label class="fw-bold">ORIGEN / QUIEN</label><input name="origen" class="form-control" placeholder="QUIEN PAGO / DONO"></div>
+<div class="col-md-3" id="bloqueCentro"><label class="fw-bold">CENTRO (solo egreso)</label><select name="centro_costo" class="form-select" onchange="document.getElementById('bloqueProyecto').style.display = this.value==='PROYECTO' ? '' : 'none';"><option value="ADMINISTRATIVO">ADMINISTRATIVO (cuotas)</option><option value="PROYECTO">PROYECTO</option></select></div>
+<div class="col-md-3" id="bloqueProyecto" style="display:none;"><label class="fw-bold">PROYECTO</label><select name="proyecto_id" class="form-select"><option value="">-- SIN PROYECTO --</option>{% for pr in proyectos %}<option value="{{ pr.id }}">{{ pr.nombre }}</option>{% endfor %}</select></div>
+<div class="col-md-3"><label class="fw-bold">TIPO INGRESO (solo ingreso)</label><select name="tipo_ingreso" class="form-select"><option>DONACION</option><option>PATROCINIO</option><option>VENTA</option><option>APORTACION</option><option>RIFA</option><option>OTRO</option></select></div>
+<div class="col-md-3"><label class="fw-bold">REFERENCIA / FOLIO</label><input name="referencia" class="form-control" placeholder="FOLIO, TRANSFER, FACTURA"></div>
+<div class="col-md-6"><label class="fw-bold">NOTAS</label><input name="notas" class="form-control" placeholder="DETALLE EXTRA"></div>
+<div class="col-md-6"><label class="fw-bold">FOTO COMPROBANTE (solo egreso)</label><input name="foto_comprobante" type="file" accept="image/*" class="form-control"></div>
+<input type="hidden" name="desde" value="{{ desde }}"><input type="hidden" name="hasta" value="{{ hasta }}">
+<div class="col-12"><button class="btn btn-success fw-bold">💾 GUARDAR MOVIMIENTO HISTORICO</button> <small style="text-transform:none;">Se guarda con su fecha real, no con la de hoy. Asi el saldo historico cuadra.</small></div>
+</form></div></div>
+
+<div class="card mb-3" style="border:2px solid #17458F;"><div class="card-header fw-bold" style="background:#17458F; color:#fff; font-size:12px;">📖 CARGA MASIVA DESDE EL LIBRO - PEGA VARIOS RENGLONES DE UNA VEZ</div>
+<div class="card-body"><form method="POST" action="/tesoreria/historico/masivo">
+<label class="fw-bold">UN RENGLON POR MOVIMIENTO, ASI:</label>
+<pre style="background:#f8f9fa; border:1px solid #ccc; padding:8px; font-size:10px; text-transform:none;">25/11/2024 | EGRESO | RENTA SALON NOV 2024 | 500 | ADMINISTRATIVO |  |  |
+10/12/2024 | INGRESO | DONACION EMPRESA X | 2000 | ADMINISTRATIVO |  | EMPRESA X | FOLIO 123
+15/01/2025 | EGRESO | MATERIAL PROYECTO BOMBERA | 1200 | PROYECTO | PROYECTO BOMBERA |  | FACTURA 45</pre>
+<textarea name="texto_masivo" class="form-control" rows="6" placeholder="Pega aqui los renglones del libro, uno por linea..." style="text-transform:none;"></textarea>
+<small style="text-transform:none;">Fecha: 2024-11-25 o 25/11/2024. Monto: 1500 o 1,500.00. Si un renglon trae error, te lo marca y los demas si se guardan.</small>
+<div class="mt-2"><button class="btn btn-primary fw-bold">📖 GUARDAR TODOS LOS RENGLONES</button></div>
+</form></div></div>
+
+<div class="card mb-3"><div class="card-header fw-bold" style="font-size:12px;">📅 PROGRESO POR MES - ¿QUE MESES DEL LIBRO YA ESTAN CAPTURADOS?</div>
+<div class="card-body"><div class="table-responsive"><table class="table table-bordered table-sm" style="font-size:11px;"><thead><tr><th>MES</th><th>GASTOS</th><th>INGRESOS</th><th>CUOTAS</th><th>ESTADO</th></tr></thead><tbody>
+{% for pr in progreso %}<tr><td>{{ pr.mes }}</td><td>{{ pr.gastos }}</td><td>{{ pr.ingresos }}</td><td>{{ pr.cuotas }}</td><td>{% if pr.total==0 %}⬜ SIN CAPTURAR{% elif pr.total<5 %}🟨 EMPEZADO{% else %}🟩 CON DATOS{% endif %}</td></tr>{% endfor %}
+</tbody></table></div><small style="text-transform:none;">En la tarde vas mes por mes: si un mes dice SIN CAPTURAR, ahi falta transcribir el libro.</small></div></div>
+
+<form method="GET" class="row g-2 mb-2"><div class="col-md-3"><label class="fw-bold">DESDE</label><input name="desde" type="date" class="form-control" min="2024-11-23" value="{{ desde }}"></div>
+<div class="col-md-3"><label class="fw-bold">HASTA</label><input name="hasta" type="date" class="form-control" value="{{ hasta }}"></div>
+<div class="col-md-3"><label class="fw-bold">CENTRO (egresos)</label><select name="centro" class="form-select"><option value="">TODOS</option><option value="ADMINISTRATIVO" {% if centro_f=='ADMINISTRATIVO' %}selected{% endif %}>ADMINISTRATIVO</option><option value="PROYECTO" {% if centro_f=='PROYECTO' %}selected{% endif %}>PROYECTO</option></select></div>
+<div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary fw-bold w-100">🔍 FILTRAR</button></div></form>
+
+<div class="row g-2 mb-2"><div class="col-md-4"><div class="alert alert-success py-2 mb-0">INGRESOS EXTRA: <strong>${{ '%.2f'|format(total_ingresos) }}</strong> ({{ ingresos|length }})</div></div>
+<div class="col-md-4"><div class="alert alert-danger py-2 mb-0">EGRESOS: <strong>${{ '%.2f'|format(total_gastos) }}</strong> ({{ gastos|length }}) — ADMIN ${{ '%.2f'|format(total_gastos_admin) }} / PROY ${{ '%.2f'|format(total_gastos_proy) }}</div></div>
+<div class="col-md-4"><div class="alert alert-info py-2 mb-0">CUOTAS EN RANGO: <strong>${{ '%.2f'|format(total_cuotas) }}</strong> ({{ cuotas|length }} pagos)</div></div></div>
+
+<h6 class="fw-bold mt-3">📉 EGRESOS CON DETALLE ({{ gastos|length }})</h6>
+<div class="table-responsive mb-3"><table class="table table-bordered table-sm bg-white" style="font-size:11px;"><thead style="background:#dc3545;color:#fff;"><tr><th>FECHA</th><th>CONCEPTO</th><th>CENTRO</th><th>PROYECTO</th><th>REFERENCIA</th><th class="text-end">MONTO</th></tr></thead><tbody>
+{% for g in gastos %}<tr><td>{{ g.fecha.strftime('%d/%m/%Y') if g.fecha else '-' }}</td><td>{{ g.concepto }}<br><small style="text-transform:none; color:#666;">{{ g.notas or '' }}</small></td><td>{{ g.centro_costo }}</td><td>{{ g.proyecto_rel.nombre if g.proyecto_rel else '-' }}</td><td>{{ g.comprobante or '-' }}</td><td class="text-end">-${{ '%.2f'|format(g.monto) }}</td></tr>{% endfor %}
+{% if not gastos %}<tr><td colspan="6" class="text-center">SIN EGRESOS EN ESE RANGO - CARGA EL HISTORICO ARRIBA</td></tr>{% endif %}</tbody></table></div>
+
+<h6 class="fw-bold">📈 INGRESOS EXTRA CON DETALLE ({{ ingresos|length }})</h6>
+<div class="table-responsive mb-3"><table class="table table-bordered table-sm bg-white" style="font-size:11px;"><thead style="background:#198754;color:#fff;"><tr><th>FECHA</th><th>CONCEPTO</th><th>TIPO</th><th>ORIGEN</th><th>REFERENCIA</th><th class="text-end">MONTO</th></tr></thead><tbody>
+{% for i in ingresos %}<tr><td>{{ i.fecha.strftime('%d/%m/%Y') if i.fecha else '-' }}</td><td>{{ i.concepto }}<br><small style="text-transform:none; color:#666;">{{ i.notas or '' }}</small></td><td>{{ i.tipo }}</td><td>{{ i.origen or '-' }}</td><td>{{ i.referencia or '-' }}</td><td class="text-end">+${{ '%.2f'|format(i.monto) }}</td></tr>{% endfor %}
+{% if not ingresos %}<tr><td colspan="6" class="text-center">SIN INGRESOS EXTRA EN ESE RANGO</td></tr>{% endif %}</tbody></table></div>
+<p style="font-size:10px; text-transform:none; color:#666;">Cuotas sociales se siguen cargando en Cuotas Sociales, con su fecha real de pago. Lo de aqui es para ingresos extra y egresos historicos. Saldo historico = saldos iniciales + cuotas + ingresos - egresos.</p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script></body></html>
