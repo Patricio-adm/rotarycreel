@@ -91,6 +91,11 @@ class ConfiguracionTesoreria(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     saldo_inicial = db.Column(db.Float, default=0.0)
     fecha_actualizacion = db.Column(db.Date, default=datetime.utcnow)
+    # HISTORICO - Club fundado 23 NOV 2024
+    fecha_fundacion = db.Column(db.Date, default=date(2024, 11, 23))
+    saldo_inicial_cuotas = db.Column(db.Float, default=0.0)
+    saldo_inicial_proyectos = db.Column(db.Float, default=0.0)
+    nota_saldos_iniciales = db.Column(db.Text, nullable=True)
 
 class Socio(db.Model):
     __tablename__ = 'socios'
@@ -1161,12 +1166,21 @@ def registrar_pago_cuota():
     if not socio_id or not meses_pagados:
         flash('Debe seleccionar al menos un mes y un socio.', 'warning')
         return redirect(url_for('cuotas_sociales'))
+    # Fecha real del pago (permite cargar historico desde 23 NOV 2024)
+    _fp = request.form.get('fecha_pago')
+    try:
+        fecha_pago = datetime.strptime(_fp, '%Y-%m-%d').date() if _fp else datetime.now().date()
+    except:
+        fecha_pago = datetime.now().date()
+    if fecha_pago < date(2024, 11, 23):
+        flash('La fecha no puede ser antes de la fundacion del Club (23 NOV 2024).', 'danger')
+        return redirect(url_for('cuotas_sociales'))
     pagos_creados_ids = []
     for m in meses_pagados:
         mes_limpio = m.strip().upper()
         existente = PagoCuota.query.filter_by(socio_id=socio_id, mes_anio=mes_limpio).first()
         if not existente:
-            pago = PagoCuota(socio_id=socio_id, mes_anio=mes_limpio, monto=500.0, metodo_pago=metodo, referencia=referencia)
+            pago = PagoCuota(socio_id=socio_id, mes_anio=mes_limpio, monto=500.0, metodo_pago=metodo, referencia=referencia, fecha_pago=fecha_pago)
             db.session.add(pago)
             db.session.flush()
             pagos_creados_ids.append(str(pago.id))
@@ -1279,15 +1293,16 @@ def tesoreria_gastos():
         total_cuotas_mes = db.session.query(func.sum(PagoCuota.monto)).filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).scalar() or 0
     except:
         total_cuotas_mes = 0
+    # HISTORICO: meses desde la fundacion (NOV 2024) hasta hoy
     meses_lista = []
-    now = datetime.now()
-    for i in range(18):
-        m = now.month - i
-        y = now.year
-        while m <= 0:
-            m += 12
-            y -= 1
-        meses_lista.append(f"{MESES_NOMBRES[m-1]} {y}")
+    _y, _m = 2024, 11
+    _now = datetime.now()
+    while (_y, _m) <= (_now.year, _now.month):
+        meses_lista.append(f"{MESES_NOMBRES[_m-1]} {_y}")
+        _m += 1
+        if _m > 12:
+            _m = 1; _y += 1
+    meses_lista = list(reversed(meses_lista))
     return render_template('tesoreria_gastos.html', gastos=gastos_mes, proyectos=proyectos, mes_actual=mes_filtro, meses_lista=meses_lista, total_admin=total_admin, total_proyecto=total_proyecto, total_cuotas_mes=total_cuotas_mes, balance_cuotas=total_cuotas_mes-total_admin)
 
 @app.route('/tesoreria/gastos/nuevo', methods=['POST'])
@@ -1436,15 +1451,16 @@ def estado_cuenta_mensual():
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     # meses lista
+    # HISTORICO: meses desde la fundacion (NOV 2024) hasta hoy
     meses_lista = []
-    now = datetime.now()
-    for i in range(18):
-        m = now.month - i
-        y = now.year
-        while m <= 0:
-            m += 12
-            y -= 1
-        meses_lista.append(f"{MESES_NOMBRES[m-1]} {y}")
+    _y, _m = 2024, 11
+    _now = datetime.now()
+    while (_y, _m) <= (_now.year, _now.month):
+        meses_lista.append(f"{MESES_NOMBRES[_m-1]} {_y}")
+        _m += 1
+        if _m > 12:
+            _m = 1; _y += 1
+    meses_lista = list(reversed(meses_lista))
 
     config = ConfiguracionTesoreria.query.first()
     saldo_inicial = config.saldo_inicial if config else 0.0
@@ -1663,15 +1679,16 @@ def ingresos_extraordinarios():
     if solo_estado_cuenta():
         return redirect(url_for('estado_cuenta_mensual'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
+    # HISTORICO: meses desde la fundacion (NOV 2024) hasta hoy
     meses_lista = []
-    now = datetime.now()
-    for i in range(18):
-        m = now.month - i
-        y = now.year
-        while m <= 0:
-            m += 12
-            y -= 1
-        meses_lista.append(f"{MESES_NOMBRES[m-1]} {y}")
+    _y, _m = 2024, 11
+    _now = datetime.now()
+    while (_y, _m) <= (_now.year, _now.month):
+        meses_lista.append(f"{MESES_NOMBRES[_m-1]} {_y}")
+        _m += 1
+        if _m > 12:
+            _m = 1; _y += 1
+    meses_lista = list(reversed(meses_lista))
     
     ingresos = IngresoExtraordinario.query.filter_by(mes_anio=mes_filtro).order_by(IngresoExtraordinario.fecha.desc()).all()
     total_mes = sum([i.monto for i in ingresos]) if ingresos else 0
@@ -1791,6 +1808,218 @@ def _version():
     """DIAGNOSTICO: visita /_version en Render. Si sale Not Found, Render NO esta corriendo este app.py."""
     rutas = sorted([str(r) for r in app.url_map.iter_rules() if 'tesoreria' in str(r)])
     return {'version': 'APP_PY_CON_MIS_ESTADOS_2026', 'mis_estados': '/tesoreria/mis-estados' in rutas, 'rutas_tesoreria': rutas}
+
+
+# ================= HISTORICO TESORERIA - DESDE 23 NOV 2024 =================
+@app.route('/tesoreria/historico')
+def tesoreria_historico():
+    """Vista unificada historica: saldos iniciales + ingresos + egresos + cuotas, desde la fundacion."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if not puede_tesoreria():
+        return redirect(url_for('tesoreria_mis_estados'))
+    config = ConfiguracionTesoreria.query.first()
+    si_cuotas = (getattr(config, 'saldo_inicial_cuotas', None) if config else None)
+    if si_cuotas is None:
+        si_cuotas = config.saldo_inicial if config else 0.0
+    si_proy = getattr(config, 'saldo_inicial_proyectos', 0.0) if config else 0.0
+    fecha_fund = getattr(config, 'fecha_fundacion', date(2024, 11, 23)) if config else date(2024, 11, 23)
+    # Filtros
+    desde = request.args.get('desde', '2024-11-23')
+    hasta = request.args.get('hasta', datetime.now().strftime('%Y-%m-%d'))
+    centro_f = request.args.get('centro', '')
+    try:
+        f_desde = datetime.strptime(desde, '%Y-%m-%d').date()
+        f_hasta = datetime.strptime(hasta, '%Y-%m-%d').date()
+    except:
+        f_desde, f_hasta = date(2024, 11, 23), datetime.now().date()
+    # Ingresos extra + Gastos en rango
+    ingresos = IngresoExtraordinario.query.filter(IngresoExtraordinario.fecha >= f_desde, IngresoExtraordinario.fecha <= f_hasta).order_by(IngresoExtraordinario.fecha.desc()).all()
+    gastos_q = Gasto.query.filter(Gasto.fecha >= f_desde, Gasto.fecha <= f_hasta)
+    if centro_f:
+        gastos_q = gastos_q.filter_by(centro_costo=centro_f)
+    gastos = gastos_q.order_by(Gasto.fecha.desc()).all()
+    # Cuotas en rango (por fecha_pago)
+    cuotas = PagoCuota.query.filter(PagoCuota.fecha_pago >= f_desde, PagoCuota.fecha_pago <= f_hasta).order_by(PagoCuota.fecha_pago.desc()).all()
+    total_ingresos = sum(i.monto for i in ingresos)
+    total_gastos = sum(g.monto for g in gastos)
+    total_gastos_admin = sum(g.monto for g in gastos if g.centro_costo == 'ADMINISTRATIVO')
+    total_gastos_proy = sum(g.monto for g in gastos if g.centro_costo == 'PROYECTO')
+    total_cuotas = sum(p.monto for p in cuotas)
+    saldo_historico = si_cuotas + si_proy + total_cuotas + total_ingresos - total_gastos
+    saldo_cuotas = si_cuotas + total_cuotas - total_gastos_admin
+    # Proyectos: ingresos de eventos + SI proyectos - gastos proyecto (aprox, ingresos de eventos van en EventoProyecto)
+    total_eventos_proy = db.session.query(func.sum(EventoProyecto.monto_recaudado)).scalar() or 0.0
+    saldo_proyectos = si_proy + total_eventos_proy - total_gastos_proy
+    proyectos = Proyecto.query.filter_by(activo=True).order_by(Proyecto.nombre.asc()).all()
+    # Progreso por mes: para ir viendo que meses del libro ya estan capturados
+    progreso = []
+    _y, _m = 2024, 11
+    _now = datetime.now()
+    while (_y, _m) <= (_now.year, _now.month):
+        _mes = f"{MESES_NOMBRES[_m-1]} {_y}"
+        _n_g = Gasto.query.filter_by(mes_anio=_mes).count()
+        _n_i = IngresoExtraordinario.query.filter_by(mes_anio=_mes).count()
+        _n_c = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == _mes).count()
+        progreso.append({'mes': _mes, 'gastos': _n_g, 'ingresos': _n_i, 'cuotas': _n_c, 'total': _n_g + _n_i + _n_c})
+        _m += 1
+        if _m > 12: _m = 1; _y += 1
+    progreso = list(reversed(progreso))
+    return render_template('tesoreria_historico.html', progreso=progreso, config=config, si_cuotas=si_cuotas, si_proy=si_proy, fecha_fund=fecha_fund,
+        ingresos=ingresos, gastos=gastos, cuotas=cuotas, proyectos=proyectos,
+        total_ingresos=total_ingresos, total_gastos=total_gastos, total_gastos_admin=total_gastos_admin, total_gastos_proy=total_gastos_proy,
+        total_cuotas=total_cuotas, saldo_historico=saldo_historico, saldo_cuotas=saldo_cuotas, saldo_proyectos=saldo_proyectos,
+        total_eventos_proy=total_eventos_proy, desde=desde, hasta=hasta, centro_f=centro_f)
+
+@app.route('/tesoreria/historico/nuevo', methods=['POST'])
+def tesoreria_historico_nuevo():
+    """Cargar UN movimiento historico con detalle: INGRESO o EGRESO, con fecha desde 23 NOV 2024."""
+    if 'user_id' not in session or not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO pueden cargar historico.', 'danger')
+        return redirect(url_for('tesoreria_historico'))
+    tipo_mov = request.form.get('tipo_mov', 'EGRESO').strip().upper()  # INGRESO / EGRESO
+    fecha_str = request.form.get('fecha')
+    try:
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else datetime.now().date()
+    except:
+        flash('Fecha invalida.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    if fecha < date(2024, 11, 23):
+        flash('La fecha no puede ser antes de la fundacion (23 NOV 2024).', 'danger'); return redirect(url_for('tesoreria_historico'))
+    if fecha > datetime.now().date():
+        flash('La fecha no puede ser futura.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    concepto = to_upper(request.form.get('concepto'))
+    try:
+        monto = float(request.form.get('monto', 0))
+    except:
+        monto = 0
+    if not concepto or monto <= 0:
+        flash('Falta concepto o monto.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    mes_anio = f"{MESES_NOMBRES[fecha.month-1]} {fecha.year}"
+    centro = request.form.get('centro_costo', 'ADMINISTRATIVO')
+    proyecto_id = request.form.get('proyecto_id') if centro == 'PROYECTO' else None
+    if proyecto_id:
+        try: proyecto_id = int(proyecto_id)
+        except: proyecto_id = None
+    origen = to_upper(request.form.get('origen'))
+    referencia = to_upper(request.form.get('referencia'))
+    notas = request.form.get('notas')
+    user = Usuario.query.get(session['user_id'])
+    quien = user.nombre if user and hasattr(user, 'nombre') else (user.username if user else 'TESORERIA')
+    if tipo_mov == 'INGRESO':
+        tipo_ing = request.form.get('tipo_ingreso', 'DONACION').strip().upper()
+        ing = IngresoExtraordinario(fecha=fecha, mes_anio=mes_anio, concepto=concepto, monto=monto, tipo=tipo_ing, origen=origen, referencia=referencia, notas=notas, registrado_por=quien)
+        db.session.add(ing)
+        db.session.commit()
+        flash(f'Ingreso historico guardado: {concepto} - ${monto:,.2f} ({fecha.strftime("%d/%m/%Y")}).', 'success')
+    else:
+        # Foto comprobante opcional
+        foto_b64 = None
+        f = request.files.get('foto_comprobante')
+        if f and f.filename:
+            try:
+                contenido = f.read()
+                if 0 < len(contenido) < 8*1024*1024:
+                    foto_b64 = f"data:{f.mimetype or 'image/jpeg'};base64,{base64.b64encode(contenido).decode('utf-8')}"
+            except: pass
+        g = Gasto(fecha=fecha, mes_anio=mes_anio, concepto=concepto, monto=monto, centro_costo=centro, proyecto_id=proyecto_id, comprobante=referencia, foto_comprobante=foto_b64, creado_por=quien, notas=notas)
+        db.session.add(g)
+        db.session.commit()
+        flash(f'Egreso historico guardado: {concepto} - ${monto:,.2f} ({fecha.strftime("%d/%m/%Y")}).', 'success')
+    return redirect(url_for('tesoreria_historico', desde=request.form.get('desde') or '2024-11-23', hasta=request.form.get('hasta') or datetime.now().strftime('%Y-%m-%d')))
+
+@app.route('/tesoreria/historico/saldos-iniciales', methods=['POST'])
+def tesoreria_saldos_iniciales():
+    """Guardar saldos iniciales al 23 NOV 2024: cuotas + proyectos, con nota y password."""
+    if 'user_id' not in session or not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    user = Usuario.query.get(session['user_id'])
+    if not user or not check_password_hash(user.password_hash, request.form.get('password') or ''):
+        flash('Contraseña incorrecta.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    try:
+        si_cuotas = float(request.form.get('saldo_inicial_cuotas', 0) or 0)
+        si_proy = float(request.form.get('saldo_inicial_proyectos', 0) or 0)
+    except:
+        flash('Monto invalido.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    config = ConfiguracionTesoreria.query.first()
+    if not config:
+        config = ConfiguracionTesoreria(saldo_inicial=si_cuotas, saldo_inicial_cuotas=si_cuotas, saldo_inicial_proyectos=si_proy)
+        db.session.add(config)
+    else:
+        config.saldo_inicial = si_cuotas
+        config.saldo_inicial_cuotas = si_cuotas
+        config.saldo_inicial_proyectos = si_proy
+        config.fecha_fundacion = date(2024, 11, 23)
+    config.nota_saldos_iniciales = request.form.get('nota_saldos')
+    config.fecha_actualizacion = datetime.now().date()
+    db.session.commit()
+    flash(f'Saldos iniciales guardados al 23 NOV 2024: Cuotas ${si_cuotas:,.2f} + Proyectos ${si_proy:,.2f}.', 'success')
+    return redirect(url_for('tesoreria_historico'))
+
+
+
+@app.route('/tesoreria/historico/masivo', methods=['POST'])
+def tesoreria_historico_masivo():
+    """Carga masiva desde el libro: pega renglones, uno por movimiento.
+    Formato por renglon: FECHA | INGRESO/EGRESO | CONCEPTO | MONTO | CENTRO | PROYECTO | ORIGEN | REFERENCIA
+    Fecha acepta 2024-11-25 o 25/11/2024. Monto acepta 1500, 1,500.00 o $1500."""
+    if 'user_id' not in session or not puede_tesoreria():
+        flash('Solo ADMIN, PRESIDENTE o TESORERO.', 'danger'); return redirect(url_for('tesoreria_historico'))
+    texto = request.form.get('texto_masivo', '') or ''
+    user = Usuario.query.get(session['user_id'])
+    quien = user.nombre if user and hasattr(user, 'nombre') else (user.username if user else 'TESORERIA')
+    guardados, errores = 0, []
+    proyectos = {pr.nombre.strip().upper(): pr for pr in Proyecto.query.all()}
+    for n, linea in enumerate(texto.splitlines(), 1):
+        linea = linea.strip()
+        if not linea or linea.startswith('#'):
+            continue
+        partes = [x.strip() for x in linea.split('|')]
+        if len(partes) < 4:
+            errores.append(f'Renglon {n}: le faltan campos (fecha | tipo | concepto | monto).')
+            continue
+        fecha_str, tipo_mov, concepto, monto_str = partes[0], partes[1].upper(), partes[2], partes[3]
+        centro = (partes[4].upper() if len(partes) > 4 and partes[4] else 'ADMINISTRATIVO')
+        nombre_proy = (partes[5] if len(partes) > 5 else '')
+        origen = (partes[6] if len(partes) > 6 else '')
+        referencia = (partes[7] if len(partes) > 7 else '')
+        # Fecha
+        fecha = None
+        for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y'):
+            try: fecha = datetime.strptime(fecha_str, fmt).date(); break
+            except: pass
+        if not fecha:
+            errores.append(f'Renglon {n}: fecha "{fecha_str}" no se entiende. Usa 2024-11-25 o 25/11/2024.'); continue
+        if fecha < date(2024, 11, 23) or fecha > datetime.now().date():
+            errores.append(f'Renglon {n}: fecha fuera de rango (23 NOV 2024 a hoy).'); continue
+        try: monto = float(monto_str.replace('$', '').replace(',', '').strip())
+        except: errores.append(f'Renglon {n}: monto "{monto_str}" no es numero.'); continue
+        if monto <= 0:
+            errores.append(f'Renglon {n}: monto debe ser mayor a 0.'); continue
+        mes_anio = f"{MESES_NOMBRES[fecha.month-1]} {fecha.year}"
+        if tipo_mov.startswith('ING'):
+            ing = IngresoExtraordinario(fecha=fecha, mes_anio=mes_anio, concepto=to_upper(concepto), monto=monto, tipo='OTRO', origen=to_upper(origen), referencia=to_upper(referencia), registrado_por=quien)
+            db.session.add(ing); guardados += 1
+        elif tipo_mov.startswith('EGR'):
+            pid = None
+            if centro == 'PROYECTO' and nombre_proy:
+                pr = proyectos.get(nombre_proy.strip().upper())
+                pid = pr.id if pr else None
+                if not pid: errores.append(f'Renglon {n}: proyecto "{nombre_proy}" no existe, se guardo sin proyecto.')
+            g = Gasto(fecha=fecha, mes_anio=mes_anio, concepto=to_upper(concepto), monto=monto, centro_costo=centro if centro in ('ADMINISTRATIVO', 'PROYECTO') else 'ADMINISTRATIVO', proyecto_id=pid, comprobante=to_upper(referencia), creado_por=quien, notas=to_upper(origen))
+            db.session.add(g); guardados += 1
+        else:
+            errores.append(f'Renglon {n}: tipo "{tipo_mov}" debe ser INGRESO o EGRESO.'); continue
+    db.session.commit()
+    if guardados:
+        flash(f'Carga masiva: {guardados} movimiento(s) guardado(s) del libro.', 'success')
+    for e in errores[:10]:
+        flash(e, 'warning')
+    if len(errores) > 10:
+        flash(f'... y {len(errores)-10} renglones mas con error.', 'warning')
+    if guardados == 0 and not errores:
+        flash('No pegaste ningun renglon.', 'warning')
+    return redirect(url_for('tesoreria_historico'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
