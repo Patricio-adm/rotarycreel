@@ -3,7 +3,7 @@ from flask import Flask, render_template, render_template_string, request, redir
 from flask_sqlalchemy import SQLAlchemy
 import os
 import base64
-from datetime import datetime
+from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -208,6 +208,19 @@ class DocumentoRotario(db.Model):
 
 with app.app_context():
     db.create_all()
+    # MIGRACION HISTORICO: si la tabla configuracion_tesoreria ya existia, agregarle las columnas nuevas (create_all NO las agrega sola)
+    try:
+        from sqlalchemy import text as _sa_text
+        for _col, _tipo in [('fecha_fundacion', 'DATE'), ('saldo_inicial_cuotas', 'DOUBLE PRECISION'), ('saldo_inicial_proyectos', 'DOUBLE PRECISION'), ('nota_saldos_iniciales', 'TEXT')]:
+            try:
+                db.session.execute(_sa_text(f"ALTER TABLE configuracion_tesoreria ADD COLUMN IF NOT EXISTS {_col} {_tipo}"))
+            except Exception as _e:
+                print(f"Migracion {_col}: {_e}")
+        db.session.commit()
+    except Exception as _e:
+        print(f"Migracion historico: {_e}")
+        try: db.session.rollback()
+        except: pass
     try:
         PagoCuota.__table__.create(db.engine, checkfirst=True)
         ConfiguracionTesoreria.__table__.create(db.engine, checkfirst=True)
