@@ -1483,7 +1483,7 @@ def estado_cuenta_mensual():
 
     # CUOTAS MES
     pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
-    total_cuotas_mes = sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0
+    total_cuotas_mes = (sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0) + total_cuotas_sociales_hist_mes
 
     # GASTOS MES
     gastos_admin = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='ADMINISTRATIVO').order_by(Gasto.fecha.desc()).all()
@@ -1503,7 +1503,12 @@ def estado_cuenta_mensual():
 
     # INGRESOS EXTRAORDINARIOS / DONACIONES MES - NUEVO
     ingresos_extra_mes = IngresoExtraordinario.query.filter_by(mes_anio=mes_filtro).order_by(IngresoExtraordinario.fecha.desc()).all()
-    total_ingresos_extra_mes = sum([i.monto for i in ingresos_extra_mes]) if ingresos_extra_mes else 0
+    # CUOTAS SOCIALES cargadas en Historico (del libro, sin desglose por socio): cuentan como CUOTAS, no como ingreso extra
+    ingresos_cuotas_sociales_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() == 'CUOTAS SOCIALES']
+    total_cuotas_sociales_hist_mes = sum([i.monto for i in ingresos_cuotas_sociales_mes]) if ingresos_cuotas_sociales_mes else 0
+    total_ingresos_extra_mes = sum([i.monto for i in ingresos_extra_mes if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES']) if ingresos_extra_mes else 0
+    # La lista que se muestra en Ingresos Extra tambien excluye CUOTAS SOCIALES (ya estan contadas en CUOTAS)
+    ingresos_extra_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES']
 
     # Si no hay eventos filtrados por fecha, intenta buscar por mes_anio no existe en eventos, entonces usa 0
     # Pero para que veas datos, si no hay eventos en ese mes, total_ingresos_proyectos_mes = 0, puedes ajustar luego
@@ -1514,11 +1519,11 @@ def estado_cuenta_mensual():
     balance_acumulado = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes + total_ingresos_extra_mes - total_gastos_admin_mes - total_gastos_proy_mes
 
     # Historicos totales
-    total_cuotas_historico = db.session.query(func.sum(PagoCuota.monto)).scalar() or 0
+    total_cuotas_historico = (db.session.query(func.sum(PagoCuota.monto)).scalar() or 0) + (db.session.query(func.sum(IngresoExtraordinario.monto)).filter(func.upper(IngresoExtraordinario.tipo) == 'CUOTAS SOCIALES').scalar() or 0)
     total_gastos_admin_hist = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='ADMINISTRATIVO').scalar() or 0
     total_gastos_proy_hist = db.session.query(func.sum(Gasto.monto)).filter_by(centro_costo='PROYECTO').scalar() or 0
     total_ingresos_proy_hist = db.session.query(func.sum(EventoProyecto.monto_recaudado)).scalar() or 0
-    total_ingresos_extra_hist = db.session.query(func.sum(IngresoExtraordinario.monto)).scalar() or 0
+    total_ingresos_extra_hist = (db.session.query(func.sum(IngresoExtraordinario.monto)).filter(func.upper(IngresoExtraordinario.tipo) != 'CUOTAS SOCIALES').scalar() or 0)
 
     saldo_cuotas = total_cuotas_mes - total_gastos_admin_mes
     saldo_proyectos = total_ingresos_proyectos_mes - total_gastos_proy_mes
@@ -1531,6 +1536,9 @@ def estado_cuenta_mensual():
                            pagos_cuotas=pagos_cuotas,
                            total_cuotas_mes=total_cuotas_mes,
                            num_pagos_cuotas=len(pagos_cuotas),
+                           ingresos_cuotas_sociales_mes=ingresos_cuotas_sociales_mes,
+                           total_cuotas_sociales_hist_mes=total_cuotas_sociales_hist_mes,
+                           num_cuotas_sociales_hist=len(ingresos_cuotas_sociales_mes),
                            gastos_admin=gastos_admin,
                            gastos_proy=gastos_proy,
                            total_gastos_admin_mes=total_gastos_admin_mes,
@@ -1858,11 +1866,14 @@ def tesoreria_historico():
     gastos = gastos_q.order_by(Gasto.fecha.desc()).all()
     # Cuotas en rango (por fecha_pago)
     cuotas = PagoCuota.query.filter(PagoCuota.fecha_pago >= f_desde, PagoCuota.fecha_pago <= f_hasta).order_by(PagoCuota.fecha_pago.desc()).all()
-    total_ingresos = sum(_f(i.monto) for i in ingresos)
+    # CUOTAS SOCIALES cargadas como ingreso historico (del libro, sin desglose por socio):
+    # cuentan como CUOTAS, no como ingreso extra, para que no se dupliquen en el Estado de Cuenta
+    total_cuotas_sociales_hist = sum(_f(i.monto) for i in ingresos if (i.tipo or '').strip().upper() == 'CUOTAS SOCIALES')
+    total_ingresos = sum(_f(i.monto) for i in ingresos if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES')
     total_gastos = sum(_f(g.monto) for g in gastos)
     total_gastos_admin = sum(_f(g.monto) for g in gastos if g.centro_costo == 'ADMINISTRATIVO')
     total_gastos_proy = sum(_f(g.monto) for g in gastos if g.centro_costo == 'PROYECTO')
-    total_cuotas = sum(_f(p.monto) for p in cuotas)
+    total_cuotas = sum(_f(p.monto) for p in cuotas) + total_cuotas_sociales_hist
     saldo_historico = si_cuotas + si_proy + total_cuotas + total_ingresos - total_gastos
     saldo_cuotas = si_cuotas + total_cuotas - total_gastos_admin
     # Proyectos: ingresos de eventos + SI proyectos - gastos proyecto (aprox, ingresos de eventos van en EventoProyecto)
@@ -1885,7 +1896,7 @@ def tesoreria_historico():
     return render_template('tesoreria_historico.html', progreso=progreso, config=config, si_cuotas=si_cuotas, si_proy=si_proy, fecha_fund=fecha_fund,
         ingresos=ingresos, gastos=gastos, cuotas=cuotas, proyectos=proyectos,
         total_ingresos=total_ingresos, total_gastos=total_gastos, total_gastos_admin=total_gastos_admin, total_gastos_proy=total_gastos_proy,
-        total_cuotas=total_cuotas, saldo_historico=saldo_historico, saldo_cuotas=saldo_cuotas, saldo_proyectos=saldo_proyectos,
+        total_cuotas=total_cuotas, total_cuotas_sociales_hist=total_cuotas_sociales_hist, saldo_historico=saldo_historico, saldo_cuotas=saldo_cuotas, saldo_proyectos=saldo_proyectos,
         total_eventos_proy=total_eventos_proy, desde=desde, hasta=hasta, centro_f=centro_f)
 
 @app.route('/tesoreria/historico/nuevo', methods=['POST'])
@@ -2109,5 +2120,4 @@ def tesoreria_historico_editar_ingreso(ingreso_id):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
 
