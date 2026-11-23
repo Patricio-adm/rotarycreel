@@ -3,6 +3,7 @@ from flask import Flask, render_template, render_template_string, request, redir
 from flask_sqlalchemy import SQLAlchemy
 import os
 import base64
+from types import SimpleNamespace
 from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -1458,6 +1459,20 @@ def eliminar_evento(evento_id):
     return redirect(url_for('ver_proyecto', proyecto_id=pid))
 
 
+
+def _renglones_cuotas_sociales_historico(ingresos_cuotas_sociales_mes):
+    """Cada ingreso historico CUOTAS SOCIALES se muestra como un renglon en la tabla de CUOTAS:
+    SOCIO = concepto del ingreso, FECHA = fecha ingresada, MONTO = monto, METODO = EFECTIVO (por defecto, el libro no dice metodo)."""
+    renglones = []
+    for ing in (ingresos_cuotas_sociales_mes or []):
+        renglones.append(SimpleNamespace(
+            id=None, es_historico=True, es_cuota_historica=True,
+            socio=SimpleNamespace(nombre_completo=(ing.concepto or 'CUOTAS SOCIALES DEL LIBRO')),
+            fecha_pago=ing.fecha, monto=ing.monto, metodo_pago='EFECTIVO',
+            mes_anio=ing.mes_anio, referencia=ing.referencia, origen=ing.origen,
+        ))
+    return renglones
+
 # ==================== ESTADO DE CUENTA MENSUAL ====================
 @app.route('/tesoreria/estado-cuenta-mensual')
 def estado_cuenta_mensual():
@@ -1489,6 +1504,9 @@ def estado_cuenta_mensual():
     ingresos_cuotas_sociales_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() == 'CUOTAS SOCIALES']
     total_cuotas_sociales_hist_mes = sum([i.monto for i in ingresos_cuotas_sociales_mes]) if ingresos_cuotas_sociales_mes else 0
     total_cuotas_mes = (sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0) + total_cuotas_sociales_hist_mes
+    # Que las cuotas historicas APAREZCAN en la tabla de CUOTAS (no solo en el total):
+    # SOCIO = concepto, FECHA = fecha ingresada, MONTO = monto, METODO = EFECTIVO
+    pagos_cuotas = sorted(list(pagos_cuotas) + _renglones_cuotas_sociales_historico(ingresos_cuotas_sociales_mes), key=lambda x: x.fecha_pago or date(2024,11,23), reverse=True)
 
     # GASTOS MES
     gastos_admin = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='ADMINISTRATIVO').order_by(Gasto.fecha.desc()).all()
@@ -1577,6 +1595,7 @@ def estado_cuenta_pdf_mensual():
     ingresos_cuotas_sociales_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() == 'CUOTAS SOCIALES']
     total_cuotas_sociales_hist_mes = sum([i.monto for i in ingresos_cuotas_sociales_mes]) if ingresos_cuotas_sociales_mes else 0
     total_cuotas_mes = (sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0) + total_cuotas_sociales_hist_mes
+    pagos_cuotas = sorted(list(pagos_cuotas) + _renglones_cuotas_sociales_historico(ingresos_cuotas_sociales_mes), key=lambda x: x.fecha_pago or date(2024,11,23), reverse=True)
     gastos_admin = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='ADMINISTRATIVO').all()
     gastos_proy = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='PROYECTO').all()
     total_gastos_admin_mes = sum([g.monto for g in gastos_admin]) if gastos_admin else 0
