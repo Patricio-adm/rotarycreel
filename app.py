@@ -3,7 +3,7 @@ from flask import Flask, render_template, render_template_string, request, redir
 from flask_sqlalchemy import SQLAlchemy
 import os
 import base64
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -1483,6 +1483,11 @@ def estado_cuenta_mensual():
 
     # CUOTAS MES
     pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
+    # FIX ORDEN: primero se calculan las CUOTAS SOCIALES historicas del mes, DESPUES se suman a total_cuotas_mes
+    # (antes se usaba la variable antes de definirla y la pagina tronaba con NameError)
+    ingresos_extra_mes = IngresoExtraordinario.query.filter_by(mes_anio=mes_filtro).order_by(IngresoExtraordinario.fecha.desc()).all()
+    ingresos_cuotas_sociales_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() == 'CUOTAS SOCIALES']
+    total_cuotas_sociales_hist_mes = sum([i.monto for i in ingresos_cuotas_sociales_mes]) if ingresos_cuotas_sociales_mes else 0
     total_cuotas_mes = (sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0) + total_cuotas_sociales_hist_mes
 
     # GASTOS MES
@@ -1501,11 +1506,7 @@ def estado_cuenta_mensual():
 
     total_ingresos_proyectos_mes = sum([e.monto_recaudado for e in eventos_mes]) if eventos_mes else 0
 
-    # INGRESOS EXTRAORDINARIOS / DONACIONES MES - NUEVO
-    ingresos_extra_mes = IngresoExtraordinario.query.filter_by(mes_anio=mes_filtro).order_by(IngresoExtraordinario.fecha.desc()).all()
-    # CUOTAS SOCIALES cargadas en Historico (del libro, sin desglose por socio): cuentan como CUOTAS, no como ingreso extra
-    ingresos_cuotas_sociales_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() == 'CUOTAS SOCIALES']
-    total_cuotas_sociales_hist_mes = sum([i.monto for i in ingresos_cuotas_sociales_mes]) if ingresos_cuotas_sociales_mes else 0
+    # INGRESOS EXTRAORDINARIOS / DONACIONES MES - NUEVO (CUOTAS SOCIALES ya calculadas arriba, aqui solo se separa el total)
     total_ingresos_extra_mes = sum([i.monto for i in ingresos_extra_mes if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES']) if ingresos_extra_mes else 0
     # La lista que se muestra en Ingresos Extra tambien excluye CUOTAS SOCIALES (ya estan contadas en CUOTAS)
     ingresos_extra_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES']
@@ -1572,7 +1573,10 @@ def estado_cuenta_pdf_mensual():
     config = ConfiguracionTesoreria.query.first()
     saldo_inicial = float(config.saldo_inicial or 0.0) if config else 0.0
     pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
-    total_cuotas_mes = sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0
+    ingresos_extra_mes = IngresoExtraordinario.query.filter_by(mes_anio=mes_filtro).order_by(IngresoExtraordinario.fecha.desc()).all()
+    ingresos_cuotas_sociales_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() == 'CUOTAS SOCIALES']
+    total_cuotas_sociales_hist_mes = sum([i.monto for i in ingresos_cuotas_sociales_mes]) if ingresos_cuotas_sociales_mes else 0
+    total_cuotas_mes = (sum([p.monto for p in pagos_cuotas]) if pagos_cuotas else 0) + total_cuotas_sociales_hist_mes
     gastos_admin = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='ADMINISTRATIVO').all()
     gastos_proy = Gasto.query.filter_by(mes_anio=mes_filtro, centro_costo='PROYECTO').all()
     total_gastos_admin_mes = sum([g.monto for g in gastos_admin]) if gastos_admin else 0
@@ -1584,9 +1588,9 @@ def estado_cuenta_pdf_mensual():
     except:
         eventos_mes = []
     total_ingresos_proyectos_mes = sum([e.monto_recaudado for e in eventos_mes]) if eventos_mes else 0
-    # INGRESOS EXTRAORDINARIOS / DONACIONES
-    ingresos_extra_mes = IngresoExtraordinario.query.filter_by(mes_anio=mes_filtro).order_by(IngresoExtraordinario.fecha.desc()).all()
-    total_ingresos_extra_mes = sum([i.monto for i in ingresos_extra_mes]) if ingresos_extra_mes else 0
+    # INGRESOS EXTRAORDINARIOS / DONACIONES (sin CUOTAS SOCIALES, ya estan en CUOTAS)
+    total_ingresos_extra_mes = sum([i.monto for i in ingresos_extra_mes if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES']) if ingresos_extra_mes else 0
+    ingresos_extra_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES']
     total_ingresos = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes + total_ingresos_extra_mes
     total_egresos = total_gastos_admin_mes + total_gastos_proy_mes
     balance_final = total_cuotas_mes + total_ingresos_proyectos_mes + total_ingresos_extra_mes - total_egresos
@@ -1598,6 +1602,8 @@ def estado_cuenta_pdf_mensual():
                            pagos_cuotas=pagos_cuotas,
                            total_cuotas_mes=total_cuotas_mes,
                            num_pagos_cuotas=len(pagos_cuotas),
+                           ingresos_cuotas_sociales_mes=ingresos_cuotas_sociales_mes,
+                           total_cuotas_sociales_hist_mes=total_cuotas_sociales_hist_mes,
                            gastos_admin=gastos_admin,
                            gastos_proy=gastos_proy,
                            total_gastos_admin_mes=total_gastos_admin_mes,
@@ -2120,4 +2126,5 @@ def tesoreria_historico_editar_ingreso(ingreso_id):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
