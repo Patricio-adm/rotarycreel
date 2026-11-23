@@ -33,6 +33,7 @@ body { font-family: Arial, sans-serif; font-size: 9px; text-transform: uppercase
 <tr class="total-row"><td colspan="2" style="background:#17458F; color:white; text-align:center;">RESUMEN EJECUTIVO {{ mes_actual }}</td></tr>
 <tr><td>SALDO INICIAL</td><td class="text-right monto-pos">+ ${{ "%.2f"|format(saldo_inicial) }}</td></tr>
 <tr><td>CUOTAS SOCIALES RECAUDADAS {{ mes_actual }} ({{ num_pagos_cuotas }} pagos)</td><td class="text-right monto-pos">+ ${{ "%.2f"|format(total_cuotas_mes) }}</td></tr>
+<tr><td>{{ titulo_otros_ingresos }}</td><td class="text-right monto-pos">+ ${{ "%.2f"|format(total_ingresos_extra_mes) }}</td></tr>
 <tr><td>INGRESOS PROYECTOS / APORTES {{ mes_actual }}</td><td class="text-right monto-pos">+ ${{ "%.2f"|format(total_ingresos_proyectos_mes) }}</td></tr>
 <tr class="total-row"><td>TOTAL INGRESOS</td><td class="text-right">${{ "%.2f"|format(total_ingresos) }}</td></tr>
 <tr><td>GASTOS ADMINISTRATIVOS (De cuotas)</td><td class="text-right monto-neg">- ${{ "%.2f"|format(total_gastos_admin_mes) }}</td></tr>
@@ -69,6 +70,17 @@ body { font-family: Arial, sans-serif; font-size: 9px; text-transform: uppercase
 <tr><td>{{ e.proyecto.nombre if e.proyecto else '' }}</td><td>{{ e.nombre }}</td><td class="text-center">{{ e.fecha_evento.strftime('%d/%m/%Y') if e.fecha_evento else '' }}</td><td class="text-right monto-pos">${{ "%.2f"|format(e.monto_recaudado) }}</td><td class="text-right">${{ "%.2f"|format(e.monto_meta) }}</td></tr>
 {% else %}
 <tr><td colspan="5" class="text-center">Sin ingresos proyectos</td></tr>
+{% endfor %}
+</table>
+
+<table class="table">
+<table class="table">
+<tr><th colspan="5" style="background:#17a2b8;">{{ titulo_otros_ingresos }} - ${{ "%.2f"|format(total_ingresos_extra_mes) }}</th></tr>
+<tr><th>FECHA</th><th>TIPO</th><th>CONCEPTO</th><th>ORIGEN</th><th>MONTO</th></tr>
+{% for ing in ingresos_extra_mes %}
+<tr><td class="text-center">{{ ing.fecha.strftime('%d/%m/%Y') if ing.fecha else '' }}</td><td class="text-center">{{ ing.etiqueta_mostrar or ing.tipo }}</td><td>{{ ing.concepto }}</td><td class="text-center">{{ ing.origen or '' }}</td><td class="text-right monto-pos">${{ "%.2f"|format(ing.monto) }}</td></tr>
+{% else %}
+<tr><td colspan="5" class="text-center">Sin otros ingresos</td></tr>
 {% endfor %}
 </table>
 
