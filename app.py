@@ -1460,6 +1460,21 @@ def eliminar_evento(evento_id):
 
 
 
+
+def _etiqueta_ingreso(ing):
+    """DONACION solo si el CONCEPTO dice explicitamente DONACION / DONACIÓN.
+    Si no, se muestra su tipo real (PATROCINIO, VENTA, APORTACION, RIFA, OTRO).
+    Asi la seccion ya no mete todos los ingresos en el saco de donacion."""
+    concepto = (ing.concepto or '').upper()
+    if 'DONACION' in concepto or 'DONACIÓN' in concepto:
+        return 'DONACIÓN'
+    return (ing.tipo or 'OTRO').strip().upper()
+
+def _anotar_etiquetas_ingresos(ingresos):
+    for ing in (ingresos or []):
+        ing.etiqueta_mostrar = _etiqueta_ingreso(ing)
+    return ingresos
+
 def _renglones_cuotas_sociales_historico(ingresos_cuotas_sociales_mes):
     """Cada ingreso historico CUOTAS SOCIALES se muestra como un renglon en la tabla de CUOTAS:
     SOCIO = concepto del ingreso, FECHA = fecha ingresada, MONTO = monto, METODO = EFECTIVO (por defecto, el libro no dice metodo)."""
@@ -1524,6 +1539,9 @@ def estado_cuenta_mensual():
 
     total_ingresos_proyectos_mes = sum([e.monto_recaudado for e in eventos_mes]) if eventos_mes else 0
 
+    # OTROS INGRESOS (antes: DONACIONES E INGRESOS EXTRAORDINARIOS) - DONACION solo si el concepto lo dice
+    ingresos_extra_mes = _anotar_etiquetas_ingresos(ingresos_extra_mes)
+    total_donaciones_mes = sum([i.monto for i in ingresos_extra_mes if i.etiqueta_mostrar == 'DONACIÓN']) if ingresos_extra_mes else 0
     # INGRESOS EXTRAORDINARIOS / DONACIONES MES - NUEVO (CUOTAS SOCIALES ya calculadas arriba, aqui solo se separa el total)
     total_ingresos_extra_mes = sum([i.monto for i in ingresos_extra_mes if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES']) if ingresos_extra_mes else 0
     # La lista que se muestra en Ingresos Extra tambien excluye CUOTAS SOCIALES (ya estan contadas en CUOTAS)
@@ -1569,6 +1587,8 @@ def estado_cuenta_mensual():
                            num_eventos_mes=len(eventos_mes),
                            ingresos_extra_mes=ingresos_extra_mes,
                            total_ingresos_extra_mes=total_ingresos_extra_mes,
+                           titulo_otros_ingresos=f"OTROS INGRESOS {mes_filtro}",
+                           total_donaciones_mes=total_donaciones_mes,
                            total_ingresos=total_ingresos,
                            total_egresos=total_egresos,
                            balance_final=balance_final,
@@ -1607,7 +1627,9 @@ def estado_cuenta_pdf_mensual():
     except:
         eventos_mes = []
     total_ingresos_proyectos_mes = sum([e.monto_recaudado for e in eventos_mes]) if eventos_mes else 0
-    # INGRESOS EXTRAORDINARIOS / DONACIONES (sin CUOTAS SOCIALES, ya estan en CUOTAS)
+    # OTROS INGRESOS (sin CUOTAS SOCIALES, ya estan en CUOTAS) - DONACION solo si el concepto lo dice
+    ingresos_extra_mes = _anotar_etiquetas_ingresos(ingresos_extra_mes)
+    total_donaciones_mes = sum([i.monto for i in ingresos_extra_mes if i.etiqueta_mostrar == 'DONACIÓN']) if ingresos_extra_mes else 0
     total_ingresos_extra_mes = sum([i.monto for i in ingresos_extra_mes if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES']) if ingresos_extra_mes else 0
     ingresos_extra_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES']
     total_ingresos = saldo_inicial + total_cuotas_mes + total_ingresos_proyectos_mes + total_ingresos_extra_mes
@@ -1631,6 +1653,8 @@ def estado_cuenta_pdf_mensual():
                            total_ingresos_proyectos_mes=total_ingresos_proyectos_mes,
                            ingresos_extra_mes=ingresos_extra_mes,
                            total_ingresos_extra_mes=total_ingresos_extra_mes,
+                           titulo_otros_ingresos=f"OTROS INGRESOS {mes_filtro}",
+                           total_donaciones_mes=total_donaciones_mes,
                            total_ingresos=total_ingresos,
                            total_egresos=total_egresos,
                            balance_final=balance_final,
