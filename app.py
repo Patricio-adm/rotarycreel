@@ -1,10 +1,10 @@
 # ============================================================
 # ROTARY CREEL - app.py
-# VERSION_APP_ROTARY_CREEL = "2026-11-23_OTROS-INGRESOS_V3"
+# VERSION_APP_ROTARY_CREEL = "2026-11-23_SALDO-ARRASTRE_V4"
 # Incluye: /tesoreria/historico + /_version + OTROS INGRESOS (DONACION solo si concepto lo dice)
 # Si en GitHub NO ves esta linea 3, NO se subio este archivo.
 # ============================================================
-APP_VERSION = "2026-11-23_OTROS-INGRESOS_V3"
+APP_VERSION = "2026-11-23_SALDO-ARRASTRE_V4"
 from sqlalchemy import func
 from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -1482,6 +1482,54 @@ def _anotar_etiquetas_ingresos(ingresos):
         ing.etiqueta_mostrar = _etiqueta_ingreso(ing)
     return ingresos
 
+
+def _balance_mes_por_nombre(mes_str):
+    """Balance (ingresos - egresos) de UN mes, sin contar saldo inicial. Sirve para arrastrar el saldo."""
+    try:
+        m_txt = (mes_str or "").strip().upper()
+        pagos = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == m_txt).all()
+        ings = IngresoExtraordinario.query.filter(func.upper(func.trim(IngresoExtraordinario.mes_anio)) == m_txt).all()
+        cuotas_hist = sum([(i.monto or 0) for i in ings if (i.tipo or '').strip().upper() == 'CUOTAS SOCIALES'])
+        cuotas = (sum([(x.monto or 0) for x in pagos]) if pagos else 0) + cuotas_hist
+        otros = sum([(i.monto or 0) for i in ings if (i.tipo or '').strip().upper() != 'CUOTAS SOCIALES'])
+        g_admin = Gasto.query.filter(func.upper(func.trim(Gasto.mes_anio)) == m_txt, Gasto.centro_costo == 'ADMINISTRATIVO').all()
+        g_proy = Gasto.query.filter(func.upper(func.trim(Gasto.mes_anio)) == m_txt, Gasto.centro_costo == 'PROYECTO').all()
+        g_total = (sum([(g.monto or 0) for g in g_admin]) if g_admin else 0) + (sum([(g.monto or 0) for g in g_proy]) if g_proy else 0)
+        try:
+            mes_num = MESES_NOMBRES.index(m_txt.split()[0]) + 1
+            anio_num = int(m_txt.split()[1])
+            evs = EventoProyecto.query.filter(func.extract('month', EventoProyecto.fecha_evento) == mes_num, func.extract('year', EventoProyecto.fecha_evento) == anio_num).all()
+            proy = sum([(e.monto_recaudado or 0) for e in evs]) if evs else 0
+        except Exception:
+            proy = 0
+        return cuotas + otros + proy - g_total
+    except Exception:
+        return 0.0
+
+def _saldo_inicial_mes(mes_filtro, saldo_fundacion):
+    """Saldo con el que ABRE el mes: fundacion (9000) + suma de balances de TODOS los meses anteriores.
+    NOV 2024 abre con fundacion. DIC 2024 abre con 9000 + balance NOV (-6312) = 2688. Etc.
+    Devuelve (saldo_apertura, etiqueta, mes_anterior_str)."""
+    try:
+        m_txt = (mes_filtro or "").strip().upper()
+        mes_num = MESES_NOMBRES.index(m_txt.split()[0]) + 1
+        anio_num = int(m_txt.split()[1])
+    except Exception:
+        return float(saldo_fundacion or 0.0), "SALDO INICIAL", None
+    if (anio_num, mes_num) <= (2024, 11):
+        return float(saldo_fundacion or 0.0), "SALDO INICIAL (FUNDACIÓN)", None
+    saldo = float(saldo_fundacion or 0.0)
+    y, m = 2024, 11
+    while (y, m) < (anio_num, mes_num):
+        saldo += _balance_mes_por_nombre(f"{MESES_NOMBRES[m-1]} {y}")
+        m += 1
+        if m > 12:
+            m = 1; y += 1
+    # Mes anterior al que se consulta
+    pm, py = (mes_num - 1, anio_num) if mes_num > 1 else (12, anio_num - 1)
+    mes_ant = f"{MESES_NOMBRES[pm-1]} {py}"
+    return saldo, f"SALDO MES ANTERIOR ({mes_ant})", mes_ant
+
 def _renglones_cuotas_sociales_historico(ingresos_cuotas_sociales_mes):
     """Cada ingreso historico CUOTAS SOCIALES se muestra como un renglon en la tabla de CUOTAS:
     SOCIO = concepto del ingreso, FECHA = fecha ingresada, MONTO = monto, METODO = EFECTIVO (por defecto, el libro no dice metodo)."""
@@ -1515,7 +1563,10 @@ def estado_cuenta_mensual():
     meses_lista = list(reversed(meses_lista))
 
     config = ConfiguracionTesoreria.query.first()
-    saldo_inicial = float(config.saldo_inicial or 0.0) if config else 0.0
+    saldo_fundacion = float(config.saldo_inicial or 0.0) if config else 0.0
+    # FIX ARRASTRE: el mes abre con el SALDO ACUMULADO del mes anterior, no con 9000 siempre
+    # NOV 2024 abre con 9000, DIC 2024 abre con 9000 + balance NOV = 2688, etc.
+    saldo_inicial, etiqueta_saldo_inicial, mes_anterior = _saldo_inicial_mes(mes_filtro, saldo_fundacion)
     mi_socio = get_mi_socio()
 
     # CUOTAS MES
@@ -1577,6 +1628,8 @@ def estado_cuenta_mensual():
                            mes_actual=mes_filtro,
                            meses_lista=meses_lista,
                            saldo_inicial=saldo_inicial,
+                           etiqueta_saldo_inicial=etiqueta_saldo_inicial,
+                           mes_anterior=mes_anterior,
                            pagos_cuotas=pagos_cuotas,
                            total_cuotas_mes=total_cuotas_mes,
                            num_pagos_cuotas=len(pagos_cuotas),
@@ -1616,7 +1669,8 @@ def estado_cuenta_pdf_mensual():
         return redirect(url_for('login'))
     mes_filtro = request.args.get('mes', get_mes_anio_actual())
     config = ConfiguracionTesoreria.query.first()
-    saldo_inicial = float(config.saldo_inicial or 0.0) if config else 0.0
+    saldo_fundacion = float(config.saldo_inicial or 0.0) if config else 0.0
+    saldo_inicial, etiqueta_saldo_inicial, mes_anterior = _saldo_inicial_mes(mes_filtro, saldo_fundacion)
     pagos_cuotas = PagoCuota.query.filter(func.upper(func.trim(PagoCuota.mes_anio)) == mes_filtro.strip().upper()).all()
     ingresos_extra_mes = IngresoExtraordinario.query.filter_by(mes_anio=mes_filtro).order_by(IngresoExtraordinario.fecha.desc()).all()
     ingresos_cuotas_sociales_mes = [i for i in ingresos_extra_mes if (i.tipo or '').strip().upper() == 'CUOTAS SOCIALES']
@@ -1647,6 +1701,8 @@ def estado_cuenta_pdf_mensual():
     return render_template('estado_cuenta_mensual_pdf.html',
                            mes_actual=mes_filtro,
                            saldo_inicial=saldo_inicial,
+                           etiqueta_saldo_inicial=etiqueta_saldo_inicial,
+                           mes_anterior=mes_anterior,
                            pagos_cuotas=pagos_cuotas,
                            total_cuotas_mes=total_cuotas_mes,
                            num_pagos_cuotas=len(pagos_cuotas),
