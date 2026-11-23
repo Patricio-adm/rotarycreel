@@ -44,7 +44,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <span class="ms-3 badge bg-primary" style="font-size:10px;">{{ mes_actual }}</span>
 </form>
 <div>
-<span class="badge bg-dark" style="font-size:10px;">SALDO INICIAL: ${{ "%.2f"|format(saldo_inicial) }}</span>
+<span class="badge bg-dark" style="font-size:10px;">{{ etiqueta_saldo_inicial }}: ${{ "%.2f"|format(saldo_inicial) }}</span>
 </div>
 </div>
 </div>
@@ -57,7 +57,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <div class="card-body p-2">
 <table class="table table-bordered table-sm mb-0 table-small">
 <tr class="table-light"><td colspan="2" class="fw-bold text-center" style="background:#17458F; color:white;">INGRESOS DEL MES</td></tr>
-<tr><td>SALDO INICIAL (Acumulado anterior)</td><td class="text-end monto-pos">+ ${{ "%.2f"|format(saldo_inicial) }}</td></tr>
+<tr><td>{{ etiqueta_saldo_inicial }}</td><td class="text-end monto-pos">+ ${{ "%.2f"|format(saldo_inicial) }}</td></tr>
 <tr><td>CUOTAS SOCIALES RECAUDADAS {{ mes_actual }} ({{ num_pagos_cuotas }} pagos)</td><td class="text-end monto-pos">+ ${{ "%.2f"|format(total_cuotas_mes) }}</td></tr>
 <tr><td>INGRESOS POR PROYECTOS / APORTES {{ mes_actual }} ({{ num_eventos_mes }} eventos)</td><td class="text-end monto-pos">+ ${{ "%.2f"|format(total_ingresos_proyectos_mes) }}</td></tr>
 <tr><td>{{ titulo_otros_ingresos }} ({{ ingresos_extra_mes|length }} ingresos)</td><td class="text-end monto-pos" style="color:#17a2b8; font-weight:900;">+ ${{ "%.2f"|format(total_ingresos_extra_mes) }}</td></tr>
@@ -69,7 +69,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <tr class="table-danger fw-bold"><td>TOTAL EGRESOS {{ mes_actual }}</td><td class="text-end">- ${{ "%.2f"|format(total_egresos) }}</td></tr>
 <tr><td colspan="2" style="height:8px; background:#f4f6f9; border:none;"></td></tr>
 <tr class="{% if balance_final>=0 %}balance-positivo{% else %}balance-negativo{% endif %}"><td>BALANCE FINAL {{ mes_actual }} (INGRESOS - EGRESOS)</td><td class="text-end">${{ "%.2f"|format(balance_final) }}</td></tr>
-<tr class="{% if balance_acumulado>=0 %}table-success{% else %}table-danger{% endif %} fw-bold"><td>SALDO ACUMULADO AL {{ mes_actual }} (Incluye saldo inicial)</td><td class="text-end" style="font-size:12px;">${{ "%.2f"|format(balance_acumulado) }}</td></tr>
+<tr class="{% if balance_acumulado>=0 %}table-success{% else %}table-danger{% endif %} fw-bold"><td>SALDO ACUMULADO AL {{ mes_actual }} (Incluye {{ etiqueta_saldo_inicial }})</td><td class="text-end" style="font-size:12px;">${{ "%.2f"|format(balance_acumulado) }}</td></tr>
 </table>
 </div>
 </div>
@@ -91,7 +91,7 @@ body { font-family: 'Segoe UI', sans-serif; text-transform: uppercase; font-size
 <hr class="my-2">
 <div class="alert {% if balance_acumulado>=0 %}alert-success{% else %}alert-danger{% endif %} py-2 mb-0 text-center">
 <strong style="font-size:12px;">SALDO FINAL EN CAJA<br>${{ "%.2f"|format(balance_acumulado) }}</strong><br>
-<small style="font-size:8px; text-transform:none;">Saldo inicial + Todos los ingresos - Todos los egresos</small>
+<small style="font-size:8px; text-transform:none;">{{ etiqueta_saldo_inicial }} + Todos los ingresos - Todos los egresos</small>
 </div>
 </div>
 </div>

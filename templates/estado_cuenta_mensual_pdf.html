@@ -31,7 +31,7 @@ body { font-family: Arial, sans-serif; font-size: 9px; text-transform: uppercase
 
 <table class="table">
 <tr class="total-row"><td colspan="2" style="background:#17458F; color:white; text-align:center;">RESUMEN EJECUTIVO {{ mes_actual }}</td></tr>
-<tr><td>SALDO INICIAL</td><td class="text-right monto-pos">+ ${{ "%.2f"|format(saldo_inicial) }}</td></tr>
+<tr><td>{{ etiqueta_saldo_inicial }}</td><td class="text-right monto-pos">+ ${{ "%.2f"|format(saldo_inicial) }}</td></tr>
 <tr><td>CUOTAS SOCIALES RECAUDADAS {{ mes_actual }} ({{ num_pagos_cuotas }} pagos)</td><td class="text-right monto-pos">+ ${{ "%.2f"|format(total_cuotas_mes) }}</td></tr>
 <tr><td>{{ titulo_otros_ingresos }}</td><td class="text-right monto-pos">+ ${{ "%.2f"|format(total_ingresos_extra_mes) }}</td></tr>
 <tr><td>INGRESOS PROYECTOS / APORTES {{ mes_actual }}</td><td class="text-right monto-pos">+ ${{ "%.2f"|format(total_ingresos_proyectos_mes) }}</td></tr>
