@@ -1,10 +1,10 @@
 # ============================================================
 # ROTARY CREEL - app.py
-# VERSION_APP_ROTARY_CREEL = "2026-11-23_SALDO-ARRASTRE_V4"
+# VERSION_APP_ROTARY_CREEL = "2026-11-23_FIX-SCRIPT-RECIBO_V5"
 # Incluye: /tesoreria/historico + /_version + OTROS INGRESOS (DONACION solo si concepto lo dice)
 # Si en GitHub NO ves esta linea 3, NO se subio este archivo.
 # ============================================================
-APP_VERSION = "2026-11-23_SALDO-ARRASTRE_V4"
+APP_VERSION = "2026-11-23_FIX-SCRIPT-RECIBO_V5"
 from sqlalchemy import func
 from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -2232,5 +2232,3 @@ def tesoreria_historico_editar_ingreso(ingreso_id):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
